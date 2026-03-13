@@ -1,5 +1,6 @@
 from pyqtgraph.Qt import QtCore, QtGui
 from QFab.lib.traps.QTrap import QTrap
+from QFab.lib.traps.QTrapGroup import QTrapGroup
 from functools import partial
 import weakref
 import numpy as np
@@ -146,6 +147,8 @@ class CGH(QtCore.QObject):
                            weakref.WeakKeyDictionary())
         object.__setattr__(self, '_connected_traps',
                            weakref.WeakSet())
+        object.__setattr__(self, '_connected_groups',
+                           weakref.WeakSet())
         for attr, val in (('shape', shape),
                           ('wavelength', wavelength),
                           ('n_m', n_m),
@@ -256,6 +259,25 @@ class CGH(QtCore.QObject):
         trap = trap_ref()
         if trap is not None:
             self._structure_cache.pop(trap, None)
+
+    @QtCore.pyqtSlot(object, object)
+    def _onGroupMoved(self, leaves: list, delta: np.ndarray) -> None:
+        '''Bulk-invalidate field caches for all leaves of a translated group.
+
+        Connected to ``QTrapGroup.groupMoved``. In Step 3 this will be
+        replaced by a phase-factor update; for now it ensures that N
+        individual ``changed`` signals do not each trigger a separate
+        cache look-up.
+
+        Parameters
+        ----------
+        leaves : list[QTrap]
+            All leaf traps belonging to the translated group.
+        delta : np.ndarray
+            Translation vector in camera coordinates (unused here).
+        '''
+        for trap in leaves:
+            self._field_cache.pop(trap, None)
 
     @property
     def properties(self) -> list[str]:
@@ -472,6 +494,10 @@ class CGH(QtCore.QObject):
             if hasattr(trap, 'structureChanged'):
                 trap.structureChanged.connect(
                     partial(self._invalidateStructure, trap_ref))
+            parent = trap.parent()
+            if isinstance(parent, QTrapGroup) and parent not in self._connected_groups:
+                parent.groupMoved.connect(self._onGroupMoved)
+                self._connected_groups.add(parent)
             self._connected_traps.add(trap)
         if trap not in self._field_cache:
             amplitude = np.dtype(self.dtype).type(trap.amplitude * np.exp(1j * trap.phase))

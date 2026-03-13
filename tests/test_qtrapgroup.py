@@ -217,5 +217,88 @@ class TestRepr(unittest.TestCase):
         self.assertIn('ntraps=', s)
 
 
+class TestGroupMoved(unittest.TestCase):
+
+    def setUp(self):
+        self.group = QTrapGroup(r=(0., 0., 0.))
+        self.t1 = QTrap(r=(1., 0., 0.), phase=0.)
+        self.t2 = QTrap(r=(2., 0., 0.), phase=0.)
+        self.group.addTrap([self.t1, self.t2])
+
+    def test_group_moved_emitted_on_translation(self):
+        spy = QtTest.QSignalSpy(self.group.groupMoved)
+        self.group.r = (3., 0., 0.)
+        self.assertEqual(len(spy), 1)
+
+    def test_group_moved_carries_leaves(self):
+        spy = QtTest.QSignalSpy(self.group.groupMoved)
+        self.group.r = (3., 0., 0.)
+        leaves, _ = spy[0]
+        self.assertIn(self.t1, leaves)
+        self.assertIn(self.t2, leaves)
+
+    def test_group_moved_carries_delta(self):
+        spy = QtTest.QSignalSpy(self.group.groupMoved)
+        self.group.r = (3., 0., 0.)
+        _, delta = spy[0]
+        np.testing.assert_array_almost_equal(delta, [3., 0., 0.])
+
+    def test_leaf_changed_emitted_after_group_move(self):
+        spy1 = QtTest.QSignalSpy(self.t1.changed)
+        spy2 = QtTest.QSignalSpy(self.t2.changed)
+        self.group.r = (3., 0., 0.)
+        self.assertEqual(len(spy1), 1)
+        self.assertEqual(len(spy2), 1)
+
+    def test_group_changed_emitted_once(self):
+        spy = QtTest.QSignalSpy(self.group.changed)
+        self.group.r = (3., 0., 0.)
+        self.assertEqual(len(spy), 1)
+
+    def test_leaf_positions_updated(self):
+        self.group.r = (3., 0., 0.)
+        np.testing.assert_array_almost_equal(self.t1.r, [4., 0., 0.])
+        np.testing.assert_array_almost_equal(self.t2.r, [5., 0., 0.])
+
+    def test_nested_group_positions_updated(self):
+        inner = QTrapGroup(r=(5., 0., 0.))
+        leaf = QTrap(r=(6., 0., 0.), phase=0.)
+        inner.addTrap(leaf)
+        outer = QTrapGroup(r=(0., 0., 0.))
+        outer.addTrap(inner)
+        outer.r = (2., 0., 0.)
+        np.testing.assert_array_almost_equal(inner.r, [7., 0., 0.])
+        np.testing.assert_array_almost_equal(leaf.r, [8., 0., 0.])
+
+
+class TestTranslateSilently(unittest.TestCase):
+
+    def test_updates_group_position(self):
+        group = QTrapGroup(r=(1., 0., 0.))
+        group._translateSilently(np.array([2., 0., 0.]))
+        np.testing.assert_array_almost_equal(group.r, [3., 0., 0.])
+
+    def test_updates_leaf_positions(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        t = QTrap(r=(1., 0., 0.), phase=0.)
+        group.addTrap(t)
+        group._translateSilently(np.array([5., 0., 0.]))
+        np.testing.assert_array_almost_equal(t.r, [6., 0., 0.])
+
+    def test_does_not_emit_leaf_changed(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        t = QTrap(r=(1., 0., 0.), phase=0.)
+        group.addTrap(t)
+        spy = QtTest.QSignalSpy(t.changed)
+        group._translateSilently(np.array([1., 0., 0.]))
+        self.assertEqual(len(spy), 0)
+
+    def test_does_not_emit_group_changed(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        spy = QtTest.QSignalSpy(group.changed)
+        group._translateSilently(np.array([1., 0., 0.]))
+        self.assertEqual(len(spy), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

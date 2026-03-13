@@ -1,5 +1,6 @@
 '''Unit tests for CGH.'''
 import unittest
+import weakref
 from unittest.mock import MagicMock, patch
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets, QtTest
@@ -509,6 +510,32 @@ class TestDtype(unittest.TestCase):
         cgh = SubCGH()
         result = cgh.bless(np.ones((4, 4), dtype=np.float64))
         self.assertEqual(result.dtype, np.complex128)
+
+
+class TestGroupMoved(unittest.TestCase):
+
+    def setUp(self):
+        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        from QFab.traps.QTweezer import QTweezer
+        self.cgh = CGH(xc=0., yc=0., zc=0., thetac=0., splay=0.)
+        self.group = QTrapGroup(r=(0., 0., 0.))
+        self.t1 = QTweezer(r=(0., 0., 0.), phase=0.)
+        self.t2 = QTweezer(r=(10., 0., 0.), phase=0.)
+        self.group.addTrap([self.t1, self.t2])
+
+    def test_fieldof_connects_to_parent_group(self):
+        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        self.cgh.fieldOf(self.t1)
+        self.assertIn(self.group, self.cgh._connected_groups)
+
+    def test_group_moved_invalidates_all_leaf_fields(self):
+        self.cgh.fieldOf(self.t1)
+        self.cgh.fieldOf(self.t2)
+        self.assertIn(self.t1, self.cgh._field_cache)
+        self.assertIn(self.t2, self.cgh._field_cache)
+        self.cgh._onGroupMoved([self.t1, self.t2], np.array([5., 0., 0.]))
+        self.assertNotIn(self.t1, self.cgh._field_cache)
+        self.assertNotIn(self.t2, self.cgh._field_cache)
 
 
 if __name__ == '__main__':

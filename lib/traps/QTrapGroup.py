@@ -22,6 +22,14 @@ class QTrapGroup(QTrap):
     traps : list[QTrap]
         Direct children of this group (may include nested QTrapGroups).
 
+    Signals
+    -------
+    groupMoved : QtCore.pyqtSignal(object, object)
+        Emitted when the group is translated. Carries the list of all
+        leaf traps in the subtree and the translation delta as an
+        np.ndarray. Emitted before the individual leaf ``changed``
+        signals so that observers can perform bulk invalidation.
+
     Methods
     -------
     addTrap(traps: QTrap | list[QTrap]) -> None
@@ -37,6 +45,8 @@ class QTrapGroup(QTrap):
     themselves be groups). Use ``leaves()`` to iterate only the leaf
     traps at the bottom of the hierarchy.
     '''
+
+    groupMoved = QtCore.pyqtSignal(object, object)
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
@@ -83,14 +93,24 @@ class QTrapGroup(QTrap):
         if trap.parent() is self:
             trap.setParent(None)
 
+    def _translateSilently(self, delta: np.ndarray) -> None:
+        '''Translate this node and all descendants by delta without emitting signals.'''
+        self._r += delta
+        for child in self:
+            if isinstance(child, QTrapGroup):
+                child._translateSilently(delta)
+            else:
+                child._r += delta
+
     @QTrap.r.setter
     def r(self, r: npt.ArrayLike) -> None:
         new_r = np.asarray(r, dtype=float)
         delta = new_r - self._r
-        with QtCore.QSignalBlocker(self):
-            QTrap.r.fset(self, new_r)
-        for trap in self:
-            trap.r = trap._r + delta
+        leaves = list(self.leaves())
+        self._translateSilently(delta)
+        self.groupMoved.emit(leaves, delta)
+        for leaf in leaves:
+            leaf.changed.emit()
         self.changed.emit()
 
     @property

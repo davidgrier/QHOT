@@ -19,6 +19,8 @@ class QTrapMenu(QtWidgets.QMenu):
 
     Parameters
     ----------
+    title : str
+        Menu title shown in the menu bar.  Defaults to ``'Add Trap'``.
     *args, **kwargs
         Forwarded to ``QMenu``.
 
@@ -37,8 +39,9 @@ class QTrapMenu(QtWidgets.QMenu):
 
     trapRequested = QtCore.pyqtSignal(QtCore.QPointF, QTrap)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, title: str = 'Add Trap', **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.setTitle(title)
         self._pos = QtCore.QPointF(0., 0.)
         self._populateMenu()
 

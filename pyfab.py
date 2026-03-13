@@ -135,11 +135,28 @@ class PyFab(QtWidgets.QMainWindow):
         if geometry:
             self.restoreGeometry(geometry)
         else:
-            self.adjustSize()
+            QtCore.QTimer.singleShot(0, self._fitToCamera)
         if (filename := self.save.fromToml(self.cghTree)):
             self.setStatus(f'Configuration restored from {filename}')
         else:
             self.setStatus('Configuration file not found or invalid')
+
+    def _fitToCamera(self) -> None:
+        '''Size the window so the screen shows the camera frame with no bars.
+
+        Sets the splitter so the screen gets exactly the camera's native
+        width, then resizes the window height to match the camera height
+        plus the menu bar and status bar.  Only called on first launch
+        when no saved geometry exists.
+        '''
+        cam = self.screen.sizeHint()
+        if not cam.isValid():
+            return
+        panel_w = self.tabWidget.sizeHint().width()
+        self.splitter.setSizes([cam.width(), panel_w])
+        chrome_h = self.menuBar().height() + self.statusBar().height()
+        self.resize(cam.width() + panel_w + self.splitter.handleWidth(),
+                    cam.height() + chrome_h)
 
     @QtCore.pyqtSlot(str)
     def setStatus(self, message: str) -> None:

@@ -1,6 +1,6 @@
 from QVideo.lib import QVideoScreen, QCamera
 from QFab.lib.traps.QTrapOverlay import QTrapOverlay
-from pyqtgraph.Qt import QtCore, QtGui
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import logging
 
 
@@ -38,6 +38,27 @@ class QFabScreen(QVideoScreen):
         super()._setupUi()
         self.overlay = QTrapOverlay()
         self.view.addItem(self.overlay)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
+                           QtWidgets.QSizePolicy.Policy.Expanding)
+
+    def sizeHint(self) -> QtCore.QSize:
+        '''Return the natural video frame size as the preferred widget size.'''
+        rect = self.view.viewRect()
+        if rect.isValid() and rect.width() > 0:
+            return QtCore.QSize(int(rect.width()), int(rect.height()))
+        return super().sizeHint()
+
+    def hasHeightForWidth(self) -> bool:
+        '''Return True when a valid video frame size is known.'''
+        rect = self.view.viewRect()
+        return rect.isValid() and rect.width() > 0
+
+    def heightForWidth(self, width: int) -> int:
+        '''Return the height that preserves the video aspect ratio.'''
+        rect = self.view.viewRect()
+        if rect.isValid() and rect.width() > 0:
+            return int(width * rect.height() / rect.width())
+        return super().heightForWidth(width)
 
     def _overlayPos(self, event: QtGui.QInputEvent) -> QtCore.QPointF:
         '''Map a widget event position to overlay item coordinates.

@@ -57,6 +57,8 @@ class PyFab(QtWidgets.QMainWindow):
         self.cghTree.cgh = self.cgh
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])
         self.helpBrowser.setSource(QtCore.QUrl('index.html'))
+        self.splitter.setStretchFactor(0, 3)  # screen gets 3 parts
+        self.splitter.setStretchFactor(1, 1)  # control panel gets 1 part
 
     def _connectSignals(self) -> None:
         '''Wire signals and slots between subsystems.'''
@@ -120,13 +122,20 @@ class PyFab(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def saveSettings(self) -> None:
-        '''Save CGH calibration settings to a TOML file.'''
+        '''Save window geometry and CGH calibration settings.'''
+        QtCore.QSettings('QFab', 'PyFab').setValue(
+            'geometry', self.saveGeometry())
         filename = self.save.toToml(self.cghTree)
         self.setStatus(f'Configuration saved to {filename}')
 
     @QtCore.pyqtSlot()
     def restoreSettings(self) -> None:
-        '''Restore CGH calibration settings from a TOML file.'''
+        '''Restore window geometry and CGH calibration settings.'''
+        geometry = QtCore.QSettings('QFab', 'PyFab').value('geometry')
+        if geometry:
+            self.restoreGeometry(geometry)
+        else:
+            self.adjustSize()
         if (filename := self.save.fromToml(self.cghTree)):
             self.setStatus(f'Configuration restored from {filename}')
         else:

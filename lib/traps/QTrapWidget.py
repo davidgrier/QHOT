@@ -30,14 +30,24 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     _field_width: int | None = None
 
     @classmethod
+    def _invalidateFieldWidth(cls, font: QtGui.QFont = None) -> None:
+        '''Clear the cached field width; called when the application font changes.'''
+        cls._field_width = None
+
+    @classmethod
     def fieldWidth(cls) -> int:
         '''Return the pixel width needed to display a typical value.
 
-        Computed once from the application font metrics and cached on
-        the class.
+        Computed from the application font metrics, cached per concrete
+        class (not shared across subclasses), and invalidated automatically
+        when the application font changes.
         '''
-        if cls._field_width is None:
-            fm = QtGui.QFontMetrics(QtWidgets.QApplication.instance().font())
+        if cls.__dict__.get('_field_width') is None:
+            app = QtWidgets.QApplication.instance()
+            if '_signal_connected' not in cls.__dict__:
+                app.fontChanged.connect(cls._invalidateFieldWidth)
+                cls._signal_connected = True
+            fm = QtGui.QFontMetrics(app.font())
             cls._field_width = fm.boundingRect('12345.6').width()
         return cls._field_width
 
@@ -72,8 +82,14 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
 
     @QtCore.pyqtSlot()
     def updateValue(self) -> None:
-        '''Read the current text, update the stored value, and emit signal.'''
-        self.value = float(self.text())
+        '''Read the current text, update the stored value, and emit signal.
+
+        No-op if the parsed value equals the currently stored value.
+        '''
+        new_value = float(self.text())
+        if new_value == self._value:
+            return
+        self.value = new_value
         logger.debug(f'Changing {self.name}: {self.value}')
         self.propertyChanged.emit(self.name, self.value)
 
@@ -94,7 +110,8 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
 
     Creates one ``QTrapPropertyEdit`` per registered property and
     connects each to ``trap.setTrapProperty``.  Updates automatically
-    when the trap emits ``changed``.
+    when the trap emits ``changed``.  Call ``cleanup()`` before
+    deletion to disconnect from the trap's signals.
 
     Parameters
     ----------
@@ -115,27 +132,30 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.wid: dict[str, QTrapPropertyEdit] = {}
         for name in trap.properties.keys():
-            self.wid[name] = self.propertyWidget(trap, name)
-            tip = trap.__class__.__name__ + ': ' + name
-            self.wid[name].setStatusTip(tip)
+            value = getattr(trap, name)
+            decimals = trap.properties[name]['decimals']
+            wid = QTrapPropertyEdit(name, value, decimals=decimals)
+            wid.propertyChanged.connect(trap.setTrapProperty)
+            wid.setStatusTip(trap.__class__.__name__ + ': ' + name)
             if trap.properties[name]['tooltip']:
-                self.wid[name].setToolTip(name)
-            layout.addWidget(self.wid[name])
-        trap.changed.connect(functools.partial(self.updateValues, trap))
+                wid.setToolTip(name)
+            self.wid[name] = wid
+            layout.addWidget(wid)
+        self._update_slot = functools.partial(self.updateValues, trap)
+        trap.changed.connect(self._update_slot)
         self.setLayout(layout)
-
-    def propertyWidget(self, trap: QTrap, name: str) -> QTrapPropertyEdit:
-        '''Create an editor widget for a single trap property.'''
-        value = getattr(trap, name)
-        decimals = trap.properties[name]['decimals']
-        wid = QTrapPropertyEdit(name, value, decimals=decimals)
-        wid.propertyChanged.connect(trap.setTrapProperty)
-        return wid
 
     def updateValues(self, trap: QTrap) -> None:
         '''Refresh all editors from the trap's current property values.'''
         for name in trap.properties.keys():
             self.wid[name].value = getattr(trap, name)
+
+    def cleanup(self) -> None:
+        '''Disconnect from the trap's ``changed`` signal before deletion.'''
+        try:
+            self._trap.changed.disconnect(self._update_slot)
+        except (TypeError, RuntimeError):
+            pass
 
 
 class QTrapWidget(QtWidgets.QFrame):
@@ -201,7 +221,9 @@ class QTrapWidget(QtWidgets.QFrame):
     def unregisterTrap(self, trap: QTrap) -> None:
         '''Remove and destroy the property editor row for ``trap``.'''
         try:
-            self._trap_widgets.pop(trap).deleteLater()
+            widget = self._trap_widgets.pop(trap)
+            widget.cleanup()
+            widget.deleteLater()
         except KeyError:
             logger.warning(f'Trap not registered: {trap}')
 

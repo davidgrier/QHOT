@@ -19,6 +19,15 @@ class TestQTrapPropertyEditFieldWidth(unittest.TestCase):
         w2 = QTrapPropertyEdit.fieldWidth()
         self.assertIs(w1, w2)
 
+    def test_cached_per_class(self):
+        class SubEdit(QTrapPropertyEdit):
+            pass
+        base_width = QTrapPropertyEdit.fieldWidth()
+        sub_width = SubEdit.fieldWidth()
+        # both are positive ints; crucially they are stored separately
+        self.assertIn('_field_width', QTrapPropertyEdit.__dict__)
+        self.assertIn('_field_width', SubEdit.__dict__)
+
 
 class TestQTrapPropertyEditInit(unittest.TestCase):
 
@@ -94,6 +103,12 @@ class TestQTrapPropertyEditValue(unittest.TestCase):
         self.edit.updateValue()
         self.assertEqual(len(spy), 1)
 
+    def test_update_value_noop_when_unchanged(self):
+        self.edit.value = 5.0
+        spy = QtTest.QSignalSpy(self.edit.propertyChanged)
+        self.edit.updateValue()
+        self.assertEqual(len(spy), 0)
+
     def test_update_value_signal_carries_name_and_value(self):
         self.edit.setText('7.00')
         spy = QtTest.QSignalSpy(self.edit.propertyChanged)
@@ -134,6 +149,18 @@ class TestQTrapPropertyWidget(unittest.TestCase):
         self.widget.wid['x'].setText('42.00')
         self.widget.wid['x'].updateValue()
         self.assertAlmostEqual(self.trap.x, 42., places=2)
+
+    def test_cleanup_disconnects_from_trap(self):
+        self.widget.cleanup()
+        self.trap.x = 99.
+        self.assertNotAlmostEqual(self.widget.wid['x'].value, 99., places=2)
+
+    def test_cleanup_is_idempotent(self):
+        self.widget.cleanup()
+        try:
+            self.widget.cleanup()
+        except Exception as e:
+            self.fail(f'Second cleanup raised unexpectedly: {e}')
 
 
 class TestQTrapWidget(unittest.TestCase):
@@ -177,6 +204,14 @@ class TestQTrapWidget(unittest.TestCase):
         self.widget.registerTrap(self.trap)
         self.widget.unregisterTrap(self.trap)
         self.assertNotIn(self.trap, self.widget._trap_widgets)
+
+    def test_unregister_disconnects_trap(self):
+        self.widget.registerTrap(self.trap)
+        row = self.widget._trap_widgets[self.trap]
+        self.widget.unregisterTrap(self.trap)
+        initial_x = row.wid['x'].value
+        self.trap.x = initial_x + 50.
+        self.assertAlmostEqual(row.wid['x'].value, initial_x, places=2)
 
     def test_unregister_unknown_trap_logs_warning(self):
         with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING') as cm:

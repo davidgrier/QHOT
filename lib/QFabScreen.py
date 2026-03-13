@@ -1,6 +1,7 @@
 from QVideo.lib import QVideoScreen, QCamera
 from QFab.lib.traps.QTrapOverlay import QTrapOverlay
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+import numpy as np
 import logging
 
 
@@ -31,7 +32,13 @@ class QFabScreen(QVideoScreen):
     status : str
         Emitted with a human-readable message after user actions such
         as clearing all traps.
+    rendered : signal
+        Emitted each time a video frame is actually drawn, at the rate
+        set by ``framerate``.  Suitable for driving computations that
+        should be synchronized with the display cadence.
     '''
+
+    rendered = QtCore.pyqtSignal()
 
     def _setupUi(self) -> None:
         '''Add the trap overlay to the inherited video view.'''
@@ -82,6 +89,14 @@ class QFabScreen(QVideoScreen):
         '''
         return self.overlay.mapFromScene(
             self.mapToScene(event.position().toPoint()))
+
+    @QtCore.pyqtSlot(np.ndarray)
+    def setImage(self, image: np.ndarray) -> None:
+        '''Render a frame and emit ``rendered`` if the display rate allows it.'''
+        was_ready = self._ready
+        super().setImage(image)
+        if was_ready:
+            self.rendered.emit()
 
     @QtCore.pyqtSlot()
     def clearTraps(self) -> None:

@@ -5,6 +5,7 @@ from QVideo.lib import choose_camera, QCameraTree
 from QFab.lib.QSLM import QSLM
 from QFab.lib.holograms.CGH import CGH
 from QFab.lib.holograms.QCGHTree import QCGHTree  # noqa: F401 — needed for uic
+from QFab.lib.traps.QTrap import QTrap
 from QFab.lib.QSaveFile import QSaveFile
 import logging
 
@@ -33,6 +34,8 @@ class PyFab(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QFab', 'PyFab')
 
+    _computeRequested = QtCore.pyqtSignal(list)
+
     def __init__(self, cameraTree: QCameraTree,
                  *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -40,11 +43,16 @@ class PyFab(QtWidgets.QMainWindow):
         self.source = self.cameraTree.source
         self.slm = QSLM()
         self.cgh = CGH(shape=self.slm.shape)
+        self._cgh_thread = QtCore.QThread(self)
+        self.cgh.moveToThread(self._cgh_thread)
+        self._traps_changed: bool = False
+        self._compute_pending: bool = False
         self._setupUi()
         self._connectSignals()
         self._addFilters()
         self.save = QSaveFile(self)
         self.restoreSettings()
+        self._cgh_thread.start()
 
     def _setupUi(self) -> None:
         '''Load the UI file and configure child widgets.'''
@@ -64,20 +72,52 @@ class PyFab(QtWidgets.QMainWindow):
         self.dvr.playing.connect(self.dvrPlayback)
         self.dvr.recording.connect(self.cameraTree.setDisabled)
         self.cgh.hologramReady.connect(self.slm.setData)
+        self.cgh.hologramReady.connect(self._onHologramReady)
+        self._computeRequested.connect(self.cgh.compute)
+        self.screen.rendered.connect(self._onFrame)
         self.screen.status.connect(self.setStatus)
         overlay = self.screen.overlay
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
-        # TODO: connect trap-tree changes to CGH computation once the
-        # aggregate "traps changed" signal is designed (see QTrapOverlay).
-        # TODO: connect CGH.recalculate to overlay once an overlay
-        # recalculate slot is implemented.
+        overlay.trapAdded.connect(self._onTrapAdded)
+        overlay.trapRemoved.connect(self._onTrapRemoved)
+        self.cgh.recalculate.connect(self._scheduleCompute)
         # TODO: connect menuAddTrap once QTrapMenu integration is finalised.
 
     def _addFilters(self) -> None:
         '''Register display filters with the video screen.'''
         for f in 'QRGBFilter QBlurFilter QSampleHold QEdgeFilter'.split():
             self.screen.filter.registerByName(f)
+
+    @QtCore.pyqtSlot(QTrap)
+    def _onTrapAdded(self, trap: QTrap) -> None:
+        '''Connect each new leaf trap's changed signal and schedule a compute.'''
+        for leaf in trap.leaves():
+            leaf.changed.connect(self._scheduleCompute)
+        self._scheduleCompute()
+
+    @QtCore.pyqtSlot(QTrap)
+    def _onTrapRemoved(self, trap: QTrap) -> None:
+        '''Schedule a hologram recompute after a trap is removed.'''
+        self._scheduleCompute()
+
+    @QtCore.pyqtSlot()
+    def _scheduleCompute(self) -> None:
+        '''Mark traps as changed; the next frame will trigger recomputation.'''
+        self._traps_changed = True
+
+    @QtCore.pyqtSlot()
+    def _onFrame(self) -> None:
+        '''On each video frame, dispatch a compute if traps have changed.'''
+        if self._traps_changed and not self._compute_pending:
+            self._traps_changed = False
+            self._compute_pending = True
+            self._computeRequested.emit(list(self.screen.overlay._traps))
+
+    @QtCore.pyqtSlot(object)
+    def _onHologramReady(self, _phase) -> None:
+        '''Clear the pending flag so the next frame may trigger a compute.'''
+        self._compute_pending = False
 
     @QtCore.pyqtSlot(bool)
     def dvrPlayback(self, playback: bool) -> None:
@@ -195,8 +235,10 @@ class PyFab(QtWidgets.QMainWindow):
         self.statusBar().showMessage(message, 5000)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
-        '''Save settings and close the SLM on exit.'''
+        '''Save settings, shut down CGH thread, and close the SLM on exit.'''
         self.saveSettings()
+        self._cgh_thread.quit()
+        self._cgh_thread.wait()
         self.slm.close()
         super().closeEvent(event)
 

@@ -1,33 +1,42 @@
-from QFab.lib.traps import QTrap
-from pyqtgraph.Qt.QtCore import pyqtProperty
+from QFab.lib.traps.QTrap import QTrap
+from QFab.lib.letterSymbol import letterSymbol
 import numpy as np
 
 
 class QVortex(QTrap):
 
-    '''Optical vortex
+    '''Optical vortex trap.
 
-    Inherits
-    --------
-    QTrap
+    Applies a helical phase ramp ``exp(i ell θ)`` to the trapping beam,
+    producing a ring-shaped focus with a phase singularity at the centre.
 
-    Properties
+    Parameters
     ----------
     ell : int
-        Topological charge of the optical vortex
+        Topological charge (winding number) of the vortex. Default: 0.
+    *args, **kwargs
+        Forwarded to ``QTrap``.
+
+    Attributes
+    ----------
+    ell : int
+        Topological charge of the optical vortex.
     '''
 
-    def __init__(self, *args,
-                 ell: int = 0,
-                 **kwargs) -> None:
+    def __init__(self, *args, ell: int = 0, **kwargs) -> None:
+        self._ell = int(ell)
         super().__init__(*args, **kwargs)
-        self.setSymbol(self.letterSymbol('V'))
-        self.ell = ell
+
+    def _registerProperties(self) -> None:
+        super()._registerProperties()
         self.registerProperty('ell', decimals=0, tooltip=True)
 
-    @pyqtProperty(int)
+    def appearance(self) -> dict:
+        return {'symbol': letterSymbol('V')}
+
+    @property
     def ell(self) -> int:
-        '''Topological charge of the optical vortex'''
+        '''Topological charge of the optical vortex.'''
         return self._ell
 
     @ell.setter

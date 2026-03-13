@@ -223,7 +223,8 @@ class TestSettings(unittest.TestCase):
 
     def test_setter_unknown_key_does_not_raise(self):
         try:
-            self.cgh.settings = {'nonexistent': 42}
+            with self.assertLogs('QFab.lib.holograms.CGH', level='WARNING'):
+                self.cgh.settings = {'nonexistent': 42}
         except Exception as e:
             self.fail(f'settings setter raised unexpectedly: {e}')
 

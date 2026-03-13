@@ -104,7 +104,8 @@ class TestSettings(unittest.TestCase):
 
     def test_setter_ignores_unknown_keys(self):
         try:
-            self.widget.settings = {'nonexistent': 99.}
+            with self.assertLogs('QFab.lib.holograms.QCGHTree', level='WARNING'):
+                self.widget.settings = {'nonexistent': 99.}
         except Exception as e:
             self.fail(f'settings setter raised unexpectedly: {e}')
 

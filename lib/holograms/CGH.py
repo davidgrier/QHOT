@@ -149,6 +149,10 @@ class CGH(QtCore.QObject):
                            weakref.WeakSet())
         object.__setattr__(self, '_connected_groups',
                            weakref.WeakSet())
+        object.__setattr__(self, '_group_field_cache',
+                           weakref.WeakKeyDictionary())
+        object.__setattr__(self, '_group_moved_pending',
+                           weakref.WeakSet())
         for attr, val in (('shape', shape),
                           ('wavelength', wavelength),
                           ('n_m', n_m),
@@ -194,6 +198,7 @@ class CGH(QtCore.QObject):
         self.matrix.rotate(self.thetac, 0., 0., 1.)
         self.matrix.translate(-self.rc)
         self._field_cache.clear()
+        self._group_field_cache.clear()
         self.recalculate.emit()
 
     def updateGeometry(self) -> None:
@@ -219,19 +224,24 @@ class CGH(QtCore.QObject):
         self.recalculate.emit()
 
     def _clearCache(self) -> None:
-        '''Discard all cached per-trap fields and structures.
+        '''Discard all cached per-trap fields, structures, and group fields.
 
         Called automatically when CGH geometry is updated. All entries
-        will be recomputed on the next call to ``fieldOf``.
+        will be recomputed on the next call to ``fieldOf`` or ``compute``.
         '''
         self._field_cache.clear()
         self._structure_cache.clear()
+        self._group_field_cache.clear()
+        self._group_moved_pending.clear()
 
     def _invalidateField(self, trap_ref: weakref.ref) -> None:
         '''Discard the cached displacement field for one trap.
 
         Connected to ``trap.changed`` so that position, amplitude, or
-        phase changes are reflected in the next computation.
+        phase changes are reflected in the next computation. Traps whose
+        most recent position change came from a group translation are
+        tracked in ``_group_moved_pending`` and skipped here, because
+        ``_onGroupMoved`` has already updated the group field cache.
 
         Parameters
         ----------
@@ -240,8 +250,15 @@ class CGH(QtCore.QObject):
             removed.
         '''
         trap = trap_ref()
-        if trap is not None:
-            self._field_cache.pop(trap, None)
+        if trap is None:
+            return
+        if trap in self._group_moved_pending:
+            self._group_moved_pending.discard(trap)
+            return
+        self._field_cache.pop(trap, None)
+        parent = trap.parent()
+        if isinstance(parent, QTrapGroup):
+            self._group_field_cache.pop(parent, None)
 
     def _invalidateStructure(self, trap_ref: weakref.ref) -> None:
         '''Discard the cached structure field for one trap.
@@ -249,6 +266,8 @@ class CGH(QtCore.QObject):
         Connected to ``trap.structureChanged`` so that changes to
         structural parameters (e.g. topological charge) are reflected
         in the next computation without discarding the displacement field.
+        Also clears the parent group's accumulated field cache so it is
+        rebuilt on the next ``compute`` call.
 
         Parameters
         ----------
@@ -259,25 +278,51 @@ class CGH(QtCore.QObject):
         trap = trap_ref()
         if trap is not None:
             self._structure_cache.pop(trap, None)
+            parent = trap.parent()
+            if isinstance(parent, QTrapGroup):
+                self._group_field_cache.pop(parent, None)
 
     @QtCore.pyqtSlot(object, object)
     def _onGroupMoved(self, leaves: list, delta: np.ndarray) -> None:
-        '''Bulk-invalidate field caches for all leaves of a translated group.
+        '''Apply a uniform phase shift to the cached group field.
 
-        Connected to ``QTrapGroup.groupMoved``. In Step 3 this will be
-        replaced by a phase-factor update; for now it ensures that N
-        individual ``changed`` signals do not each trigger a separate
-        cache look-up.
+        When a group is translated by ``delta`` in camera coordinates,
+        each leaf trap's displacement field acquires a separable phase
+        factor.  Rather than invalidating and recomputing N fields, this
+        slot updates the accumulated group field with two in-place
+        broadcasts—one per axis—at a cost of O(height + width) complex
+        exponentials shared across all N traps.
+
+        If no group field is cached yet, falls back to per-leaf
+        invalidation so that ``compute`` rebuilds from scratch.
 
         Parameters
         ----------
         leaves : list[QTrap]
             All leaf traps belonging to the translated group.
         delta : np.ndarray
-            Translation vector in camera coordinates (unused here).
+            Translation in camera coordinates applied to all leaves.
         '''
-        for trap in leaves:
-            self._field_cache.pop(trap, None)
+        if not leaves:
+            return
+        parent = leaves[0].parent()
+        if not isinstance(parent, QTrapGroup) or parent not in self._group_field_cache:
+            for trap in leaves:
+                self._field_cache.pop(trap, None)
+            return
+        r_new = np.array(leaves[0].r)
+        r_old = r_new - delta
+        slm_new = self.transform(QtGui.QVector3D(*r_new))
+        slm_old = self.transform(QtGui.QVector3D(*r_old))
+        delta_slm = slm_new - slm_old
+        dx = np.float32(delta_slm.x())
+        dy = np.float32(delta_slm.y())
+        dz = np.float32(delta_slm.z())
+        phase_x = np.exp(self.iqx * dx + self.iqxz * dz)
+        phase_y = np.exp(self.iqy * dy + self.iqyz * dz)
+        self._group_field_cache[parent] *= phase_y[:, np.newaxis]
+        self._group_field_cache[parent] *= phase_x[np.newaxis, :]
+        self._group_moved_pending.update(leaves)
 
     @property
     def properties(self) -> list[str]:
@@ -517,8 +562,11 @@ class CGH(QtCore.QObject):
     def compute(self, traps: list[QTrap]) -> np.ndarray:
         '''Compute the phase hologram for a list of traps.
 
-        Accumulates the complex fields of all traps, quantizes the result
-        to uint8, and emits ``hologramReady``.
+        For traps belonging to a group, the group's accumulated complex
+        field is used directly (and updated in place by ``_onGroupMoved``
+        on each translation).  The group field is built lazily on the
+        first ``compute`` call after creation or cache invalidation.
+        Ungrouped traps use the existing per-trap ``fieldOf`` cache.
 
         Parameters
         ----------
@@ -532,8 +580,20 @@ class CGH(QtCore.QObject):
         '''
         logger.debug(f'computing hologram for {len(traps)} traps')
         self.field.fill(0j)
+        seen_groups: set = set()
         for trap in traps:
-            self.field += self.fieldOf(trap)
+            parent = trap.parent()
+            if isinstance(parent, QTrapGroup):
+                if parent not in seen_groups:
+                    if parent not in self._group_field_cache:
+                        group_field = np.zeros(self.shape, dtype=self.dtype)
+                        for leaf in parent.leaves():
+                            group_field += self.fieldOf(leaf)
+                        self._group_field_cache[parent] = group_field
+                    self.field += self._group_field_cache[parent]
+                    seen_groups.add(parent)
+            else:
+                self.field += self.fieldOf(trap)
         self.phase = self.quantize(self.field)
         self.hologramReady.emit(self.phase)
         return self.phase

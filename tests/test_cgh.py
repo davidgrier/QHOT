@@ -537,6 +537,75 @@ class TestGroupMoved(unittest.TestCase):
         self.assertNotIn(self.t1, self.cgh._field_cache)
         self.assertNotIn(self.t2, self.cgh._field_cache)
 
+    def test_group_field_built_on_first_compute(self):
+        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+
+    def test_group_field_used_in_compute(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        # Move the group: phase update should be applied, not full recompute
+        self.cgh._onGroupMoved([self.t1, self.t2], np.array([1., 0., 0.]))
+        self.assertIn(self.group, self.cgh._group_field_cache)
+
+    def test_group_moved_applies_phase_not_invalidates(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        cached_before = self.cgh._group_field_cache[self.group].copy()
+        self.cgh._onGroupMoved([self.t1, self.t2], np.array([1., 0., 0.]))
+        # Cache entry should still be present (updated, not cleared)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+        # And its values should have changed (phase was applied in-place)
+        self.assertFalse(
+            np.allclose(self.cgh._group_field_cache[self.group], cached_before)
+        )
+
+    def test_individual_trap_change_clears_group_field(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+        # Simulate an individual trap change (not via groupMoved)
+        trap_ref = weakref.ref(self.t1)
+        self.cgh._invalidateField(trap_ref)
+        self.assertNotIn(self.group, self.cgh._group_field_cache)
+
+    def test_structure_change_clears_group_field(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+        trap_ref = weakref.ref(self.t1)
+        self.cgh._invalidateStructure(trap_ref)
+        self.assertNotIn(self.group, self.cgh._group_field_cache)
+
+    def test_group_moved_pending_guards_against_double_invalidation(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        self.cgh._onGroupMoved([self.t1, self.t2], np.array([1., 0., 0.]))
+        # Leaves should be in pending set
+        self.assertIn(self.t1, self.cgh._group_moved_pending)
+        # Calling _invalidateField for a pending trap should NOT clear group cache
+        trap_ref = weakref.ref(self.t1)
+        self.cgh._invalidateField(trap_ref)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+        # And the leaf should be removed from pending
+        self.assertNotIn(self.t1, self.cgh._group_moved_pending)
+
+    def test_geometry_change_clears_group_field(self):
+        traps = [self.t1, self.t2]
+        self.cgh.compute(traps)
+        self.assertIn(self.group, self.cgh._group_field_cache)
+        self.cgh.wavelength = 0.532
+        self.assertNotIn(self.group, self.cgh._group_field_cache)
+
+    def test_ungrouped_traps_unaffected(self):
+        from QFab.traps.QTweezer import QTweezer
+        solo = QTweezer(r=(50., 50., 0.), phase=0.)
+        result = self.cgh.compute([self.t1, self.t2, solo])
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype, np.uint8)
+
 
 if __name__ == '__main__':
     unittest.main()

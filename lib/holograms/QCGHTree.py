@@ -193,9 +193,15 @@ class QCGHTree(ParameterTree):
                     logger.warning(f'CGH has no field: {key}')
 
     def updateTree(self) -> None:
-        '''Populate the tree with the current CGH settings.'''
+        '''Populate the tree with the current CGH settings.
+
+        Only parameters that have a corresponding tree entry are applied;
+        CGH fields with no tree representation (e.g. ``shape``) are
+        silently skipped.
+        '''
         if self._cgh is not None:
-            self.settings = self._cgh.settings
+            self.settings = {k: v for k, v in self._cgh.settings.items()
+                             if k in self._parameters}
 
     @classmethod
     def example(cls) -> None:

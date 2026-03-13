@@ -64,12 +64,14 @@ class PyFab(QtWidgets.QMainWindow):
         self.dvr.recording.connect(self.cameraTree.setDisabled)
         self.cgh.hologramReady.connect(self.slm.setData)
         self.screen.status.connect(self.setStatus)
+        overlay = self.screen.overlay
+        overlay.trapAdded.connect(self.traps.registerTrap)
+        overlay.trapRemoved.connect(self.traps.unregisterTrap)
         # TODO: connect trap-tree changes to CGH computation once the
         # aggregate "traps changed" signal is designed (see QTrapOverlay).
         # TODO: connect CGH.recalculate to overlay once an overlay
         # recalculate slot is implemented.
-        # TODO: connect menuAddTrap, trapAdded/trapDeleted once
-        # QTrapMenu and QTrappingPattern integration is finalised.
+        # TODO: connect menuAddTrap once QTrapMenu integration is finalised.
 
     def _addFilters(self) -> None:
         '''Register display filters with the video screen.'''

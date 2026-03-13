@@ -59,7 +59,17 @@ class QTrapOverlay(ScatterPlotItem):
         Modifier name → Qt enum mapping (supports ``|``-separated combos).
     default : Descriptions
         Default gesture→handler bindings used when none are supplied.
+
+    Signals
+    -------
+    trapAdded : QTrap
+        Emitted with the top-level trap or group after it is added.
+    trapRemoved : QTrap
+        Emitted with the top-level trap or group after it is removed.
     '''
+
+    trapAdded = QtCore.pyqtSignal(QTrap)
+    trapRemoved = QtCore.pyqtSignal(QTrap)
 
     class State(Enum):
         '''Visual state of a trap spot, controlling its fill color.'''
@@ -206,6 +216,7 @@ class QTrapOverlay(ScatterPlotItem):
                     **trap.appearance()}
             self.addPoints([spot])
             trap.changed.connect(self._onTrapChanged)
+        self.trapAdded.emit(traps)
         return True
 
     def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
@@ -239,17 +250,20 @@ class QTrapOverlay(ScatterPlotItem):
             t._index = None
         group.setParent(None)
         self._rebuildSpots()
+        self.trapRemoved.emit(group)
         return True
 
     def clearTraps(self) -> None:
         '''Remove all traps from the overlay.'''
+        top_level = list(self)
         for trap in list(self._traps):
             trap.changed.disconnect(self._onTrapChanged)
             trap._index = None
         self._traps.clear()
         self.clear()
-        for item in list(self):
+        for item in top_level:
             item.setParent(None)
+            self.trapRemoved.emit(item)
 
     def _rebuildSpots(self) -> None:
         '''Rebuild all SpotItems after a removal, resequencing ``_index``.'''

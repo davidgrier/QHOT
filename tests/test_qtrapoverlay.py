@@ -1,7 +1,7 @@
 '''Unit tests for QTrapOverlay.'''
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
 from QFab.lib.traps.QTrap import QTrap
 from QFab.lib.traps.QTrapGroup import QTrapGroup
 from QFab.lib.traps.QTrapOverlay import QTrapOverlay
@@ -328,6 +328,63 @@ class TestFinalizeSelection(unittest.TestCase):
         self.overlay._finalizeSelection(self.rect)
         grp = list(self.overlay)[0]
         np.testing.assert_array_almost_equal(grp._r, [5., 5., 0.])
+
+
+class TestTrapSignals(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = QTrapOverlay()
+
+    def tearDown(self):
+        self.overlay.clearTraps()
+
+    def test_trap_added_emitted_on_add_single(self):
+        trap = QTrap(r=(1., 2., 0.), phase=0.)
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay.addTrap(trap)
+        self.assertEqual(len(spy), 1)
+
+    def test_trap_added_carries_correct_trap(self):
+        trap = QTrap(r=(1., 2., 0.), phase=0.)
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay.addTrap(trap)
+        self.assertIs(spy[0][0], trap)
+
+    def test_trap_added_emitted_once_per_list_item(self):
+        traps = [QTrap(r=(float(i), 0., 0.), phase=0.) for i in range(3)]
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay.addTrap(traps)
+        self.assertEqual(len(spy), 3)
+
+    def test_trap_added_emitted_for_group(self):
+        group = QTrapGroup(r=(5., 5., 0.))
+        group.addTrap([QTrap(r=(4., 5., 0.), phase=0.),
+                       QTrap(r=(6., 5., 0.), phase=0.)])
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay.addTrap(group)
+        self.assertEqual(len(spy), 1)
+        self.assertIs(spy[0][0], group)
+
+    def test_trap_removed_emitted_on_remove(self):
+        trap = QTrap(r=(1., 2., 0.), phase=0.)
+        self.overlay.addTrap(trap)
+        spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        self.overlay.removeTrap(trap)
+        self.assertEqual(len(spy), 1)
+
+    def test_trap_removed_carries_correct_trap(self):
+        trap = QTrap(r=(1., 2., 0.), phase=0.)
+        self.overlay.addTrap(trap)
+        spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        self.overlay.removeTrap(trap)
+        self.assertIs(spy[0][0], trap)
+
+    def test_trap_removed_emitted_for_each_on_clear(self):
+        traps = [QTrap(r=(float(i), 0., 0.), phase=0.) for i in range(3)]
+        self.overlay.addTrap(traps)
+        spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        self.overlay.clearTraps()
+        self.assertEqual(len(spy), 3)
 
 
 if __name__ == '__main__':

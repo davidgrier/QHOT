@@ -1,3 +1,4 @@
+import functools
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 from QFab.lib.traps.QTrap import QTrap
 import logging
@@ -11,8 +12,8 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     '''Single-property editor for one numeric trap attribute.
 
     Displays a right-aligned, fixed-width line edit with a double
-    validator.  Emits ``valueChanged(name, value)`` when the user
-    commits a new value with Return.
+    validator.  Emits ``propertyChanged(name, value)`` when the user
+    commits a new value with Return or focus-loss.
 
     Parameters
     ----------
@@ -24,7 +25,7 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         Number of decimal places for display and validation. Default: 2.
     '''
 
-    valueChanged = QtCore.pyqtSignal(str, float)
+    propertyChanged = QtCore.pyqtSignal(str, float)
 
     _field_width: int | None = None
 
@@ -32,13 +33,12 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     def fieldWidth(cls) -> int:
         '''Return the pixel width needed to display a typical value.
 
-        Computed once from font metrics and cached on the class.
+        Computed once from the application font metrics and cached on
+        the class.
         '''
         if cls._field_width is None:
-            cls._field_width = (QtWidgets.QLineEdit()
-                                .fontMetrics()
-                                .boundingRect('12345.6')
-                                .width())
+            fm = QtGui.QFontMetrics(QtWidgets.QApplication.instance().font())
+            cls._field_width = fm.boundingRect('12345.6').width()
         return cls._field_width
 
     def __init__(self, name: str, value: float, *args,
@@ -55,14 +55,16 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         '''Configure alignment, width, length, and numeric validator.'''
         self.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
         self.setFixedWidth(self.fieldWidth())
-        self.setMaxLength(8)
+        # sign (1) + up to 5 integer digits + optional '.' + decimal places
+        max_len = 1 + 5 + (1 + self.decimals if self.decimals > 0 else 0)
+        self.setMaxLength(max_len)
         v = QtGui.QDoubleValidator(decimals=self.decimals)
         v.setNotation(QtGui.QDoubleValidator.Notation.StandardNotation)
         self.setValidator(v)
 
     def _connectSignals(self) -> None:
-        '''Connect Return key to value update.'''
-        self.returnPressed.connect(self.updateValue)
+        '''Commit value on Return or focus-loss.'''
+        self.editingFinished.connect(self.updateValue)
 
     def format(self, value: float) -> str:
         '''Format a float for display with the configured decimal places.'''
@@ -73,7 +75,7 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         '''Read the current text, update the stored value, and emit signal.'''
         self.value = float(self.text())
         logger.debug(f'Changing {self.name}: {self.value}')
-        self.valueChanged.emit(self.name, self.value)
+        self.propertyChanged.emit(self.name, self.value)
 
     @property
     def value(self) -> float:
@@ -102,6 +104,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
 
     def __init__(self, trap: QTrap, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self._trap = trap
         self._setupUi(trap)
 
     def _setupUi(self, trap: QTrap) -> None:
@@ -118,7 +121,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
             if trap.properties[name]['tooltip']:
                 self.wid[name].setToolTip(name)
             layout.addWidget(self.wid[name])
-        trap.changed.connect(self.updateValues)
+        trap.changed.connect(functools.partial(self.updateValues, trap))
         self.setLayout(layout)
 
     def propertyWidget(self, trap: QTrap, name: str) -> QTrapPropertyEdit:
@@ -126,13 +129,11 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         value = getattr(trap, name)
         decimals = trap.properties[name]['decimals']
         wid = QTrapPropertyEdit(name, value, decimals=decimals)
-        wid.valueChanged.connect(trap.setTrapProperty)
+        wid.propertyChanged.connect(trap.setTrapProperty)
         return wid
 
-    @QtCore.pyqtSlot()
-    def updateValues(self) -> None:
+    def updateValues(self, trap: QTrap) -> None:
         '''Refresh all editors from the trap's current property values.'''
-        trap = self.sender()
         for name in trap.properties.keys():
             self.wid[name].value = getattr(trap, name)
 
@@ -155,11 +156,11 @@ class QTrapWidget(QtWidgets.QFrame):
         '''Build the scrollable frame with a column header row.'''
         self.setFrameShape(QtWidgets.QFrame.Shape.Box)
         inner = QtWidgets.QWidget()
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.setSpacing(0)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        inner.setLayout(self.layout)
+        self._inner_layout = QtWidgets.QVBoxLayout()
+        self._inner_layout.setSpacing(0)
+        self._inner_layout.setContentsMargins(0, 0, 0, 0)
+        self._inner_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        inner.setLayout(self._inner_layout)
         scroll = QtWidgets.QScrollArea()
         policy = QtCore.Qt.ScrollBarPolicy
         scroll.setVerticalScrollBarPolicy(policy.ScrollBarAlwaysOn)
@@ -169,7 +170,7 @@ class QTrapWidget(QtWidgets.QFrame):
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(scroll)
         self.setLayout(layout)
-        self.layout.addWidget(self._labelLine())
+        self._inner_layout.addWidget(self._labelLine())
 
     def _labelLine(self) -> QtWidgets.QWidget:
         '''Build the column header row.'''
@@ -189,9 +190,12 @@ class QTrapWidget(QtWidgets.QFrame):
     @QtCore.pyqtSlot(QTrap)
     def registerTrap(self, trap: QTrap) -> None:
         '''Add a property editor row for ``trap``.'''
+        if trap in self._trap_widgets:
+            logger.warning(f'Trap already registered: {trap}')
+            return
         trapWidget = QTrapPropertyWidget(trap)
         self._trap_widgets[trap] = trapWidget
-        self.layout.addWidget(trapWidget)
+        self._inner_layout.addWidget(trapWidget)
 
     @QtCore.pyqtSlot(QTrap)
     def unregisterTrap(self, trap: QTrap) -> None:
@@ -203,7 +207,7 @@ class QTrapWidget(QtWidgets.QFrame):
 
     def count(self) -> int:
         '''Return the number of rows currently in the layout.'''
-        return self.layout.count()
+        return self._inner_layout.count()
 
     @classmethod
     def example(cls) -> None:
@@ -220,6 +224,7 @@ class QTrapWidget(QtWidgets.QFrame):
         table.show()
         trapa.r = (100, 100, 10)
         trapc.r = (50, 50, 5)
+        table.unregisterTrap(trapb)
         trapb.deleteLater()
         table.registerTrap(trapc)
         pg.exec()

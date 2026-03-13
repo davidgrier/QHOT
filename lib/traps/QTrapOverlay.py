@@ -477,6 +477,9 @@ class QTrapOverlay(ScatterPlotItem):
             if not list(direct) and direct.parent() is self:
                 self.trapRemoved.emit(direct)
                 direct.setParent(None)
+            else:
+                self.trapRemoved.emit(direct)
+                self.trapAdded.emit(direct)
             self.trapAdded.emit(trap)
         return True
 

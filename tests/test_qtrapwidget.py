@@ -2,6 +2,7 @@
 import unittest
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
 from QFab.lib.traps.QTrap import QTrap
+from QFab.lib.traps.QTrapGroup import QTrapGroup
 from QFab.lib.traps.QTrapWidget import (
     QTrapPropertyEdit, QTrapPropertyWidget, QTrapWidget)
 
@@ -235,6 +236,72 @@ class TestQTrapWidget(unittest.TestCase):
             self.widget.unregisterTrap(self.trap)
         except Exception as e:
             self.fail(f'unregisterTrap raised unexpectedly: {e}')
+
+
+class TestQTrapWidgetGroups(unittest.TestCase):
+
+    def setUp(self):
+        self.widget = QTrapWidget()
+        self.t1 = QTrap(r=(1., 2., 3.), phase=0.)
+        self.t2 = QTrap(r=(4., 5., 6.), phase=0.)
+        self.grp = QTrapGroup(r=(2.5, 3.5, 4.5))
+        self.grp.addTrap([self.t1, self.t2])
+
+    def test_register_group_adds_header_row(self):
+        self.widget.registerTrap(self.grp)
+        self.assertIn(self.grp, self.widget._trap_widgets)
+
+    def test_register_group_adds_leaf_rows(self):
+        self.widget.registerTrap(self.grp)
+        self.assertIn(self.t1, self.widget._trap_widgets)
+        self.assertIn(self.t2, self.widget._trap_widgets)
+
+    def test_register_group_count(self):
+        # label + group header + 2 leaves = 4
+        self.widget.registerTrap(self.grp)
+        self.assertEqual(self.widget.count(), 4)
+
+    def test_leaf_rows_are_indented(self):
+        self.widget.registerTrap(self.grp)
+        leaf_widget = self.widget._trap_widgets[self.t1]
+        left_margin = leaf_widget.layout().contentsMargins().left()
+        self.assertGreater(left_margin, 0)
+
+    def test_group_header_not_indented(self):
+        self.widget.registerTrap(self.grp)
+        grp_widget = self.widget._trap_widgets[self.grp]
+        left_margin = grp_widget.layout().contentsMargins().left()
+        self.assertEqual(left_margin, 0)
+
+    def test_unregister_group_removes_header(self):
+        self.widget.registerTrap(self.grp)
+        self.widget.unregisterTrap(self.grp)
+        self.assertNotIn(self.grp, self.widget._trap_widgets)
+
+    def test_unregister_group_removes_leaf_rows(self):
+        self.widget.registerTrap(self.grp)
+        self.widget.unregisterTrap(self.grp)
+        self.assertNotIn(self.t1, self.widget._trap_widgets)
+        self.assertNotIn(self.t2, self.widget._trap_widgets)
+
+    def test_unregister_group_decrements_count(self):
+        self.widget.registerTrap(self.grp)
+        self.widget.unregisterTrap(self.grp)
+        self.assertEqual(self.widget.count(), 1)  # only label row remains
+
+    def test_leaf_editors_track_trap_changes(self):
+        self.widget.registerTrap(self.grp)
+        leaf_widget = self.widget._trap_widgets[self.t1]
+        self.t1.x = 99.
+        self.assertAlmostEqual(leaf_widget.wid['x'].value, 99., places=2)
+
+    def test_unregister_group_disconnects_leaves(self):
+        self.widget.registerTrap(self.grp)
+        leaf_widget = self.widget._trap_widgets[self.t1]
+        self.widget.unregisterTrap(self.grp)
+        initial_x = leaf_widget.wid['x'].value
+        self.t1.x = initial_x + 50.
+        self.assertAlmostEqual(leaf_widget.wid['x'].value, initial_x, places=2)
 
 
 if __name__ == '__main__':

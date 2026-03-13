@@ -1,6 +1,7 @@
 import functools
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 from QFab.lib.traps.QTrap import QTrap
+from QFab.lib.traps.QTrapGroup import QTrapGroup
 import logging
 
 
@@ -109,16 +110,16 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         The trap whose properties will be displayed and edited.
     '''
 
-    def __init__(self, trap: QTrap, *args, **kwargs) -> None:
+    def __init__(self, trap: QTrap, *args, indent: int = 0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._trap = trap
-        self._setupUi(trap)
+        self._setupUi(trap, indent=indent)
 
-    def _setupUi(self, trap: QTrap) -> None:
+    def _setupUi(self, trap: QTrap, indent: int = 0) -> None:
         '''Build the row of editors from registered properties.'''
         layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(indent, 0, 0, 0)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.wid: dict[str, QTrapPropertyEdit] = {}
         for name in trap.properties.keys():
@@ -199,20 +200,44 @@ class QTrapWidget(QtWidgets.QFrame):
 
     @QtCore.pyqtSlot(QTrap)
     def registerTrap(self, trap: QTrap) -> None:
-        '''Add a property editor row for ``trap``.'''
+        '''Add a property editor row for ``trap``.
+
+        If ``trap`` is a ``QTrapGroup``, also adds an indented row for
+        each leaf trap beneath the group header row.
+        '''
         if trap in self._trap_widgets:
             logger.warning(f'Trap already registered: {trap}')
             return
         trapWidget = QTrapPropertyWidget(trap)
         self._trap_widgets[trap] = trapWidget
         self._inner_layout.addWidget(trapWidget)
+        if isinstance(trap, QTrapGroup):
+            for leaf in trap.leaves():
+                if leaf in self._trap_widgets:
+                    logger.warning(f'Leaf already registered: {leaf}')
+                    continue
+                leafWidget = QTrapPropertyWidget(leaf, indent=20)
+                self._trap_widgets[leaf] = leafWidget
+                self._inner_layout.addWidget(leafWidget)
 
     @QtCore.pyqtSlot(QTrap)
     def unregisterTrap(self, trap: QTrap) -> None:
-        '''Remove and destroy the property editor row for ``trap``.'''
+        '''Remove and destroy the property editor row for ``trap``.
+
+        If ``trap`` is a ``QTrapGroup``, also removes the indented leaf
+        rows that were added by ``registerTrap``.
+        '''
+        if isinstance(trap, QTrapGroup):
+            for leaf in trap.leaves():
+                widget = self._trap_widgets.pop(leaf, None)
+                if widget is not None:
+                    widget.cleanup()
+                    self._inner_layout.removeWidget(widget)
+                    widget.deleteLater()
         try:
             widget = self._trap_widgets.pop(trap)
             widget.cleanup()
+            self._inner_layout.removeWidget(widget)
             widget.deleteLater()
         except KeyError:
             logger.warning(f'Trap not registered: {trap}')

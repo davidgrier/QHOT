@@ -623,8 +623,10 @@ class TestBreakGroup(unittest.TestCase):
         spy = QtTest.QSignalSpy(overlay.trapAdded)
         with patch.object(overlay, 'trapAt', return_value=t1):
             overlay.breakGroup(QtCore.QPointF(1., 1.))
-        self.assertEqual(len(spy), 1)
-        self.assertIs(spy[0][0], t1)
+        # two trapAdded: grp (refresh with remaining member) then t1 (detached)
+        self.assertEqual(len(spy), 2)
+        self.assertIs(spy[0][0], grp)
+        self.assertIs(spy[1][0], t1)
 
     def test_emits_trap_removed_when_group_becomes_empty(self):
         overlay = make_overlay()
@@ -641,7 +643,7 @@ class TestBreakGroup(unittest.TestCase):
         self.assertEqual(len(spy), 1)
         self.assertIs(spy[0][0], grp)
 
-    def test_no_trap_removed_when_group_still_has_members(self):
+    def test_emits_trap_removed_for_refresh_when_group_still_has_members(self):
         overlay = make_overlay()
         t1 = QTrap(r=(1., 1., 0.), phase=0.)
         t2 = QTrap(r=(2., 2., 0.), phase=0.)
@@ -651,7 +653,9 @@ class TestBreakGroup(unittest.TestCase):
         spy = QtTest.QSignalSpy(overlay.trapRemoved)
         with patch.object(overlay, 'trapAt', return_value=t1):
             overlay.breakGroup(QtCore.QPointF(1., 1.))
-        self.assertEqual(len(spy), 0)
+        # one trapRemoved(grp) for the refresh cycle
+        self.assertEqual(len(spy), 1)
+        self.assertIs(spy[0][0], grp)
 
     def test_nested_emits_trap_removed_for_outer(self):
         overlay = make_overlay()

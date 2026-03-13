@@ -1,112 +1,189 @@
-from pyqtgraph.Qt.QtCore import QObject
-from pyqtgraph.Qt.QtWidgets import QMainWindow
+from pyqtgraph.Qt import QtCore, QtWidgets
 from pyqtgraph import ImageItem
 from pyqtgraph.exporters import ImageExporter
 import pyqtgraph as pg
 from pathlib import Path
 from datetime import datetime
+import numpy as np
+import numpy.typing as npt
 import tomlkit
+import logging
 
 
-class QSaveFile(QObject):
+logger = logging.getLogger(__name__)
+
+
+class QSaveFile(QtCore.QObject):
+
+    '''Utility for saving images and TOML configuration files.
+
+    Automatically creates a timestamped data directory (``~/data``) and
+    a hidden configuration directory (``~/.{parent_classname}``) on
+    construction.
+
+    Parameters
+    ----------
+    parent : QtWidgets.QMainWindow
+        The application main window.  Its class name is used to derive
+        the configuration directory.
+    '''
 
     formats: str = ('PNG Image (*.png);;'
                     'JPEG Image (*.jpg *.jpeg);;'
                     'TIFF Image (*.tif *.tiff)')
 
-    def __init__(self, parent: QMainWindow) -> None:
+    def __init__(self, parent: QtWidgets.QMainWindow) -> None:
         super().__init__(parent)
-        self._makeDirs(parent)
+        self._makeDirs()
 
-    def _makeDirs(self, parent: QMainWindow) -> None:
-        self.classname = parent.__class__.__name__.lower()
+    def _makeDirs(self) -> None:
+        '''Create data and configuration directories if they do not exist.'''
+        classname = type(self.parent()).__name__.lower()
+        self.classname = classname
         self.datadir = Path.home() / 'data'
-        self.configdir = Path.home() / f'.{self.classname}'
+        self.configdir = Path.home() / f'.{classname}'
         self.datadir.mkdir(parents=True, exist_ok=True)
         self.configdir.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def timestamp() -> str:
+        '''Return the current date and time as a compact string.'''
         return datetime.now().strftime('%Y%m%d_%H%M%S')
 
     def filename(self,
                  prefix: str | None = None,
-                 suffix: str | None = None) -> str:
+                 suffix: str = '') -> str:
+        '''Build a timestamped filename in the data directory.
+
+        Parameters
+        ----------
+        prefix : str or None
+            Leading name component.  Defaults to the parent class name.
+        suffix : str
+            File extension including the leading dot (e.g. ``'.png'``).
+            Default: ``''``.
+
+        Returns
+        -------
+        str
+            Absolute path string of the form
+            ``~/data/{prefix}_{timestamp}{suffix}``.
+        '''
         prefix = prefix or self.classname
         path = self.datadir / f'{prefix}_{self.timestamp()}{suffix}'
         return str(path)
 
-    def configname(self, qobj: QObject) -> str:
-        classname = qobj.__class__.__name__
-        path = self.configdir / f'{classname}.toml'
+    def configname(self, qobj: QtCore.QObject) -> str:
+        '''Return the TOML configuration file path for a QObject.
+
+        Parameters
+        ----------
+        qobj : QtCore.QObject
+            Object whose class name determines the filename.
+
+        Returns
+        -------
+        str
+            Absolute path string of the form
+            ``~/.{classname}/{QObjectClass}.toml``.
+        '''
+        path = self.configdir / f'{type(qobj).__name__}.toml'
         return str(path)
 
     def image(self,
-              image: ImageItem,
+              data: ImageItem | npt.NDArray,
               filename: str | None = None,
               prefix: str = 'pyfab') -> str:
-        '''Saves image to file
+        '''Save image data to a file.
 
-        Arguments
-        ---------
-        image : ImageItem
-            Image to save
-        filename : str | None
-            Filename to save to. If None, a default filename
-            will be generated.
+        Accepts either a pyqtgraph ``ImageItem`` (exported via
+        ``ImageExporter``) or a raw numpy array (saved via
+        ``pg.makeQImage``).
+
+        Parameters
+        ----------
+        data : ImageItem or numpy.ndarray
+            Image to save.
+        filename : str or None
+            Destination path.  If ``None``, a timestamped ``.png`` file
+            is created in the data directory.
         prefix : str
-            Prefix for default filename
+            Prefix for the auto-generated filename.  Default: ``'pyfab'``.
 
         Returns
         -------
-        filename : str
-            Filename saved to
+        str
+            Path of the file that was written.
         '''
-        config = self.configuration
         filename = filename or self.filename(prefix=prefix, suffix='.png')
-        exporter = ImageExporter(image)
-        exporter.export(filename)
+        if isinstance(data, ImageItem):
+            ImageExporter(data).export(filename)
+        else:
+            pg.makeQImage(np.asarray(data)).save(filename)
         return filename
 
     def imageAs(self,
-                image: ImageItem,
+                data: ImageItem | npt.NDArray,
                 prefix: str = 'pyfab') -> str:
-        '''Saves image to file with "Save As" dialog
+        '''Save image data to a user-chosen file via a Save As dialog.
 
-        Arguments
-        ---------
-        image : ImageItem
-            Image to save
+        Parameters
+        ----------
+        data : ImageItem or numpy.ndarray
+            Image to save.
         prefix : str
-            Prefix for default filename
+            Prefix for the default filename suggestion.  Default: ``'pyfab'``.
 
         Returns
         -------
-        filename : str
-            Filename saved to, or empty string if cancelled
+        str
+            Path of the file that was written, or empty string if cancelled.
         '''
         default = self.filename(prefix=prefix, suffix='.png')
-        filename, _ = pg.FileDialog.getSaveFileName(
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
             self.parent(), 'Save As', default, self.formats)
         if filename:
-            return self.saveImage(image, filename)
-        else:
-            return ''
+            return self.image(data, filename=filename)
+        return ''
 
-    def toToml(self, qobj: QObject) -> str:
+    def toToml(self, qobj: QtCore.QObject) -> str:
+        '''Save the settings of a QObject to a TOML configuration file.
+
+        Parameters
+        ----------
+        qobj : QtCore.QObject
+            Object whose ``settings`` property will be serialized.
+
+        Returns
+        -------
+        str
+            Path of the configuration file that was written.
+        '''
         doc = tomlkit.document()
         doc['settings'] = qobj.settings
         filename = self.configname(qobj)
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(tomlkit.dumps(doc))
         return filename
 
-    def fromToml(self, qobj: QObject) -> str:
+    def fromToml(self, qobj: QtCore.QObject) -> str:
+        '''Restore the settings of a QObject from a TOML configuration file.
+
+        Parameters
+        ----------
+        qobj : QtCore.QObject
+            Object whose ``settings`` property will be populated.
+
+        Returns
+        -------
+        str
+            Path of the configuration file that was read, or empty string
+            if the file does not exist.
+        '''
         filename = self.configname(qobj)
         if Path(filename).exists():
             with open(filename, 'r', encoding='utf-8') as f:
                 doc = tomlkit.load(f)
             qobj.settings = doc['settings']
             return filename
-        else:
-            return ''
+        return ''

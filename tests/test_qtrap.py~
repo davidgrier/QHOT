@@ -1,0 +1,203 @@
+'''Unit tests for QTrap.'''
+import unittest
+import numpy as np
+from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtrap import QTrap
+
+app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+
+
+class TestInit(unittest.TestCase):
+
+    def test_r(self):
+        trap = QTrap(r=(1., 2., 3.))
+        np.testing.assert_array_equal(trap.r, [1., 2., 3.])
+
+    def test_amplitude(self):
+        trap = QTrap(amplitude=0.5)
+        self.assertEqual(trap.amplitude, 0.5)
+
+    def test_phase_explicit(self):
+        trap = QTrap(phase=1.0)
+        self.assertEqual(trap.phase, 1.0)
+
+    def test_phase_random_range(self):
+        for _ in range(50):
+            self.assertGreaterEqual(QTrap().phase, 0.)
+            self.assertLess(QTrap().phase, 2. * np.pi)
+
+    def test_phase_random_nondeterministic(self):
+        phases = {QTrap().phase for _ in range(20)}
+        self.assertGreater(len(phases), 1)
+
+    def test_spot_index_none(self):
+        self.assertIsNone(QTrap()._spot_index)
+
+
+class TestR(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(r=(1., 2., 3.), phase=0.)
+
+    def test_getter_returns_copy(self):
+        r = self.trap.r
+        r[0] = 999.
+        self.assertEqual(self.trap.x, 1.)
+
+    def test_setter(self):
+        self.trap.r = (4., 5., 6.)
+        np.testing.assert_array_equal(self.trap.r, [4., 5., 6.])
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.r = (4., 5., 6.)
+        self.assertEqual(len(spy), 1)
+
+
+class TestX(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(r=(1., 2., 3.), phase=0.)
+
+    def test_getter(self):
+        self.assertEqual(self.trap.x, 1.)
+
+    def test_setter_updates_x(self):
+        self.trap.x = 9.
+        self.assertEqual(self.trap.x, 9.)
+
+    def test_setter_leaves_y_z(self):
+        self.trap.x = 9.
+        self.assertEqual(self.trap.y, 2.)
+        self.assertEqual(self.trap.z, 3.)
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.x = 9.
+        self.assertEqual(len(spy), 1)
+
+
+class TestY(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(r=(1., 2., 3.), phase=0.)
+
+    def test_getter(self):
+        self.assertEqual(self.trap.y, 2.)
+
+    def test_setter_updates_y(self):
+        self.trap.y = 9.
+        self.assertEqual(self.trap.y, 9.)
+
+    def test_setter_leaves_x_z(self):
+        self.trap.y = 9.
+        self.assertEqual(self.trap.x, 1.)
+        self.assertEqual(self.trap.z, 3.)
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.y = 9.
+        self.assertEqual(len(spy), 1)
+
+
+class TestZ(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(r=(1., 2., 3.), phase=0.)
+
+    def test_getter(self):
+        self.assertEqual(self.trap.z, 3.)
+
+    def test_setter_updates_z(self):
+        self.trap.z = 9.
+        self.assertEqual(self.trap.z, 9.)
+
+    def test_setter_leaves_x_y(self):
+        self.trap.z = 9.
+        self.assertEqual(self.trap.x, 1.)
+        self.assertEqual(self.trap.y, 2.)
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.z = 9.
+        self.assertEqual(len(spy), 1)
+
+
+class TestAmplitude(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(amplitude=0.5, phase=0.)
+
+    def test_getter(self):
+        self.assertEqual(self.trap.amplitude, 0.5)
+
+    def test_setter(self):
+        self.trap.amplitude = 0.8
+        self.assertEqual(self.trap.amplitude, 0.8)
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.amplitude = 0.8
+        self.assertEqual(len(spy), 1)
+
+
+class TestPhase(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(phase=1.0)
+
+    def test_getter(self):
+        self.assertEqual(self.trap.phase, 1.0)
+
+    def test_setter(self):
+        self.trap.phase = 2.5
+        self.assertEqual(self.trap.phase, 2.5)
+
+    def test_setter_emits_changed(self):
+        spy = QtTest.QSignalSpy(self.trap.changed)
+        self.trap.phase = 2.5
+        self.assertEqual(len(spy), 1)
+
+
+class TestIsWithin(unittest.TestCase):
+
+    def setUp(self):
+        self.rect = QtCore.QRectF(0., 0., 10., 10.)
+
+    def test_inside(self):
+        trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.assertTrue(trap.isWithin(self.rect))
+
+    def test_outside(self):
+        trap = QTrap(r=(15., 5., 0.), phase=0.)
+        self.assertFalse(trap.isWithin(self.rect))
+
+    def test_on_boundary(self):
+        trap = QTrap(r=(0., 0., 0.), phase=0.)
+        self.assertTrue(trap.isWithin(self.rect))
+
+    def test_z_ignored(self):
+        trap = QTrap(r=(5., 5., 999.), phase=0.)
+        self.assertTrue(trap.isWithin(self.rect))
+
+
+class TestProtocol(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(phase=0.)
+
+    def test_len(self):
+        self.assertEqual(len(self.trap), 1)
+
+    def test_iter_yields_self(self):
+        self.assertEqual(list(self.trap), [self.trap])
+
+    def test_appearance(self):
+        self.assertEqual(self.trap.appearance(), {})
+
+    def test_repr(self):
+        self.assertTrue(repr(self.trap).startswith('QTrap('))
+
+
+if __name__ == '__main__':
+    unittest.main()

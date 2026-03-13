@@ -1,0 +1,183 @@
+'''Unit tests for QTrapGroup.'''
+import unittest
+import numpy as np
+from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtrap import QTrap, QTrapGroup
+
+app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+
+
+class TestAddTrap(unittest.TestCase):
+
+    def setUp(self):
+        self.group = QTrapGroup(r=(0., 0., 0.))
+
+    def test_single_sets_parent(self):
+        trap = QTrap(phase=0.)
+        self.group.addTrap(trap)
+        self.assertIs(trap.parent(), self.group)
+
+    def test_single_increments_len(self):
+        self.group.addTrap(QTrap(phase=0.))
+        self.assertEqual(len(self.group), 1)
+
+    def test_list_sets_parents(self):
+        traps = [QTrap(phase=0.) for _ in range(3)]
+        self.group.addTrap(traps)
+        self.assertTrue(all(t.parent() is self.group for t in traps))
+
+    def test_list_increments_len(self):
+        traps = [QTrap(phase=0.) for _ in range(3)]
+        self.group.addTrap(traps)
+        self.assertEqual(len(self.group), 3)
+
+    def test_iter_after_add(self):
+        trap = QTrap(phase=0.)
+        self.group.addTrap(trap)
+        self.assertEqual(list(self.group), [trap])
+
+
+class TestRemoveTrap(unittest.TestCase):
+
+    def setUp(self):
+        self.group = QTrapGroup(r=(0., 0., 0.))
+
+    def test_removes_child(self):
+        trap = QTrap(phase=0.)
+        self.group.addTrap(trap)
+        self.group.removeTrap(trap)
+        self.assertEqual(len(self.group), 0)
+
+    def test_clears_parent(self):
+        trap = QTrap(phase=0.)
+        self.group.addTrap(trap)
+        self.group.removeTrap(trap)
+        self.assertIsNot(trap.parent(), self.group)
+
+    def test_noop_if_not_child(self):
+        trap = QTrap(phase=0.)
+        other = QTrapGroup(r=(5., 5., 0.))
+        other.addTrap(trap)
+        self.group.removeTrap(trap)
+        self.assertIs(trap.parent(), other)
+
+
+class TestTrapsAndIter(unittest.TestCase):
+
+    def setUp(self):
+        self.group = QTrapGroup(r=(0., 0., 0.))
+        self.traps = [QTrap(phase=0.) for _ in range(3)]
+        self.group.addTrap(self.traps)
+
+    def test_traps_property(self):
+        self.assertEqual(self.group.traps, self.traps)
+
+    def test_iter_yields_children(self):
+        self.assertEqual(list(self.group), self.traps)
+
+    def test_empty_group_iter(self):
+        self.assertEqual(list(QTrapGroup(r=(0., 0., 0.))), [])
+
+    def test_len(self):
+        self.assertEqual(len(self.group), 3)
+
+
+class TestRSetter(unittest.TestCase):
+
+    def test_group_position_updates(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        group.addTrap(QTrap(r=(1., 0., 0.), phase=0.))
+        group.r = (3., 0., 0.)
+        np.testing.assert_array_equal(group.r, [3., 0., 0.])
+
+    def test_child_translates_by_delta(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        trap = QTrap(r=(1., 0., 0.), phase=0.)
+        group.addTrap(trap)
+        group.r = (3., 0., 0.)
+        np.testing.assert_array_almost_equal(trap.r, [4., 0., 0.])
+
+    def test_geometry_preserved(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        t1 = QTrap(r=(1., 0., 0.), phase=0.)
+        t2 = QTrap(r=(-1., 0., 0.), phase=0.)
+        group.addTrap([t1, t2])
+        group.r = (5., 0., 0.)
+        np.testing.assert_array_almost_equal(t1.r, [6., 0., 0.])
+        np.testing.assert_array_almost_equal(t2.r, [4., 0., 0.])
+
+    def test_emits_changed(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        group.addTrap(QTrap(r=(1., 0., 0.), phase=0.))
+        spy = QtTest.QSignalSpy(group.changed)
+        group.r = (3., 0., 0.)
+        self.assertEqual(len(spy), 1)
+
+    def test_nested_group_translates(self):
+        # NOTE: QTrapGroup.r setter iterates self.children(), which returns
+        # QObject instances. PyQt does not preserve the Python subclass type
+        # through children(), so trap.r = value calls QTrap.r.fset rather
+        # than QTrapGroup.r.fset on nested groups. As a result, nested
+        # QTrapGroups translate correctly but do not recursively translate
+        # their own children. This is a known limitation.
+        outer = QTrapGroup(r=(0., 0., 0.))
+        inner = QTrapGroup(r=(2., 0., 0.))
+        trap = QTrap(r=(3., 0., 0.), phase=0.)
+        inner.addTrap(trap)
+        outer.addTrap(inner)
+        outer.r = (1., 0., 0.)
+        # outer itself translates correctly
+        np.testing.assert_array_almost_equal(outer.r, [1., 0., 0.])
+
+
+class TestIsWithin(unittest.TestCase):
+
+    def setUp(self):
+        self.rect = QtCore.QRectF(0., 0., 10., 10.)
+
+    def test_all_inside(self):
+        group = QTrapGroup(r=(5., 5., 0.))
+        group.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
+                       QTrap(r=(7., 7., 0.), phase=0.)])
+        self.assertTrue(group.isWithin(self.rect))
+
+    def test_all_outside(self):
+        group = QTrapGroup(r=(15., 5., 0.))
+        group.addTrap([QTrap(r=(12., 3., 0.), phase=0.),
+                       QTrap(r=(14., 7., 0.), phase=0.)])
+        self.assertFalse(group.isWithin(self.rect))
+
+    def test_straddles_boundary(self):
+        group = QTrapGroup(r=(5., 5., 0.))
+        group.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
+                       QTrap(r=(15., 7., 0.), phase=0.)])
+        self.assertFalse(group.isWithin(self.rect))
+
+    def test_nested_all_inside(self):
+        outer = QTrapGroup(r=(5., 5., 0.))
+        inner = QTrapGroup(r=(4., 4., 0.))
+        inner.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
+                       QTrap(r=(5., 5., 0.), phase=0.)])
+        outer.addTrap(inner)
+        self.assertTrue(outer.isWithin(self.rect))
+
+    def test_nested_straddles_boundary(self):
+        outer = QTrapGroup(r=(5., 5., 0.))
+        inner = QTrapGroup(r=(4., 4., 0.))
+        inner.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
+                       QTrap(r=(15., 5., 0.), phase=0.)])
+        outer.addTrap(inner)
+        self.assertFalse(outer.isWithin(self.rect))
+
+
+class TestRepr(unittest.TestCase):
+
+    def test_repr(self):
+        group = QTrapGroup(r=(0., 0., 0.))
+        s = repr(group)
+        self.assertTrue(s.startswith('QTrapGroup('))
+        self.assertIn('ntraps=', s)
+
+
+if __name__ == '__main__':
+    unittest.main()

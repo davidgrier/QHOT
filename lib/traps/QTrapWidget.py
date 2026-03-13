@@ -31,7 +31,10 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
 
     @classmethod
     def _invalidateFieldWidth(cls, font: QtGui.QFont = None) -> None:
-        '''Clear the cached field width; called when the application font changes.'''
+        '''Clear the cached field width.
+
+        Called when the application font changes.
+        '''
         cls._field_width = None
 
     @classmethod
@@ -77,7 +80,7 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         self.editingFinished.connect(self.updateValue)
 
     def format(self, value: float) -> str:
-        '''Format a float for display with the configured decimal places.'''
+        '''Format a float with the configured decimal places.'''
         return f'{value:.{self.decimals}f}'
 
     @QtCore.pyqtSlot()
@@ -125,7 +128,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         self._setupUi(trap)
 
     def _setupUi(self, trap: QTrap) -> None:
-        '''Build the row of editors from the trap's registered properties.'''
+        '''Build the row of editors from registered properties.'''
         layout = QtWidgets.QHBoxLayout()
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -151,7 +154,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
             self.wid[name].value = getattr(trap, name)
 
     def cleanup(self) -> None:
-        '''Disconnect from the trap's ``changed`` signal before deletion.'''
+        '''Disconnect from ``changed`` signal before deleting trap.'''
         try:
             self._trap.changed.disconnect(self._update_slot)
         except (TypeError, RuntimeError):

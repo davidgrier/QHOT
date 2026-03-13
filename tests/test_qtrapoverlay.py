@@ -507,6 +507,45 @@ class TestGroupAt(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class TestFinalizeSelectionSignals(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = QTrapOverlay()
+        self.t1 = QTrap(r=(2., 2., 0.), phase=0.)
+        self.t2 = QTrap(r=(8., 8., 0.), phase=0.)
+        self.overlay.addTrap([self.t1, self.t2])
+        self.rect = QtCore.QRectF(0., 0., 10., 10.)
+
+    def test_emits_trap_removed_for_each_candidate(self):
+        spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        self.overlay._finalizeSelection(self.rect)
+        self.assertEqual(len(spy), 2)
+
+    def test_trap_removed_carries_individual_traps(self):
+        spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        self.overlay._finalizeSelection(self.rect)
+        self.assertEqual({spy[0][0], spy[1][0]}, {self.t1, self.t2})
+
+    def test_emits_trap_added_once_for_new_group(self):
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay._finalizeSelection(self.rect)
+        self.assertEqual(len(spy), 1)
+
+    def test_trap_added_carries_new_group(self):
+        spy = QtTest.QSignalSpy(self.overlay.trapAdded)
+        self.overlay._finalizeSelection(self.rect)
+        self.assertIsInstance(spy[0][0], QTrapGroup)
+
+    def test_no_signals_when_fewer_than_two_candidates(self):
+        overlay = QTrapOverlay()
+        overlay.addTrap(QTrap(r=(3., 3., 0.), phase=0.))
+        spy_removed = QtTest.QSignalSpy(overlay.trapRemoved)
+        spy_added = QtTest.QSignalSpy(overlay.trapAdded)
+        overlay._finalizeSelection(self.rect)
+        self.assertEqual(len(spy_removed), 0)
+        self.assertEqual(len(spy_added), 0)
+
+
 class TestBreakGroup(unittest.TestCase):
 
     def test_returns_false_when_no_trap(self):
@@ -573,6 +612,75 @@ class TestBreakGroup(unittest.TestCase):
         with patch.object(overlay, 'trapAt', return_value=inner_t1):
             overlay.breakGroup(QtCore.QPointF(1., 1.))
         self.assertIsNone(outer_grp.parent())
+
+    def test_emits_trap_added_for_detached_leaf(self):
+        overlay = make_overlay()
+        t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        t2 = QTrap(r=(2., 2., 0.), phase=0.)
+        grp = QTrapGroup(r=(1.5, 1.5, 0.))
+        grp.addTrap([t1, t2])
+        overlay.addTrap(grp)
+        spy = QtTest.QSignalSpy(overlay.trapAdded)
+        with patch.object(overlay, 'trapAt', return_value=t1):
+            overlay.breakGroup(QtCore.QPointF(1., 1.))
+        self.assertEqual(len(spy), 1)
+        self.assertIs(spy[0][0], t1)
+
+    def test_emits_trap_removed_when_group_becomes_empty(self):
+        overlay = make_overlay()
+        t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        t2 = QTrap(r=(2., 2., 0.), phase=0.)
+        grp = QTrapGroup(r=(1.5, 1.5, 0.))
+        grp.addTrap([t1, t2])
+        overlay.addTrap(grp)
+        with patch.object(overlay, 'trapAt', return_value=t1):
+            overlay.breakGroup(QtCore.QPointF(1., 1.))
+        spy = QtTest.QSignalSpy(overlay.trapRemoved)
+        with patch.object(overlay, 'trapAt', return_value=t2):
+            overlay.breakGroup(QtCore.QPointF(2., 2.))
+        self.assertEqual(len(spy), 1)
+        self.assertIs(spy[0][0], grp)
+
+    def test_no_trap_removed_when_group_still_has_members(self):
+        overlay = make_overlay()
+        t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        t2 = QTrap(r=(2., 2., 0.), phase=0.)
+        grp = QTrapGroup(r=(1.5, 1.5, 0.))
+        grp.addTrap([t1, t2])
+        overlay.addTrap(grp)
+        spy = QtTest.QSignalSpy(overlay.trapRemoved)
+        with patch.object(overlay, 'trapAt', return_value=t1):
+            overlay.breakGroup(QtCore.QPointF(1., 1.))
+        self.assertEqual(len(spy), 0)
+
+    def test_nested_emits_trap_removed_for_outer(self):
+        overlay = make_overlay()
+        inner_t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        inner_grp = QTrapGroup(r=(1., 1., 0.))
+        inner_grp.addTrap([inner_t1, QTrap(r=(2., 2., 0.), phase=0.)])
+        outer_grp = QTrapGroup(r=(3., 3., 0.))
+        outer_grp.addTrap([inner_grp, QTrap(r=(5., 5., 0.), phase=0.)])
+        overlay.addTrap(outer_grp)
+        spy = QtTest.QSignalSpy(overlay.trapRemoved)
+        with patch.object(overlay, 'trapAt', return_value=inner_t1):
+            overlay.breakGroup(QtCore.QPointF(1., 1.))
+        self.assertEqual(len(spy), 1)
+        self.assertIs(spy[0][0], outer_grp)
+
+    def test_nested_emits_trap_added_for_outer_and_subgroup(self):
+        overlay = make_overlay()
+        inner_t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        inner_grp = QTrapGroup(r=(1., 1., 0.))
+        inner_grp.addTrap([inner_t1, QTrap(r=(2., 2., 0.), phase=0.)])
+        outer_grp = QTrapGroup(r=(3., 3., 0.))
+        outer_grp.addTrap([inner_grp, QTrap(r=(5., 5., 0.), phase=0.)])
+        overlay.addTrap(outer_grp)
+        spy = QtTest.QSignalSpy(overlay.trapAdded)
+        with patch.object(overlay, 'trapAt', return_value=inner_t1):
+            overlay.breakGroup(QtCore.QPointF(1., 1.))
+        added = {spy[i][0] for i in range(len(spy))}
+        self.assertIn(outer_grp, added)
+        self.assertIn(inner_grp, added)
 
 
 class TestSelectGroup(unittest.TestCase):

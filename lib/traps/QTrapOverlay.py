@@ -328,6 +328,8 @@ class QTrapOverlay(ScatterPlotItem):
 
         A top-level group is included only if all of its leaf traps are
         inside ``rect``; groups that straddle the boundary are excluded.
+        Emits ``trapRemoved`` for each absorbed top-level item and
+        ``trapAdded`` for the resulting group.
 
         Parameters
         ----------
@@ -337,9 +339,12 @@ class QTrapOverlay(ScatterPlotItem):
         candidates = [item for item in self if item.isWithin(rect)]
         if len(candidates) < 2:
             return
+        for candidate in candidates:
+            self.trapRemoved.emit(candidate)
         centroid = np.mean([t._r for t in candidates], axis=0)
         grp = QTrapGroup(r=centroid, parent=self)
         grp.addTrap(candidates)
+        self.trapAdded.emit(grp)
 
     def startSelection(self, pos: QtCore.QPointF) -> None:
         '''Begin a rubber-band selection anchored at pos.
@@ -436,6 +441,9 @@ class QTrapOverlay(ScatterPlotItem):
     def breakGroup(self, pos: QtCore.QPointF) -> bool:
         '''Detach the clicked trap (or its subgroup) from its parent group.
 
+        Emits ``trapRemoved`` and ``trapAdded`` as needed to keep
+        observers (e.g. QTrapWidget) consistent with the new structure.
+
         Parameters
         ----------
         pos : QPointF
@@ -455,15 +463,21 @@ class QTrapOverlay(ScatterPlotItem):
             return False
         outer = direct.parent()
         if isinstance(outer, QTrapGroup):
+            self.trapRemoved.emit(outer)
             outer.removeTrap(direct)
             direct.setParent(self)
             if not list(outer) and outer.parent() is self:
                 outer.setParent(None)
+            else:
+                self.trapAdded.emit(outer)
+            self.trapAdded.emit(direct)
         else:
             direct.removeTrap(trap)
             trap.setParent(self)
             if not list(direct) and direct.parent() is self:
+                self.trapRemoved.emit(direct)
                 direct.setParent(None)
+            self.trapAdded.emit(trap)
         return True
 
     def selectGroup(self, pos: QtCore.QPointF) -> bool:

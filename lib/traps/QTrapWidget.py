@@ -95,7 +95,7 @@ class QTrapPropertyWidget(QWidget):
         value = getattr(trap, name)
         decimals = trap.properties[name]['decimals']
         wid = QTrapPropertyEdit(name, value, decimals=decimals)
-        wid.valueChanged.connect(trap.setProperty)
+        wid.valueChanged.connect(trap.setTrapProperty)
         return wid
 
     @pyqtSlot()

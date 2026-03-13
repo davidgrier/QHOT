@@ -1,96 +1,122 @@
-from .QTrap import QTrap
-from pyqtgraph.Qt.QtCore import (pyqtSlot, QRectF)
-from collections.abc import (Iterable, Iterator)
+from pyqtgraph.Qt import QtCore
+from QFab.lib.traps.QTrap import QTrap
+from collections.abc import Iterator
 import numpy as np
+import numpy.typing as npt
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class QTrapGroup(QTrap):
 
-    '''Trap composed of multiple traps
+    '''Trap composed of multiple traps or nested groups.
 
     Inherits
     --------
-    QTrap
+    QFab.lib.traps.QTrap
+
+    Attributes
+    ----------
+    traps : list[QTrap]
+        Direct children of this group (may include nested QTrapGroups).
+
+    Methods
+    -------
+    addTrap(traps: QTrap | list[QTrap]) -> None
+        Add one or more traps or groups as direct children.
+    removeTrap(trap: QTrap) -> None
+        Remove a direct child trap or group.
+    leaves() -> Iterator[QTrap]
+        Recursively yield all leaf traps in the subtree.
+
+    Notes
+    -----
+    Iterating a ``QTrapGroup`` yields its direct children (which may
+    themselves be groups). Use ``leaves()`` to iterate only the leaf
+    traps at the bottom of the hierarchy.
     '''
 
     def __len__(self) -> int:
-        return len(self.children())
+        return sum(1 for _ in self)
 
     def __iter__(self) -> Iterator[QTrap]:
-        return iter(self.children())
+        for child in self.children():
+            if isinstance(child, QTrap):
+                yield child
 
-    def add(self, trap: QTrap | Iterable[QTrap]) -> None:
-        '''Adds one or more traps to the group.'''
-        if isinstance(trap, QTrap):
-            if trap not in self.children():
-                trap.setParent(self)
-                trap.changed.connect(self._emitChanged)
-                trap.stateChanged.connect(self._emitStateChanged)
+    def leaves(self) -> Iterator[QTrap]:
+        '''Recursively yield all leaf QTraps in this group.
+
+        Yields
+        ------
+        QTrap
+            Each leaf (non-group) trap in the subtree rooted here.
+        '''
+        for child in self:
+            yield from child.leaves()
+
+    def __repr__(self) -> str:
+        name = type(self).__name__
+        x, y, z = self._r
+        return (f'{name}(r=({x:.1f}, {y:.1f}, {z:.1f}), '
+                f'ntraps={len(self)})')
+
+    def addTrap(self, traps: QTrap) -> None:
+        '''Adds one or more traps or groups to this group.
+
+        Parameters
+        ----------
+        traps : QTrap or list[QTrap]
+            A single trap or group, or a list of traps/groups.
+            Each item is added as a direct child of this group.
+        '''
+        if isinstance(traps, list):
+            for trap in traps:
+                self.addTrap(trap)
         else:
-            for child in trap:
-                self.add(child)
-        self.changed.emit()
+            traps.setParent(self)
 
-    def remove(self, trap: QTrap) -> None:
+    def removeTrap(self, trap: QTrap) -> None:
         '''Removes a trap from the group.'''
-        if trap in self:
-            trap.changed.disconnect(self._emitChanged)
-            trap.stateChanged.disconnect(self._emitStateChanged)
+        if trap.parent() is self:
             trap.setParent(None)
-        else:
-            for child in self:
-                if isinstance(child, QTrapGroup):
-                    child.remove(trap)
-                    if len(child) == 0:
-                        self.remove(child)
-        self.changed.emit()
-
-    @pyqtSlot()
-    def _emitChanged(self) -> None:
-        self.changed.emit()
-
-    @pyqtSlot()
-    def _emitStateChanged(self) -> None:
-        self.stateChanged.emit()
 
     @QTrap.r.setter
-    def r(self, position: QTrap.Position) -> None:
-        self._r = self._toQVector3D(position)
-        dr = self._r - self.origin
-        for child in self.traps():
-            child.r += dr
-        self.origin = self._r
+    def r(self, r: npt.ArrayLike) -> None:
+        new_r = np.asarray(r, dtype=float)
+        delta = new_r - self._r
+        with QtCore.QSignalBlocker(self):
+            QTrap.r.fset(self, new_r)
+        for trap in self:
+            trap.r = trap._r + delta
+        self.changed.emit()
 
-    def setState(self, state: QTrap.State) -> None:
-        '''Sets the state of every member of group.'''
-        for child in self:
-            oldstate = child.blockSignals(True)
-            child.setState(state)
-            child.blockSignals(oldstate)
-        self.stateChanged.emit()
-
-    def isWithin(self, rect: QRectF) -> bool:
-        '''Returns True if group is entirely within the rectangle.'''
-        return np.all([child.isWithin(rect) for child in self])
-
+    @property
     def traps(self) -> list[QTrap]:
         '''Returns the list of traps in the group.'''
-        return [trap for trap in self.findChildren(QTrap)
-                if not isinstance(trap, QTrapGroup)]
+        return list(self)
 
+    def isWithin(self, rect: QtCore.QRectF) -> bool:
+        '''Returns True if all traps are within the rectangle.'''
+        return all(trap.isWithin(rect) for trap in self)
 
-def example():
-    group = QTrapGroup()
-    print(len(group))
-    a = QTrap(r=(1, 2, 3))
-    b = QTrap(r=(10, 20, 30))
-    group.add([a, b])
-    print(len(group))
-    group.remove(b)
-    print(len(group))
-    for trap in group:
-        print(trap)
+    @classmethod
+    def example(cls) -> None:
+        '''Demonstrate group construction, translation, and removal.'''
+        group = cls()
+        print(len(group))
+        a = QTrap(r=(1, 2, 3))
+        b = QTrap(r=(10, 20, 30))
+        group.addTrap([a, b])
+        print(group)
+        group.r = (100, 200, 300)
+        group.removeTrap(b)
+        print(group)
+        for trap in group:
+            print(trap)
 
 
 if __name__ == '__main__':
-    example()
+    QTrapGroup.example()

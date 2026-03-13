@@ -1,247 +1,683 @@
+import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
-from pyqtgraph.Qt.QtCore import (Qt, pyqtSignal, pyqtSlot, QEvent,
-                                 QSize, QPoint, QPointF, QRect, QRectF,
-                                 QSignalBlocker)
-from pyqtgraph.Qt.QtGui import QVector3D
-from .QTrap import QTrap
-from .QTrapGroup import QTrapGroup
-from .QTrappingPattern import QTrappingPattern
-from pyqtgraph.Qt.QtWidgets import QRubberBand
+from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
+from pyqtgraph import mkBrush, mkPen
+from QFab.lib.traps.QTrap import QTrap
+from QFab.lib.traps.QTrapGroup import QTrapGroup
+from QFab.traps.QTweezer import QTweezer
+from enum import Enum
 import numpy as np
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+import functools
+import operator
 import logging
 
 
-logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class QTrapOverlay(ScatterPlotItem):
 
-    '''Graphical overlay for interacting with traps
+    '''Graphical overlay for interacting with optical traps.
 
-    Inherits
-    --------
-    pyqtgraph.ScatterPlotItem
+    Renders each trap as a colored scatter-plot spot and dispatches mouse
+    events to trap operations (add, remove, select, drag, group, break).
+    Traps and trap groups are Qt children of the overlay; iterating over
+    the overlay yields its top-level QTrap/QTrapGroup children.
+
+    Mouse gestures are configurable via the ``descriptions`` constructor
+    argument, which maps (button, modifier) pairs to named handler methods.
+    The default bindings are:
+
+    =========================  ===========
+    Gesture                    Action
+    =========================  ===========
+    Shift + left click         Add trap
+    Ctrl + Shift + left click  Remove trap
+    Alt + Shift + left click   Break group
+    Left drag (no modifier)    Move group
+    Left drag (no target)      Rubber-band select / group
+    Scroll wheel               Adjust trap z
+    =========================  ===========
+
+    The overlay supports two event-delivery modes:
+
+    * **Standalone** – embedded directly in a ``pyqtgraph.PlotWidget``;
+      Qt calls ``mousePressEvent`` / ``mouseMoveEvent`` /
+      ``mouseReleaseEvent`` automatically.
+    * **Hosted** – embedded in a ``QFabScreen``; the screen calls
+      ``mousePress`` / ``mouseMove`` / ``mouseRelease`` / ``wheel``
+      explicitly with pre-transformed coordinates.
+
+    Attributes
+    ----------
+    brush : dict[State, QBrush]
+        Fill brushes keyed by visual state.
+    button : dict[str, Qt.MouseButton]
+        Mouse-button name → Qt enum mapping.
+    modifier : dict[str, Qt.KeyboardModifier]
+        Modifier name → Qt enum mapping (supports ``|``-separated combos).
+    default : Descriptions
+        Default gesture→handler bindings used when none are supplied.
     '''
 
-    button: dict[str, Qt.MouseButton] = {
-        'left': Qt.MouseButton.LeftButton,
-        'middle': Qt.MouseButton.MiddleButton,
-        'right': Qt.MouseButton.RightButton}
+    class State(Enum):
+        '''Visual state of a trap spot, controlling its fill color.'''
+        STATIC = 0
+        NORMAL = 1
+        SELECTED = 2
+        GROUPING = 3
+        SPECIAL = 4
 
-    modifier: dict[str, Qt.KeyboardModifier] = {
-        'shift': Qt.KeyboardModifier.ShiftModifier,
-        'alt': Qt.KeyboardModifier.AltModifier,
-        'ctrl': Qt.KeyboardModifier.ControlModifier,
-        'meta': Qt.KeyboardModifier.MetaModifier,
-        'none': Qt.KeyboardModifier.NoModifier}
+    brush: dict[State, QtGui.QBrush] = {
+        State.STATIC: mkBrush(255, 255, 255, 120),
+        State.NORMAL: mkBrush(100, 255, 100, 120),
+        State.SELECTED: mkBrush(255, 105, 180, 120),
+        State.GROUPING: mkBrush(255, 255, 100, 120),
+        State.SPECIAL: mkBrush(238, 130, 238, 120)}
 
+    button: dict[str, QtCore.Qt.MouseButton] = {
+        'left': QtCore.Qt.MouseButton.LeftButton,
+        'middle': QtCore.Qt.MouseButton.MiddleButton,
+        'right': QtCore.Qt.MouseButton.RightButton}
+
+    modifier: dict[str, QtCore.Qt.KeyboardModifier] = {
+        'shift': QtCore.Qt.KeyboardModifier.ShiftModifier,
+        'alt': QtCore.Qt.KeyboardModifier.AltModifier,
+        'ctrl': QtCore.Qt.KeyboardModifier.ControlModifier,
+        'meta': QtCore.Qt.KeyboardModifier.MetaModifier,
+        'none': QtCore.Qt.KeyboardModifier.NoModifier}
+
+    Signature = tuple[QtCore.Qt.MouseButton, QtCore.Qt.KeyboardModifier]
+    Handler = Callable[[QtCore.QPointF], bool]
+    Mapping = tuple[Signature, Handler]
     Description = tuple[tuple[str, str], str]
     Descriptions = tuple[Description, ...]
-    Signature = tuple[Qt.MouseButton, Qt.KeyboardModifier]
-    Handler = Callable[[QPointF], bool]
-    Mapping = tuple[Signature, Handler]
 
     default: Descriptions = ((('left', 'shift'), 'addTrap'),
-                             (('left', 'ctrl|shift'), 'deleteTrap'),
+                             (('left', 'ctrl|shift'), 'removeTrap'),
                              (('left', 'alt|shift'), 'breakGroup'))
 
-    changed = pyqtSignal(list)
-
-    def __init__(self, parent, *args,
+    def __init__(self, *args,
+                 parent: QtCore.QObject | None = None,
                  descriptions: Descriptions = default,
                  **kwargs) -> None:
+        '''Initialize the overlay.
+
+        Parameters
+        ----------
+        descriptions : Descriptions
+            Sequence of ``((button_name, modifier_name), handler_name)``
+            tuples that map mouse gestures to trap operations.
+            Defaults:
+                shift+left → addTrap
+                ctrl+shift+left → removeTrap
+                alt+shift+left → breakGroup.
+        *args, **kwargs
+            Forwarded to ``ScatterPlotItem``.
+        '''
         super().__init__(*args, **kwargs)
-        self.pattern = QTrappingPattern(self)
-        self.selection = QRubberBand(QRubberBand.Shape.Rectangle, parent)
         self._setupUi()
-        self._connectSignals()
-        self._configureHandlers(descriptions)
+        self._traps: list[QTrap] = []
+        self._selected: QTrap | None = None
+        self._drag_last: QtCore.QPointF | None = None
+        self._selection_origin: QtCore.QPointF | None = None
+        self._handler = dict(self._mapping(d) for d in descriptions)
+
+    def __iter__(self) -> Iterator[QTrap]:
+        '''Yield the top-level QTrap/QTrapGroup children of this overlay.
+
+        Yields
+        ------
+        QTrap
+            Each direct QTrap or QTrapGroup child of the overlay.
+        '''
+        for child in self.children():
+            if isinstance(child, QTrap):
+                yield child
 
     def _setupUi(self) -> None:
-        self.selection.setWindowOpacity(0.3)
-        self._selected = None
-        self._grouping = None
-        self._redraw = True
+        '''Set up UI elements.
 
-    def _connectSignals(self) -> None:
-        self.pattern.changed.connect(self.change)
-        self.pattern.stateChanged.connect(self.draw)
-
-    def _configureHandlers(self, descriptions: Descriptions) -> None:
-        self.handler = dict(self._mapping(d) for d in descriptions)
+        Rubberband selection is hidden until used.
+        '''
+        self._selection = QtWidgets.QGraphicsRectItem(self)
+        self._selection.setPen(mkPen('b', width=1, cosmetic=True,
+                                     style=QtCore.Qt.PenStyle.DashLine))
+        self._selection.setBrush(mkBrush(100, 100, 255, 30))
+        self._selection.hide()
 
     def _mapping(self, description: Description) -> Mapping:
-        '''Converts description to (signature, handler)'''
+        '''Convert a description tuple to a (signature, handler) pair.
+
+        Parameters
+        ----------
+        description : Description
+            A ``((button_name, modifier_name), handler_name)`` tuple.
+
+        Returns
+        -------
+        Mapping
+            A ``(signature, handler)`` pair where signature is
+            ``(Qt.MouseButton, Qt.KeyboardModifier)`` and handler is
+            the bound method named by ``handler_name``.
+        '''
         (bname, mname), hname = description
         button = self.button[bname]
         mods = [self.modifier[m] for m in mname.split('|')]
-        modifiers = np.bitwise_or.reduce(mods)
+        modifiers = functools.reduce(operator.or_, mods)
         signature = (button, modifiers)
         handler = getattr(self, hname)
         return signature, handler
 
-    @pyqtSlot()
-    def draw(self) -> None:
-        self._redraw = True
+    # Operations on traps
 
-    @pyqtSlot()
-    def change(self) -> None:
-        logger.debug('Trap overlay changed')
-        self.draw()
-        self.changed.emit(self.pattern.traps())
+    def addTrap(self, traps: QTrap | list[QTrap] | QtCore.QPointF) -> bool:
+        '''Register a trap or group with the overlay.
 
-    @pyqtSlot()
-    def recalculate(self) -> None:
-        '''Recalculates the trapping pattern'''
-        logger.debug('Recalculating trapping pattern')
-        traps = self.pattern.traps()
-        for trap in traps:
-            trap.recalculate()
-        self.changed.emit(traps)
+        When called as a mouse handler with a ``QPointF``, creates a new
+        ``QTweezer`` at that position.
 
-    @pyqtSlot()
+        Parameters
+        ----------
+        traps : QTrap or list[QTrap] or QPointF
+            A single trap or group, a list of traps, or a position at
+            which to create a new ``QTweezer``.
+
+        Returns
+        -------
+        bool
+            ``True`` on success.
+        '''
+        if isinstance(traps, QtCore.QPointF):
+            self.addTrap(QTweezer(r=(traps.x(), traps.y(), 0.)))
+            return True
+        if isinstance(traps, list):
+            for trap in traps:
+                self.addTrap(trap)
+            return True
+        traps.setParent(self)
+        for trap in traps.leaves():
+            trap._index = len(self._traps)
+            self._traps.append(trap)
+            spot = {'pos': (trap.x, trap.y),
+                    'brush': self.brush[self.State.NORMAL],
+                    'data': trap,
+                    **trap.appearance()}
+            self.addPoints([spot])
+            trap.changed.connect(self._onTrapChanged)
+        return True
+
+    def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
+        '''Remove a trap from the overlay.
+
+        If the trap belongs to a group, the entire group is removed.
+        When called as a mouse handler with a ``QPointF``, removes the
+        trap nearest to that position.
+
+        Parameters
+        ----------
+        trap : QTrap or QPointF
+            The trap to remove, or a position identifying the nearest trap.
+
+        Returns
+        -------
+        bool
+            ``True`` if a trap was removed, ``False`` if no trap was found.
+        '''
+        if isinstance(trap, QtCore.QPointF):
+            pts = self.pointsAt(trap)
+            if len(pts) == 0:
+                return False
+            return self.removeTrap(pts[0].data())
+        group = self.groupOf(trap)
+        for t in list(group):
+            t.changed.disconnect(self._onTrapChanged)
+            if isinstance(t.parent(), QTrapGroup):
+                t.parent().removeTrap(t)
+            self._traps.remove(t)
+            t._index = None
+        group.setParent(None)
+        self._rebuildSpots()
+        return True
+
     def clearTraps(self) -> None:
-        '''Clears all traps from the trapping pattern'''
-        logger.debug('Clearing all traps')
-        with QSignalBlocker(self.pattern):
-            for trap in self.pattern:
-                self.pattern.remove(trap)
-        self.change()
+        '''Remove all traps from the overlay.'''
+        for trap in list(self._traps):
+            trap.changed.disconnect(self._onTrapChanged)
+            trap._index = None
+        self._traps.clear()
+        self.clear()
+        for item in list(self):
+            item.setParent(None)
 
-    def redraw(self) -> None:
-        if self._redraw:
-            self.plotTraps()
-            self._redraw = False
+    def _rebuildSpots(self) -> None:
+        '''Rebuild all SpotItems after a removal, resequencing ``_index``.'''
+        self.clear()
+        spots = []
+        for n, trap in enumerate(self._traps):
+            trap._index = n
+            spots.append({'pos': (trap.x, trap.y),
+                          'brush': self.brush[self.State.NORMAL],
+                          'data': trap,
+                          **trap.appearance()})
+        self.addPoints(spots)
 
-    def plotTraps(self) -> None:
-        spots = [trap.spot() for trap in self.pattern.traps()]
-        self.setData(spots)
+    @staticmethod
+    def groupOf(trap: QTrap) -> QTrap:
+        '''Return the topmost parent of a trap, or the trap itself.
 
-    # Identifying traps by position in the overlay
+        Parameters
+        ----------
+        trap : QTrap
+            A leaf trap or group.
 
-    def trapAt(self, pos: QPoint) -> QTrap | None:
-        '''Returns trap nearest to position'''
+        Returns
+        -------
+        QTrap
+            The root of the group hierarchy containing ``trap``.
+        '''
+        while isinstance(trap.parent(), QTrapGroup):
+            trap = trap.parent()
+        return trap
+
+    @QtCore.pyqtSlot()
+    def _onTrapChanged(self) -> None:
+        '''Slot called when a trap's position changes; updates its spot.'''
+        trap: QTrap = self.sender()
+        spot = self.points()[trap._index]
+        spot._data['x'] = trap.x
+        spot._data['y'] = trap.y
+        spot.updateItem()
+
+    def _setGroupBrush(self, group: QTrap, state: State) -> None:
+        '''Set the brush of every leaf spot in a group to the given state.
+
+        Parameters
+        ----------
+        group : QTrap
+            Root trap or group whose leaf spots will be updated.
+        state : State
+            Visual state to apply.
+        '''
+        for trap in group.leaves():
+            if trap._index is not None:
+                spot = self.points()[trap._index]
+                spot.setBrush(self.brush[state])
+                spot.updateItem()
+
+    # Rubber-band selection
+
+    def _finalizeSelection(self, rect: QtCore.QRectF) -> None:
+        '''Group all top-level items that lie entirely within rect.
+
+        A top-level group is included only if all of its leaf traps are
+        inside ``rect``; groups that straddle the boundary are excluded.
+
+        Parameters
+        ----------
+        rect : QRectF
+            The completed rubber-band rectangle in item coordinates.
+        '''
+        candidates = [item for item in self if item.isWithin(rect)]
+        if len(candidates) < 2:
+            return
+        centroid = np.mean([t._r for t in candidates], axis=0)
+        grp = QTrapGroup(r=centroid, parent=self)
+        grp.addTrap(candidates)
+
+    def startSelection(self, pos: QtCore.QPointF) -> None:
+        '''Begin a rubber-band selection anchored at pos.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Anchor corner of the selection rectangle in item coordinates.
+        '''
+        self._selection_origin = pos
+        self._selection.setRect(QtCore.QRectF(pos, QtCore.QSizeF(0., 0.)))
+        self._selection.show()
+
+    def growSelection(self, pos: QtCore.QPointF) -> None:
+        '''Extend the rubber-band to pos, highlighting enclosed traps.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Current cursor position in item coordinates.
+        '''
+        rect = QtCore.QRectF(self._selection_origin, pos).normalized()
+        self._selection.setRect(rect)
+        for item in self:
+            state = (self.State.GROUPING if item.isWithin(rect)
+                     else self.State.NORMAL)
+            self._setGroupBrush(item, state)
+
+    def endSelection(self) -> None:
+        '''Finish the rubber-band selection and group the enclosed traps.'''
+        rect = self._selection.rect()
+        self._selection.hide()
+        self._selection_origin = None
+        for item in self:
+            self._setGroupBrush(item, self.State.NORMAL)
+        self._finalizeSelection(rect)
+
+    # Identifying traps by position
+
+    def trapAt(self, pos: QtCore.QPointF) -> QTrap | None:
+        '''Return the trap nearest to a position.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Query position in item coordinates.
+
+        Returns
+        -------
+        QTrap or None
+            Nearest trap, or ``None`` if no trap is nearby.
+        '''
         pts = self.pointsAt(pos)
         if len(pts) == 0:
             return None
-        index = pts[0].index()
-        return self.pattern.traps()[index]
+        return self._traps[pts[0].index()]
 
-    def trapsIn(self, rect: QRect) -> list[QTrap] | None:
-        '''Returns list of trap indices within rectangle'''
+    def trapsIn(self, rect: QtCore.QRectF) -> list[QTrap]:
+        '''Return all traps within a rectangle.
+
+        Parameters
+        ----------
+        rect : QRectF
+            Query rectangle in item coordinates.
+
+        Returns
+        -------
+        list[QTrap]
+            Traps whose spots fall within ``rect``, or ``[]`` if none.
+        '''
         pts = self.pointsAt(rect)
-        if len(pts) == 0:
-            return None
-        traps = self.pattern.traps()
-        return [traps[p.index()] for p in pts]
+        return [self._traps[p.index()] for p in pts]
 
-    def groupAt(self, pos: QPoint) -> QTrapGroup | None:
-        '''Returns trap group nearest to position'''
+    def groupAt(self, pos: QtCore.QPointF) -> QTrap | None:
+        '''Return the topmost group containing the trap nearest to a position.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Query position in item coordinates.
+
+        Returns
+        -------
+        QTrap or None
+            Root of the group hierarchy, or ``None`` if no trap is nearby.
+        '''
         trap = self.trapAt(pos)
-        group = self.pattern.groupOf(trap)
-        if group is not None:
-            group.origin = trap.pos()
-        return group
+        if trap is None:
+            return None
+        return self.groupOf(trap)
 
-    # Operations on traps
+    # Mouse action handlers (dispatched by Signature mapping)
 
-    def traps(self) -> list[QTrap]:
-        '''Returns a list of traps in the trapping pattern.'''
-        return self.overlay.traps()
+    def breakGroup(self, pos: QtCore.QPointF) -> bool:
+        '''Detach the clicked trap (or its subgroup) from its parent group.
 
-    def _fmt(self, pos: QPointF) -> str:
-        return f' ({pos.x():.2f}, {pos.y():.2f})'
+        Parameters
+        ----------
+        pos : QPointF
+            Click position in item coordinates.
 
-    def addTrap(self, pos: QPointF, trap: QTrap | None = None) -> bool:
-        logger.debug(f'Adding trap at {self._fmt(pos)}')
-        self.pattern.addTrap(pos, trap)
-        return True
-
-    def deleteTrap(self, pos: QPointF) -> bool:
-        logger.debug('deleteTrap')
-        group = self.groupAt(pos)
-        if group is not None:
-            logger.debug('Deleting trap group at' + self._fmt(pos))
-            self.pattern.deleteTrap(group)
-        return True
-
-    def breakGroup(self, pos: QPointF) -> bool:
-        logger.debug('breakGroup')
+        Returns
+        -------
+        bool
+            ``True`` if a trap was detached, ``False`` if no trap was found
+            or the trap is not part of a group.
+        '''
         trap = self.trapAt(pos)
         if trap is None:
             return False
-        logger.debug('Breaking trap group at' + self._fmt(pos))
-        group = self.pattern.groupOf(trap)
-        self.pattern.breakGroup(group)
-        trap.setState(trap.State.SELECTED)
+        direct = trap.parent()
+        if not isinstance(direct, QTrapGroup):
+            return False
+        outer = direct.parent()
+        if isinstance(outer, QTrapGroup):
+            outer.removeTrap(direct)
+            direct.setParent(self)
+            if not list(outer) and outer.parent() is self:
+                outer.setParent(None)
+        else:
+            direct.removeTrap(trap)
+            trap.setParent(self)
+            if not list(direct) and direct.parent() is self:
+                direct.setParent(None)
         return True
 
-    def selectGroup(self, pos: QPointF) -> bool:
-        logger.debug('selectGroup')
+    def selectGroup(self, pos: QtCore.QPointF) -> bool:
+        '''Select the trap group at pos for dragging.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Click position in item coordinates.
+
+        Returns
+        -------
+        bool
+            ``True`` if a group was selected, ``False`` if no trap is nearby.
+        '''
+        pts = self.pointsAt(pos)
+        if len(pts) == 0:
+            return False
+        trap = pts[0].data()
+        self._selected = self.groupOf(trap)
+        self._setGroupBrush(self._selected, self.State.SELECTED)
+        return True
+
+    # QGraphicsItem event overrides (used when embedded in a PlotWidget)
+
+    def mousePressEvent(self, event) -> None:
+        '''Handle press via QGraphicsItem dispatch (standalone / demo use).
+
+        Parameters
+        ----------
+        event : QGraphicsSceneMouseEvent
+            The mouse press event from Qt.
+        '''
+        signature = (event.button(), event.modifiers())
+        handler = self._handler.get(signature, self.selectGroup)
+        pos = event.pos()  # already in item coordinates
+        if handler(pos):
+            self._drag_last = pos
+        else:
+            self.startSelection(pos)
+        event.accept()
+
+    def mouseMoveEvent(self, event) -> None:
+        '''Handle move via QGraphicsItem dispatch (standalone / demo use).
+
+        Parameters
+        ----------
+        event : QGraphicsSceneMouseEvent
+            The mouse move event from Qt.
+        '''
+        pos = event.pos()
+        if self._selected is not None and self._drag_last is not None:
+            dx = pos.x() - self._drag_last.x()
+            dy = pos.y() - self._drag_last.y()
+            new_r = self._selected._r.copy()
+            new_r[0] += dx
+            new_r[1] += dy
+            self._selected.r = new_r
+            self._drag_last = pos
+        elif self._selection.isVisible():
+            self.growSelection(pos)
+        event.accept()
+
+    def mouseReleaseEvent(self, event) -> None:
+        '''Handle release via QGraphicsItem dispatch (standalone / demo use).
+
+        Parameters
+        ----------
+        event : QGraphicsSceneMouseEvent
+            The mouse release event from Qt.
+        '''
+        if self._selection.isVisible():
+            self.endSelection()
+        if self._selected is not None:
+            self._setGroupBrush(self._selected, self.State.NORMAL)
+        self._selected = None
+        self._drag_last = None
+        event.accept()
+
+    # Event handlers (called by QFabScreen)
+
+    def mousePress(self, event: QtGui.QMouseEvent,
+                   pos: QtCore.QPointF) -> bool:
+        '''Handle a press event forwarded by QFabScreen.
+
+        Dispatches to the registered handler for the event's button/modifier
+        signature, falling back to ``selectGroup``. Starts a rubber-band
+        selection if no handler claims the event.
+
+        Parameters
+        ----------
+        event : QtGui.QMouseEvent
+            The original mouse event.
+        pos : QPointF
+            Cursor position in item coordinates.
+
+        Returns
+        -------
+        bool
+            Always ``True``.
+        '''
+        signature = (event.buttons(), event.modifiers())
+        handler = self._handler.get(signature, self.selectGroup)
+        if not handler(pos):
+            self.startSelection(pos)
+        else:
+            self._drag_last = pos
+        return True
+
+    def mouseMove(self, event: QtGui.QMouseEvent,
+                  pos: QtCore.QPointF) -> bool:
+        '''Handle a move event forwarded by QFabScreen.
+
+        Drags the selected group when the left button is held, or grows the
+        rubber-band selection if one is active. Ignores non-left-button moves.
+
+        Parameters
+        ----------
+        event : QtGui.QMouseEvent
+            The original mouse event.
+        pos : QPointF
+            Cursor position in item coordinates.
+
+        Returns
+        -------
+        bool
+            ``True`` if the event was handled, ``False`` otherwise.
+        '''
+        if event.buttons() != self.button['left']:
+            return False
+        if self._selected is not None and self._drag_last is not None:
+            dx = pos.x() - self._drag_last.x()
+            dy = pos.y() - self._drag_last.y()
+            new_r = self._selected._r.copy()
+            new_r[0] += dx
+            new_r[1] += dy
+            self._selected.r = new_r
+            self._drag_last = pos
+        elif self._selection.isVisible():
+            self.growSelection(pos)
+        return True
+
+    def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
+        '''Handle a release event forwarded by QFabScreen.
+
+        Finalizes any active rubber-band selection and clears drag state.
+
+        Parameters
+        ----------
+        event : QtGui.QMouseEvent
+            The original mouse event.
+
+        Returns
+        -------
+        bool
+            Always ``True``.
+        '''
+        if self._selection.isVisible():
+            self.endSelection()
+        if self._selected is not None:
+            self._setGroupBrush(self._selected, self.State.NORMAL)
+        self._selected = None
+        self._drag_last = None
+        return True
+
+    def wheel(self, event: QtGui.QWheelEvent,
+              pos: QtCore.QPointF) -> bool:
+        '''Handle a wheel event forwarded by QFabScreen.
+
+        Adjusts the z-coordinate of the nearest trap group by one step
+        per notch of wheel rotation.
+
+        Parameters
+        ----------
+        event : QtGui.QWheelEvent
+            The original wheel event.
+        pos : QPointF
+            Cursor position in item coordinates.
+
+        Returns
+        -------
+        bool
+            ``True`` if a group was found and moved, ``False`` otherwise.
+        '''
         group = self.groupAt(pos)
         if group is None:
             return False
-        group.setState(group.State.SELECTED)
-        self._selected = group
+        dz = event.angleDelta().y() / 120.
+        new_r = group._r.copy()
+        new_r[2] += dz
+        group.r = new_r
         return True
 
-    # Event handlers
+    @classmethod
+    def example(cls) -> None:
+        '''Display an interactive trap overlay demo.
 
-    def mousePress(self, event: QEvent) -> None:
-        # dispatch mouse press event to appropriate handler
-        signature = (event.buttons(), event.modifiers())
-        handler = self.handler.get(signature, self.selectGroup)
-        position = event.position()
-        if not handler(self.mapFromScene(position)):
-            self.startSelection(position)
+        Opens a plot window with several individual traps and a grouped
+        triple of traps. Supports adding, removing, grouping, and
+        dragging traps interactively.
+        '''
+        pg.mkQApp()
 
-    def mouseMove(self, event: QEvent) -> None:
-        if event.buttons() != Qt.MouseButton.LeftButton:
-            return
-        position = event.position()
-        # move selected trap group
-        if self._selected is not None:
-            self._selected.r = self.mapFromScene(position)
-        # grow rubber band selection
-        elif self.selection.isVisible():
-            self.growSelection(position)
+        win = pg.PlotWidget(title='QTrapOverlay Demo')
+        win.setWindowTitle('QTrap Demo')
+        win.setBackground('w')
+        win.showGrid(x=True, y=True, alpha=0.3)
 
-    def mouseRelease(self, event: QEvent) -> None:
-        self.pattern.makeGroup(self._grouping)
-        self.pattern.setState(self.pattern.State.NORMAL)
-        self.endSelection()
+        overlay = cls(size=18, pen=pg.mkPen('k', width=1))
 
-    def wheel(self, event: QEvent) -> None:
-        '''Handles mouse wheel events'''
-        position = self.mapFromScene(event.position())
-        group = self.groupAt(position)
-        if group is None:
-            return
-        dz = event.angleDelta().y()/120.
-        group.r += QVector3D(0., 0., dz)
+        positions = [(2., 3.), (4., 7.), (6., 2.),
+                     (7., 6.), (3., 5.), (8., 4.)]
+        for x, y in positions:
+            overlay.addTrap(QTweezer(r=(x, y, 100.)))
 
-    # Rubber band selection
+        tg1 = QTweezer(r=(5., 5.5, 150.))
+        tg2 = QTweezer(r=(4.1, 4.2, 150.))
+        tg3 = QTweezer(r=(5.9, 4.2, 150.))
+        grp = QTrapGroup(r=(5., 5., 150.))
+        for t in (tg1, tg2, tg3):
+            grp.addTrap(t)
+        overlay.addTrap(grp)
 
-    def startSelection(self, pos: QPointF) -> None:
-        logger.debug('startSelection at' + self._fmt(pos))
-        self.origin = pos.toPoint()
-        rectangle = QRect(self.origin, QSize())
-        self.selection.setGeometry(rectangle)
-        self.selection.show()
+        win.addItem(overlay)
+        win.setXRange(0, 10)
+        win.setYRange(0, 9)
+        win.show()
+        pg.exec()
 
-    def growSelection(self, pos: QPointF) -> None:
-        rectangle = QRect(self.origin, pos.toPoint())
-        self.selection.setGeometry(rectangle)
-        origin = self.mapFromScene(QPointF(self.origin))
-        point = self.mapFromScene(pos)
-        rectangle = QRectF(origin, point)
-        self._grouping = self.pattern.groupTraps(rectangle)
 
-    def endSelection(self) -> None:
-        logger.debug('endSelection')
-        self.selection.hide()
-        self._selected = None
-        self._grouping = None
+if __name__ == '__main__':
+    QTrapOverlay.example()

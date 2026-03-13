@@ -1,8 +1,6 @@
 from .QTrapGroup import QTrapGroup
 from .QTrap import QTrap
-from QFab.traps import QTweezer
-from pyqtgraph.Qt.QtCore import (QPointF, QRect, QRectF,
-                                 pyqtSignal, pyqtSlot, QSignalBlocker)
+from pyqtgraph.Qt.QtCore import (QPointF, QRect, QRectF, QSignalBlocker)
 import logging
 
 
@@ -20,32 +18,11 @@ class QTrappingPattern(QTrapGroup):
     QTrapGroup
     '''
 
-    trapAdded = pyqtSignal(QTrap)
-    trapDeleted = pyqtSignal(QTrap)
-
-    @pyqtSlot(QPointF, QTrap)
-    def addTrap(self,
-                pos: QPointF,
-                trap: QTrap | None = None) -> None:
-        '''Adds a trap at the specified position.'''
-        trap = trap or QTweezer()
-        trap.r = pos
-        self.add(trap)
-        self.trapAdded.emit(trap)
-        logger.debug(f'added {trap}')
-
-    @pyqtSlot(QTrap)
-    def deleteTrap(self, trap: QTrap) -> None:
-        '''Deletes the specified trap'''
-        logger.debug(f'deleting {trap}')
-        self.trapDeleted.emit(trap)
-        self.remove(trap)
-
     def makeGroup(self, traps: QTrap | None) -> None:
         '''Combines traps into a group that is added to the pattern.'''
         with QSignalBlocker(self):
             if (traps is None) or (len(traps) < 2):
-                logger.debug('not enough traps to group')
+                logger.debug('Not enough traps to group')
                 return
             group = QTrapGroup()
             for trap in traps:
@@ -58,7 +35,7 @@ class QTrappingPattern(QTrapGroup):
         '''Breaks group and moves traps into the pattern.'''
         with QSignalBlocker(self):
             if not isinstance(group, QTrapGroup):
-                logger.debug('nothing to break')
+                logger.debug('No group to break')
                 return
             for trap in group:
                 group.remove(trap)

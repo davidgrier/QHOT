@@ -35,6 +35,8 @@ jobs:
             numpy scipy pyqtgraph tomlkit \
             PyQt5 PyQt5-sip \
             coverage
+          pip install git+https://github.com/davidgrier/QVideo.git
+          pip install -e .
 
       - name: Run tests with coverage
         env:
@@ -42,7 +44,8 @@ jobs:
         run: |
           Xvfb :99 -screen 0 1280x720x24 &
           sleep 1
-          coverage run -m unittest discover -s tests -q
+          cd ..
+          coverage run -m unittest discover -s QFab/tests -q
           coverage xml
 
       - name: Upload coverage to Codecov

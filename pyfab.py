@@ -7,6 +7,7 @@ from QFab.lib.holograms.CGH import CGH
 from QFab.lib.holograms.QCGHTree import QCGHTree  # noqa: F401 — needed for uic
 from QFab.lib.traps.QTrap import QTrap
 from QFab.lib.traps.QTrapMenu import QTrapMenu  # noqa: F401 — needed for uic
+from QFab.lib.QSLMWidget import QSLMWidget  # noqa: F401 — needed for uic
 from QFab.lib.QSaveFile import QSaveFile
 import logging
 
@@ -74,6 +75,7 @@ class PyFab(QtWidgets.QMainWindow):
         self.dvr.playing.connect(self.dvrPlayback)
         self.dvr.recording.connect(self.cameraTree.setDisabled)
         self.cgh.hologramReady.connect(self.slm.setData)
+        self.cgh.hologramReady.connect(self.slmView.setData)
         self.cgh.hologramReady.connect(self._onHologramReady)
         self._computeRequested.connect(self.cgh.compute)
         self.screen.rendered.connect(self._onFrame)

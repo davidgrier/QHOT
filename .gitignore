@@ -30,6 +30,7 @@ htmlcov/
 old/
 help/html/
 help/old/
+help/Makefile
 lib/holograms/parameters.toml
 
 # Virtual environments

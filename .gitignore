@@ -12,6 +12,7 @@ build/
 
 # Editor backups
 *~
+*.autosave
 \#*\#
 .#*
 

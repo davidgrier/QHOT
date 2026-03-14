@@ -1,1 +1,34 @@
-Repository of custom trap classes
+Custom trap classes
+===================
+
+This directory contains concrete implementations of optical trap types,
+each subclassing ``QFab.lib.traps.QTrap``.
+
+Built-in trap types
+-------------------
+
+| Class         | Description                                              |
+|---------------|----------------------------------------------------------|
+| QTweezer      | Single Gaussian focus                                    |
+| QVortex       | Laguerre-Gaussian vortex beam with topological charge    |
+| QRingTrap     | Annular optical trap                                     |
+| QTrapArray    | Rectangular grid with optional mask and position jitter  |
+| QLetterArray  | Single dot-matrix character (A-Z, a-z, 0-9) as tweezers |
+| QTextArray    | String of QLetterArray characters                        |
+
+Writing a custom trap
+---------------------
+
+1. Subclass ``QFab.lib.traps.QTrap`` (for a single trap) or
+   ``QFab.lib.traps.QTrapGroup`` (for a composite).
+2. Implement ``__init__``, calling ``super().__init__(*args, **kwargs)``.
+3. Override ``_draw(self, field)`` to add your contribution to the
+   complex field array.
+4. Call ``self.registerProperty(name, ...)`` for each user-adjustable
+   parameter you want exposed in the Traps tab.
+5. Add your class to ``__init__.py`` and ``__all__`` so it appears in
+   the Add Trap menu.
+
+See ``QTweezer.py`` for the simplest possible example, and
+``QTrapArray.py`` for an example with registered properties and
+child-management signals (``reshaping`` / ``reshaped``).

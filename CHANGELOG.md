@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0] — 2026-03-13
+## [0.1.0] — 2026-03-14
 
 ### Added
 - `QTrapArray`: rectangular grid of optical tweezers with optional boolean mask
@@ -23,3 +23,24 @@
 ### Fixed
 - Mask shape validation in `QTrapArray.__init__` now raises `ValueError`
   immediately rather than deferring to the setter
+- `QFabScreen._overlayPos` now works across PyQt5 builds where `pos()` is
+  absent from `QWheelEvent` or `position()` is absent from `QMouseEvent`;
+  wheel-scroll z-axis movement restored
+- Five broken `traptab.html` links in `traphowto.html` corrected to
+  `trapstab.html`
+- `recordhowto.html` link typo `videotab.htm` → `videotab.html`
+- Trap creation gesture documented as Shift+left-click (was incorrectly
+  stated as right-click)
+- Selected-trap marker colour documented as pink (was incorrectly stated
+  as red)
+- `index.html` dead link to non-existent SLM tab removed
+
+### Added
+- `QSLMWidget`: in-app preview of the hologram currently displayed on the
+  physical SLM, with white background, interactive zoom and pan, and
+  visibility-gated rendering (skips updates while the tab is hidden,
+  renders the cached frame when the tab is first shown)
+- `slmtab.html` help page documenting the SLM preview and its mouse controls
+- `videofilters.html` help page documenting the four display filters
+- `videocamera.html` cross-reference to the display-filters panel
+- `trapstab.html` descriptions of all six trap types and their properties

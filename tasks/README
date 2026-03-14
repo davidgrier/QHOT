@@ -1,1 +1,39 @@
-Repository of automation scripts
+Automation scripts
+==================
+
+This directory is for scripts that automate sequences of trap
+interactions — moving traps along paths, running protocols, or
+coordinating trap arrays over time.
+
+Hooks for automation
+--------------------
+
+The trap infrastructure exposes several signals suitable for driving
+automation:
+
+- ``QTrap.changed`` — emitted whenever a trap's position or properties
+  change; connect to update downstream state.
+- ``QTrapArray.reshaping`` / ``QTrapArray.reshaped`` — bracket a
+  repopulation event; useful for pausing computations while the array
+  is being rebuilt.
+- ``QTrapOverlay.trapAdded`` / ``QTrapOverlay.trapRemoved`` — fired
+  when traps enter or leave the overlay; useful for bookkeeping.
+
+Walking traps
+-------------
+
+``QTrapGroup.leaves()`` returns an iterator over every individual
+``QTweezer`` (or other leaf trap) in a group, regardless of nesting
+depth. Use this to apply a position update uniformly across a
+structured trap such as a ``QTextArray``.
+
+Example skeleton
+----------------
+
+.. code-block:: python
+
+    from QFab.lib.traps.QTrapOverlay import QTrapOverlay
+
+    def move_all_to(overlay: QTrapOverlay, x: float, y: float) -> None:
+        for trap in list(overlay.leaves()):
+            trap.r = (x, y, trap.r[2])

@@ -86,6 +86,18 @@ Remote control of QFab from a mobile device.
 
 ---
 
+## Automatic Object Detection and Trapping
+
+Detect objects in the camera field of view and trap them automatically.
+
+- Identify candidate particles/objects from live video frames
+- Place traps on detected objects with a single action or automatically
+- Object detection may become a QVideo capability (video analysis pipeline)
+- Potential backends: intensity thresholding, blob detection, ML-based detection
+- Closed-loop: update trap positions as detected objects drift before capture
+
+---
+
 ## pylorenzmie Integration
 
 Combined holographic manipulation and in-situ characterization.

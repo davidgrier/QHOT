@@ -77,7 +77,7 @@ class QFabScreen(QVideoScreen):
         Parameters
         ----------
         event : QtGui.QInputEvent
-            A mouse or wheel event carrying a ``pos()`` in widget
+            A mouse or wheel event carrying a ``position()`` in widget
             (viewport) coordinates.
 
         Returns
@@ -87,7 +87,7 @@ class QFabScreen(QVideoScreen):
             coordinate system.
         '''
         return self.overlay.mapFromScene(
-            self.mapToScene(event.pos()))
+            self.mapToScene(event.position().toPoint()))
 
     @QtCore.pyqtSlot(np.ndarray)
     def setImage(self, image: np.ndarray) -> None:

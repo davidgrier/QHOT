@@ -17,6 +17,9 @@ dependencies = [
     "PyQt5>=5.15",
 ]
 
+[project.optional-dependencies]
+dev = ["coverage"]
+
 [project.scripts]
 pyfab = "QFab.pyfab:main"
 

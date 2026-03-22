@@ -6,7 +6,7 @@
 [![Documentation](https://readthedocs.org/projects/qhot/badge/?version=latest)](https://qhot.readthedocs.io/en/latest/)
 [![License](https://img.shields.io/github/license/davidgrier/QHOT.svg)](LICENSE)
 
-**QHOT** is a Python application for holographic optical trapping — controlling
+**QHOT** is a Python framework for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps
 in real time using a live camera feed.
 

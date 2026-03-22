@@ -22,7 +22,8 @@ if TYPE_CHECKING:
 
 __all__ = ('QUndoCommand QUndoStack '
            'AddTrapCommand RemoveTrapCommand '
-           'MoveCommand RotateCommand WheelCommand').split()
+           'MoveCommand RotateCommand WheelCommand '
+           'LockCommand').split()
 
 _WHEEL_ID = 0xC0DE_0001
 
@@ -236,3 +237,43 @@ class WheelCommand(QUndoCommand):
         new_r = self._group._r.copy()
         new_r[2] -= self._dz
         self._group.r = new_r
+
+
+class LockCommand(QUndoCommand):
+
+    '''Undoable command to toggle the locked state of a trap or group.
+
+    Locking prevents a trap from being moved, scrolled, or rotated via
+    mouse gestures.  The same command toggles back (undo = redo = toggle).
+
+    Parameters
+    ----------
+    overlay : QTrapOverlay
+        The overlay that owns the trap.
+    group : QTrap
+        The top-level trap or group whose locked state will be toggled.
+    parent : QUndoCommand or None
+        Optional parent command.
+    '''
+
+    def __init__(self, overlay: QTrapOverlay,
+                 group: QTrap,
+                 parent: QUndoCommand | None = None) -> None:
+        text = 'Unlock trap' if group.locked else 'Lock trap'
+        super().__init__(text, parent)
+        self._overlay = overlay
+        self._group = group
+
+    def redo(self) -> None:
+        '''Toggle the locked state.'''
+        self._toggle()
+
+    def undo(self) -> None:
+        '''Toggle the locked state back.'''
+        self._toggle()
+
+    def _toggle(self) -> None:
+        self._group.locked = not self._group.locked
+        state = (self._overlay.State.STATIC if self._group.locked
+                 else self._overlay.State.NORMAL)
+        self._overlay._setGroupBrush(self._group, state)

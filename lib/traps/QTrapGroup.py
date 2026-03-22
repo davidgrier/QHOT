@@ -182,10 +182,11 @@ class QTrapGroup(QTrap):
         Returns
         -------
         dict
-            A dict with ``'type'``, the registered properties, and a
+            A dict with ``'type'``, the registered properties,
+            ``'locked': True`` when the group is locked, and a
             ``'children'`` list of recursively serialised child traps.
         '''
-        d = {'type': type(self).__name__, **self.settings}
+        d = super().to_dict()
         d['children'] = [child.to_dict() for child in self]
         return d
 

@@ -50,12 +50,14 @@ class QTrap(QtCore.QObject):
                  r: npt.ArrayLike = (0., 0., 0.),
                  amplitude: float = 1.,
                  phase: float | None = None,
+                 locked: bool = False,
                  parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self._r = np.array(r, dtype=float)
         self._amplitude = float(amplitude)
         self._phase = (np.random.uniform(0., 2.*np.pi)
                        if phase is None else float(phase))
+        self._locked = bool(locked)
         self._index: int | None = None
         self._registerProperties()
 
@@ -143,6 +145,21 @@ class QTrap(QtCore.QObject):
         self._phase = phase
         self.changed.emit()
 
+    @property
+    def locked(self) -> bool:
+        '''Whether this trap is locked (immovable).
+
+        Locked traps cannot be moved, scrolled, or rotated via mouse
+        gestures.  The overlay displays them with the ``STATIC`` brush.
+        The lock state is preserved when saving and loading trap
+        configurations.
+        '''
+        return self._locked
+
+    @locked.setter
+    def locked(self, value: bool) -> None:
+        self._locked = bool(value)
+
     def leaves(self) -> Iterator['QTrap']:
         '''Yield this trap as its own sole leaf.
 
@@ -201,10 +218,14 @@ class QTrap(QtCore.QObject):
         Returns
         -------
         dict
-            A dict with a ``'type'`` key (the class name) and one key per
-            registered property.
+            A dict with a ``'type'`` key (the class name), one key per
+            registered property, and ``'locked': True`` when the trap is
+            locked (omitted when unlocked to keep JSON compact).
         '''
-        return {'type': type(self).__name__, **self.settings}
+        d = {'type': type(self).__name__, **self.settings}
+        if self._locked:
+            d['locked'] = True
+        return d
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

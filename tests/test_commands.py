@@ -9,7 +9,7 @@ from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
     MoveCommand, RotateCommand, WheelCommand,
-    QUndoStack)
+    LockCommand, QUndoStack)
 from QHOT.traps.QTweezer import QTweezer
 
 
@@ -242,6 +242,63 @@ class TestWheelCommandNoMergeAcrossGroups(unittest.TestCase):
         trap_b._r[2] += 1.
         stack.push(WheelCommand(trap_b, 1.))
         self.assertEqual(stack.count(), 2)
+
+
+class TestLockCommand(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay._addTrap(self.trap)
+        self.stack = self.overlay._undoStack
+
+    def test_redo_locks_trap(self):
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.assertTrue(self.trap.locked)
+
+    def test_undo_unlocks_trap(self):
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.stack.undo()
+        self.assertFalse(self.trap.locked)
+
+    def test_redo_after_undo_locks_again(self):
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.stack.undo()
+        self.stack.redo()
+        self.assertTrue(self.trap.locked)
+
+    def test_redo_unlocks_already_locked(self):
+        self.trap.locked = True
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.assertFalse(self.trap.locked)
+
+    def test_undo_relocks_after_unlock(self):
+        self.trap.locked = True
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.stack.undo()
+        self.assertTrue(self.trap.locked)
+
+    def test_text_lock(self):
+        cmd = LockCommand(self.overlay, self.trap)
+        self.assertEqual(cmd.text(), 'Lock trap')
+
+    def test_text_unlock(self):
+        self.trap.locked = True
+        cmd = LockCommand(self.overlay, self.trap)
+        self.assertEqual(cmd.text(), 'Unlock trap')
+
+    def test_redo_sets_static_brush(self):
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        spot = self.overlay.points()[0]
+        self.assertEqual(spot.brush().color(),
+                         self.overlay.brush[self.overlay.State.STATIC].color())
+
+    def test_undo_restores_normal_brush(self):
+        self.stack.push(LockCommand(self.overlay, self.trap))
+        self.stack.undo()
+        spot = self.overlay.points()[0]
+        self.assertEqual(spot.brush().color(),
+                         self.overlay.brush[self.overlay.State.NORMAL].color())
 
 
 class TestUndoStackIntegration(unittest.TestCase):

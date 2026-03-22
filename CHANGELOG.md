@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.4.0] — 2026-03-22
+
+### Added
+- Trap locking: hold **Ctrl+Alt** (Control+Option on macOS) and left-click
+  a trap to lock it in place.  Click again to unlock.
+- `QTrap.locked` property (default ``False``).  Locked traps display with
+  the ``STATIC`` (white) brush and cannot be moved, scrolled, or rotated
+  via mouse gestures.  The lock state is serialized in saved JSON files.
+- `LockCommand`: undoable toggle in `lib/traps/commands.py`; undo and redo
+  both toggle the locked state, so Ctrl+Z restores the previous lock state.
+- ``QTrapGroup.to_dict()`` now delegates to ``super().to_dict()`` so any
+  future additions to ``QTrap.to_dict()`` are automatically inherited.
+
+### Changed
+- `selectGroup`, `startRotation`, and `wheel` all skip locked traps/groups
+  without consuming the event, so clicks on locked traps still return
+  ``True`` (no rubber-band fallback).
+- `_addTrap` and `_rebuildSpots` use the ``STATIC`` brush for locked
+  traps so the visual state survives remove/add undo cycles.
+
 ## [1.3.0] — 2026-03-22
 
 ### Added

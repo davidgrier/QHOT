@@ -1379,5 +1379,137 @@ class TestRotationGesture(unittest.TestCase):
             leaf._r[:2], [0., 2.], decimal=5)
 
 
+class TestToggleLock(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+
+    def test_returns_false_no_trap(self):
+        with patch.object(self.overlay, 'trapAt', return_value=None):
+            result = self.overlay.toggleLock(QtCore.QPointF(99., 99.))
+        self.assertFalse(result)
+
+    def test_returns_true_when_trap_found(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            result = self.overlay.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertTrue(result)
+
+    def test_locks_trap(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertTrue(self.trap.locked)
+
+    def test_unlocks_trap(self):
+        self.trap.locked = True
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertFalse(self.trap.locked)
+
+    def test_lock_sets_static_brush(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.STATIC].color())
+
+    def test_unlock_restores_normal_brush(self):
+        self.trap.locked = True
+        self.overlay._setGroupBrush(self.trap, self.overlay.State.STATIC)
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.NORMAL].color())
+
+
+class TestLockedTrapIgnored(unittest.TestCase):
+    '''Locked traps must be unaffected by move, scroll, and rotate.'''
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+        self.trap.locked = True
+
+    def test_select_group_skips_locked(self):
+        spot = self.overlay.points()[0]
+        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
+            result = self.overlay.selectGroup(QtCore.QPointF(5., 5.))
+        self.assertTrue(result)
+        self.assertIsNone(self.overlay._selected)
+
+    def test_wheel_skips_locked(self):
+        initial_z = self.trap.z
+        with patch.object(self.overlay, 'groupAt', return_value=self.trap):
+            event = MagicMock()
+            event.angleDelta.return_value.y.return_value = 120
+            self.overlay.wheel(event, QtCore.QPointF(5., 5.))
+        self.assertAlmostEqual(self.trap.z, initial_z)
+
+    def test_start_rotation_skips_locked_group(self):
+        t1 = QTweezer(r=(4., 0., 0.))
+        t2 = QTweezer(r=(-4., 0., 0.))
+        grp = QTrapGroup(r=(0., 0., 0.))
+        grp.addTrap([t1, t2])
+        self.overlay.addTrap(grp)
+        grp.locked = True
+        with patch.object(self.overlay, 'trapAt', return_value=t1):
+            result = self.overlay.startRotation(QtCore.QPointF(4., 0.))
+        self.assertTrue(result)
+        self.assertIsNone(self.overlay._rotating)
+
+    def test_add_locked_uses_static_brush(self):
+        overlay = make_overlay()
+        trap = QTrap(r=(3., 3., 0.), phase=0., locked=True)
+        overlay.addTrap(trap)
+        spot = overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            overlay.brush[overlay.State.STATIC].color())
+
+
+class TestLockedSerialisation(unittest.TestCase):
+
+    def test_locked_survives_save_load(self):
+        import json
+        import tempfile
+        import os
+        overlay = make_overlay()
+        trap = QTweezer(r=(2., 3., 0.), locked=True)
+        overlay.addTrap(trap)
+        with tempfile.NamedTemporaryFile(suffix='.json',
+                                         delete=False) as f:
+            path = f.name
+        try:
+            overlay.save(path)
+            overlay2 = make_overlay()
+            overlay2.load(path)
+            self.assertEqual(len(overlay2._traps), 1)
+            self.assertTrue(overlay2._traps[0].locked)
+        finally:
+            os.unlink(path)
+
+    def test_unlocked_not_in_json(self):
+        import json
+        import tempfile
+        import os
+        overlay = make_overlay()
+        overlay.addTrap(QTweezer(r=(1., 1., 0.)))
+        with tempfile.NamedTemporaryFile(suffix='.json',
+                                         delete=False) as f:
+            path = f.name
+        try:
+            overlay.save(path)
+            with open(path) as f:
+                data = json.load(f)
+            self.assertNotIn('locked', data[0])
+        finally:
+            os.unlink(path)
+
+
 if __name__ == '__main__':
     unittest.main()

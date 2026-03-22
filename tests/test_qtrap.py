@@ -290,5 +290,36 @@ class TestToDict(unittest.TestCase):
         self.assertEqual(set(d.keys()), {'type', 'x', 'y', 'z', 'amplitude', 'phase'})
 
 
+class TestLocked(unittest.TestCase):
+
+    def test_default_unlocked(self):
+        self.assertFalse(QTrap().locked)
+
+    def test_init_locked_true(self):
+        self.assertTrue(QTrap(locked=True).locked)
+
+    def test_setter_locks(self):
+        trap = QTrap(phase=0.)
+        trap.locked = True
+        self.assertTrue(trap.locked)
+
+    def test_setter_unlocks(self):
+        trap = QTrap(locked=True, phase=0.)
+        trap.locked = False
+        self.assertFalse(trap.locked)
+
+    def test_locked_not_in_settings(self):
+        trap = QTrap(locked=True, phase=0.)
+        self.assertNotIn('locked', trap.settings)
+
+    def test_to_dict_omits_locked_when_false(self):
+        d = QTrap(phase=0.).to_dict()
+        self.assertNotIn('locked', d)
+
+    def test_to_dict_includes_locked_when_true(self):
+        d = QTrap(locked=True, phase=0.).to_dict()
+        self.assertTrue(d['locked'])
+
+
 if __name__ == '__main__':
     unittest.main()

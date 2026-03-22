@@ -7,7 +7,7 @@ from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
-    MoveCommand, RotateCommand, WheelCommand)
+    MoveCommand, RotateCommand, WheelCommand, LockCommand)
 from QHOT.traps import QTweezer
 from enum import Enum
 import json
@@ -34,17 +34,18 @@ class QTrapOverlay(ScatterPlotItem):
     argument, which maps (button, modifier) pairs to named handler methods.
     The default bindings are:
 
-    =========================  ===========
-    Gesture                    Action
-    =========================  ===========
-    Shift + left click         Add trap
-    Ctrl + Shift + left click  Remove trap
-    Alt + Shift + left click   Break group
-    Alt + left drag            Rotate group
-    Left drag (no modifier)    Move group
-    Left drag (no target)      Rubber-band select / group
-    Scroll wheel               Adjust trap z
-    =========================  ===========
+    ===========================  ===========
+    Gesture                      Action
+    ===========================  ===========
+    Shift + left click           Add trap
+    Ctrl + Shift + left click    Remove trap
+    Alt + Shift + left click     Break group
+    Ctrl + Alt + left click      Lock / unlock trap
+    Alt + left drag              Rotate group
+    Left drag (no modifier)      Move group
+    Left drag (no target)        Rubber-band select / group
+    Scroll wheel                 Adjust trap z
+    ===========================  ===========
 
     The overlay supports two event-delivery modes:
 
@@ -115,6 +116,7 @@ class QTrapOverlay(ScatterPlotItem):
     default: Descriptions = ((('left', 'shift'), 'addTrap'),
                              (('left', 'ctrl|shift'), 'removeTrap'),
                              (('left', 'alt|shift'), 'breakGroup'),
+                             (('left', 'ctrl|alt'), 'toggleLock'),
                              (('left', 'alt'), 'startRotation'))
 
     def __init__(self, *args,
@@ -213,11 +215,13 @@ class QTrapOverlay(ScatterPlotItem):
             A single trap or a group to register.
         '''
         traps.setParent(self)
+        brush_state = (self.State.STATIC if traps.locked
+                       else self.State.NORMAL)
         for trap in traps.leaves():
             trap._index = len(self._traps)
             self._traps.append(trap)
             spot = {'pos': (trap.x, trap.y),
-                    'brush': self.brush[self.State.NORMAL],
+                    'brush': self.brush[brush_state],
                     'data': trap,
                     **trap.appearance()}
             self.addPoints([spot])
@@ -343,8 +347,11 @@ class QTrapOverlay(ScatterPlotItem):
         spots = []
         for n, trap in enumerate(self._traps):
             trap._index = n
+            group = self.groupOf(trap)
+            brush_state = (self.State.STATIC if group.locked
+                           else self.State.NORMAL)
             spots.append({'pos': (trap.x, trap.y),
-                          'brush': self.brush[self.State.NORMAL],
+                          'brush': self.brush[brush_state],
                           'data': trap,
                           **trap.appearance()})
         self.addPoints(spots)
@@ -632,6 +639,9 @@ class QTrapOverlay(ScatterPlotItem):
             return False
         trap = pts[0].data()
         self._selected = self.groupOf(trap)
+        if self._selected.locked:
+            self._selected = None
+            return True
         self._move_origin = self._selected._r.copy()
         self._setGroupBrush(self._selected, self.State.SELECTED)
         return True
@@ -660,12 +670,39 @@ class QTrapOverlay(ScatterPlotItem):
         group = self.groupOf(trap)
         if not isinstance(group, QTrapGroup):
             return True
+        if group.locked:
+            return True
         cx, cy = group._r[0], group._r[1]
         self._rotating = group
         self._rotation_center = (cx, cy)
         self._rotation_angle0 = np.arctan2(pos.y() - cy, pos.x() - cx)
         self._rotation_snapshot = group._snapshot()
         self._setGroupBrush(group, self.State.SELECTED)
+        return True
+
+    def toggleLock(self, pos: QtCore.QPointF) -> bool:
+        '''Toggle the locked state of the trap group under the cursor.
+
+        Locked traps are displayed with the ``STATIC`` (white) brush and
+        cannot be moved, scrolled, or rotated.  Clicking again unlocks
+        them.  If no trap is found at ``pos``, returns ``False``.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Click position in item coordinates.
+
+        Returns
+        -------
+        bool
+            ``True`` if a trap was found (lock toggled), ``False``
+            if no trap is nearby.
+        '''
+        trap = self.trapAt(pos)
+        if trap is None:
+            return False
+        group = self.groupOf(trap)
+        self._undoStack.push(LockCommand(self, group))
         return True
 
     # QGraphicsItem event overrides (used when embedded in a PlotWidget)
@@ -877,6 +914,8 @@ class QTrapOverlay(ScatterPlotItem):
         group = self.groupAt(pos)
         if group is None:
             return False
+        if group.locked:
+            return True
         dz = event.angleDelta().y() / 120.
         new_r = group._r.copy()
         new_r[2] += dz

@@ -147,7 +147,7 @@ Expand the range of structured light modes and improve trap quality.
 Improve the interactive experience during experiments.
 
 - ~~Undo/redo for trap operations — accidental moves are common during experiments~~  **Done** (v1.3.0, `QUndoStack` in overlay; Edit menu)
-- Trap locking: mark individual traps as immovable to prevent accidental repositioning
+- ~~Trap locking: mark individual traps as immovable to prevent accidental repositioning~~  **Done** (v1.4.0, Ctrl+Alt+click; `QTrap.locked`; `LockCommand`)
 - Keyboard shortcuts for common actions (add trap, clear all, toggle overlay)
 - Copy/paste for trap groups — duplicate a configuration with an offset
 

@@ -2,6 +2,8 @@
 
 Mirrors the ``choose_camera`` / ``camera_parser`` API from QVideo so
 that a single ``ArgumentParser`` can carry both camera and CGH flags.
+Use ``build_parser`` to get a parser with both option groups already
+titled and separated.
 
 Usage
 -----
@@ -10,17 +12,14 @@ Standalone::
     from QHOT.lib import choose_cgh
     cgh = choose_cgh(shape=(512, 512))
 
-Shared parser with QVideo::
+Shared parser with titled groups::
 
-    from argparse import ArgumentParser
-    from QVideo.lib import camera_parser, choose_camera
-    from QHOT.lib import cgh_parser, choose_cgh
+    from QHOT.lib.chooser import build_parser, choose_cgh
+    from QVideo.lib import choose_camera
 
-    parser = ArgumentParser()
-    camera_parser(parser)
-    cgh_parser(parser)
-    cameraTree = choose_camera(parser).start()
+    parser = build_parser()
     cgh = choose_cgh(parser, shape=slm.shape)
+    cameraTree = choose_camera(parser).start()
 '''
 import importlib
 import logging
@@ -29,7 +28,7 @@ from typing import NamedTuple
 
 from QHOT.lib.holograms.CGH import CGH
 
-__all__ = 'cgh_parser choose_cgh'.split()
+__all__ = 'build_parser cgh_parser choose_cgh'.split()
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +54,12 @@ _AUTO_DETECT_ORDER = ('torch', 'cupy')
 
 
 def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
-    '''Return a parser extended with mutually exclusive CGH backend flags.
+    '''Return a parser extended with a titled CGH backend option group.
 
-    Adds ``-t`` (TorchCGH) and ``-u`` (cupyCGH) to a mutually
-    exclusive group.  If either flag is already registered on
-    ``parser``, the group is left unchanged.
+    Adds ``-t`` (TorchCGH) and ``-u`` (cupyCGH) as a mutually
+    exclusive group under a ``CGH backend`` section heading.  If
+    either flag is already registered on ``parser``, the group is
+    left unchanged.
 
     Parameters
     ----------
@@ -69,7 +69,7 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     Returns
     -------
     ArgumentParser
-        Parser with flags::
+        Parser with a ``CGH backend`` section containing::
 
             -t  PyTorch (MPS / CUDA / ROCm / CPU auto-select)
             -u  CuPy CUDA (NVIDIA only)
@@ -80,11 +80,48 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     parser = parser or ArgumentParser()
     first_flag = next(iter(_CGH_BACKENDS.values())).flag
     if first_flag not in parser._option_string_actions:
-        group = parser.add_mutually_exclusive_group()
+        group = parser.add_argument_group('CGH backend')
+        mutex = group.add_mutually_exclusive_group()
         for dest, entry in _CGH_BACKENDS.items():
-            group.add_argument(entry.flag, dest=dest, help=entry.help,
+            mutex.add_argument(entry.flag, dest=dest, help=entry.help,
                                action='store_true')
     return parser
+
+
+def build_parser(description: str = 'QHOT holographic optical trapping'
+                 ) -> ArgumentParser:
+    '''Return a parser with titled camera and CGH backend option groups.
+
+    Pre-registers all QVideo camera flags under a ``camera backend``
+    section heading so that ``choose_camera`` sees them already present
+    and skips its own (un-titled) group.  Then adds the CGH backend
+    section via ``cgh_parser``.
+
+    Parameters
+    ----------
+    description : str
+        Application description shown in ``--help``.
+
+    Returns
+    -------
+    ArgumentParser
+        Parser with sections::
+
+            camera backend:
+                -b  Basler  -c  OpenCV  -f  Flir ...
+            CGH backend:
+                -t  PyTorch  -u  CuPy
+    '''
+    from QVideo.lib.chooser import _CAMERAS
+    parser = ArgumentParser(description=description)
+    cam_group = parser.add_argument_group('camera backend')
+    cam_mutex = cam_group.add_mutually_exclusive_group()
+    for dest, entry in _CAMERAS.items():
+        cam_mutex.add_argument(entry.flag, dest=dest, help=entry.help,
+                               action='store_true')
+    parser.add_argument('cameraID', nargs='?', type=int, default=0,
+                        help='camera ID number (default: %(default)d)')
+    return cgh_parser(parser)
 
 
 def choose_cgh(parser: ArgumentParser | None = None,

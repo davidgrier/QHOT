@@ -5,8 +5,7 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui, uic
 
 from QVideo.lib import choose_camera, QCameraTree
-from QVideo.lib.chooser import camera_parser
-from QHOT.lib import QSLM, QSLMWidget, QSaveFile, cgh_parser, choose_cgh  # noqa: F401
+from QHOT.lib import QSLM, QSLMWidget, QSaveFile, build_parser, choose_cgh  # noqa: F401
 from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
 from QHOT.lib.traps import QTrap, QTrapMenu       # noqa: F401
 
@@ -322,7 +321,7 @@ def main() -> None:
     auto-selected (TorchCGH → cupyCGH → CGH) when no flag is given.
     '''
     app = pg.mkQApp('QHOT')
-    parser = cgh_parser(camera_parser())
+    parser = build_parser()
     slm = QSLM()
     cgh = choose_cgh(parser, shape=slm.shape)
     cameraTree = choose_camera(parser).start()

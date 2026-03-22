@@ -7,7 +7,7 @@ import importlib as _importlib
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-from QHOT.lib.chooser import cgh_parser, choose_cgh, _CGH_BACKENDS
+from QHOT.lib.chooser import build_parser, cgh_parser, choose_cgh, _CGH_BACKENDS
 from QHOT.lib.holograms.CGH import CGH
 _chooser_mod = _importlib.import_module('QHOT.lib.chooser')
 
@@ -40,6 +40,11 @@ class TestCghParser(unittest.TestCase):
         cgh_parser(parser)
         cgh_parser(parser)   # second call should not raise
         self.assertIn('-t', parser._option_string_actions)
+
+    def test_cgh_flags_in_named_group(self):
+        parser = cgh_parser()
+        group_titles = [g.title for g in parser._action_groups]
+        self.assertIn('CGH backend', group_titles)
 
     def test_compatible_with_camera_parser(self):
         from QVideo.lib.chooser import camera_parser
@@ -181,6 +186,62 @@ class TestBackendRegistry(unittest.TestCase):
     def test_all_entries_have_cls(self):
         for entry in _CGH_BACKENDS.values():
             self.assertTrue(entry.cls)
+
+
+class TestBuildParser(unittest.TestCase):
+
+    def setUp(self):
+        self.parser = build_parser()
+
+    def test_returns_argument_parser(self):
+        self.assertIsInstance(self.parser, ArgumentParser)
+
+    def test_has_camera_backend_group(self):
+        titles = [g.title for g in self.parser._action_groups]
+        self.assertIn('camera backend', titles)
+
+    def test_has_cgh_backend_group(self):
+        titles = [g.title for g in self.parser._action_groups]
+        self.assertIn('CGH backend', titles)
+
+    def test_camera_flags_registered(self):
+        for flag in ('-b', '-c', '-f', '-i', '-m', '-v', '-p', '-r'):
+            self.assertIn(flag, self.parser._option_string_actions)
+
+    def test_cgh_flags_registered(self):
+        self.assertIn('-t', self.parser._option_string_actions)
+        self.assertIn('-u', self.parser._option_string_actions)
+
+    def test_cameraid_registered(self):
+        self.assertTrue(
+            any(a.dest == 'cameraID' for a in self.parser._actions))
+
+    def test_custom_description(self):
+        parser = build_parser(description='My app')
+        self.assertEqual(parser.description, 'My app')
+
+    def test_camera_and_cgh_flags_mutually_exclusive(self):
+        # Camera flags are mutually exclusive with each other.
+        with self.assertRaises(SystemExit):
+            self.parser.parse_args(['-b', '-c'])
+        # CGH flags are mutually exclusive with each other.
+        with self.assertRaises(SystemExit):
+            self.parser.parse_args(['-t', '-u'])
+
+    def test_camera_and_cgh_flags_coexist(self):
+        # A camera flag and a CGH flag can be used together.
+        args = self.parser.parse_args(['-b', '-t'])
+        self.assertTrue(args.basler)
+        self.assertTrue(args.torch)
+
+    def test_choose_camera_sees_registered_flags(self):
+        from QVideo.lib import choose_camera
+        # choose_camera should work with the pre-built parser without
+        # raising or duplicating flags.
+        try:
+            choose_camera(self.parser)
+        except SystemExit:
+            pass  # expected when no camera hardware is present
 
 
 if __name__ == '__main__':

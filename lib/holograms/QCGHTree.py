@@ -187,7 +187,7 @@ class QCGHTree(ParameterTree):
         for param, change, value in changes:
             if change == 'value':
                 key = param.name()
-                if key in self._cgh._fields:
+                if key in self._cgh.properties:
                     setattr(self._cgh, key, value)
                 else:
                     logger.warning(f'CGH has no field: {key}')

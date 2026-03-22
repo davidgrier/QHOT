@@ -171,6 +171,17 @@ class TestPhase(unittest.TestCase):
         self.assertEqual(len(spy), 1)
 
 
+class TestLeaves(unittest.TestCase):
+
+    def test_leaves_yields_self(self):
+        trap = QTrap(phase=0.)
+        self.assertEqual(list(trap.leaves()), [trap])
+
+    def test_leaves_count(self):
+        trap = QTrap(phase=0.)
+        self.assertEqual(sum(1 for _ in trap.leaves()), 1)
+
+
 class TestIsWithin(unittest.TestCase):
 
     def setUp(self):

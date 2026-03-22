@@ -9,19 +9,15 @@ class QTrapArray(QTrapGroup):
 
     '''Rectangular array of optical tweezers, with optional mask.
 
-    Creates a uniform grid of ``QTweezer`` traps centered on the group's
-    own position.  An optional boolean mask of shape ``(nx, ny)`` can
-    suppress individual grid positions: ``True`` means the tweezer is
-    present, ``False`` means it is absent.
+    Subclass of ``QTrapGroup``. Creates a uniform grid of ``QTweezer``
+    traps centered on the group's own position.  An optional boolean mask
+    of shape ``(nx, ny)`` can suppress individual grid positions: ``True``
+    means the tweezer is present, ``False`` means it is absent.
 
     The grid dimensions, spacing, and mask are all settable
     programmatically.  Changing ``nx``, ``ny``, or ``shape`` resets the
     mask to ``None`` (full grid).  Changing ``separation`` or ``mask``
     preserves the shape.
-
-    Inherits
-    --------
-    QFab.lib.traps.QTrapGroup
 
     Parameters
     ----------

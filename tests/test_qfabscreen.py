@@ -76,10 +76,9 @@ class TestClearTraps(unittest.TestCase):
         self.assertEqual(self.screen.overlay._traps, [])
 
     def test_emits_status(self):
-        statuses = []
-        self.screen.status.connect(statuses.append)
+        spy = QtTest.QSignalSpy(self.screen.status)
         self.screen.clearTraps()
-        self.assertEqual(len(statuses), 1)
+        self.assertEqual(len(spy), 1)
 
 
 class TestMousePressEvent(unittest.TestCase):

@@ -76,6 +76,19 @@ class QHOT(QtWidgets.QMainWindow):
         self.menuAddTrap.pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])
         self.helpBrowser.setSource(QtCore.QUrl('index.html'))
+        self._setupEditMenu()
+
+    def _setupEditMenu(self) -> None:
+        '''Insert an Edit menu with Undo/Redo between File and Tasks.'''
+        stack = self.screen.overlay._undoStack
+        undoAction = stack.createUndoAction(self, '&Undo')
+        undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
+        redoAction = stack.createRedoAction(self, '&Redo')
+        redoAction.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        editMenu = QtWidgets.QMenu('&Edit', self.menubar)
+        editMenu.addAction(undoAction)
+        editMenu.addAction(redoAction)
+        self.menubar.insertMenu(self.menuTasks.menuAction(), editMenu)
 
     def _connectSignals(self) -> None:
         '''Wire signals and slots between subsystems.'''
@@ -119,7 +132,26 @@ class QHOT(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(QTrap)
     def _onTrapRemoved(self, trap: QTrap) -> None:
-        '''Schedule a hologram recompute after a trap is removed.'''
+        '''Disconnect compute signals and schedule a hologram recompute.
+
+        Disconnects signals connected in ``_onTrapAdded`` so that
+        undo/redo cycles do not accumulate duplicate connections.
+        '''
+        if isinstance(trap, QTrapGroup):
+            try:
+                trap.changed.disconnect(self._scheduleCompute)
+            except (TypeError, RuntimeError):
+                pass
+        for leaf in trap.leaves():
+            try:
+                leaf.changed.disconnect(self._scheduleCompute)
+            except (TypeError, RuntimeError):
+                pass
+            if hasattr(leaf, 'structureChanged'):
+                try:
+                    leaf.structureChanged.disconnect(self._scheduleCompute)
+                except (TypeError, RuntimeError):
+                    pass
         self._scheduleCompute()
 
     @QtCore.pyqtSlot(QtCore.QPointF, QTrap)

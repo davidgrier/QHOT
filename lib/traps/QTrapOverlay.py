@@ -2,8 +2,12 @@ import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 from pyqtgraph import mkBrush, mkPen
+from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.commands import (
+    AddTrapCommand, RemoveTrapCommand,
+    MoveCommand, RotateCommand, WheelCommand)
 from QHOT.traps import QTweezer
 from enum import Enum
 import json
@@ -136,12 +140,15 @@ class QTrapOverlay(ScatterPlotItem):
         self._setupUi()
         self._traps: list[QTrap] = []
         self._selected: QTrap | None = None
+        self._move_origin = None
         self._drag_last: QtCore.QPointF | None = None
         self._selection_origin: QtCore.QPointF | None = None
         self._rotating: QTrapGroup | None = None
         self._rotation_center: tuple[float, float] = (0., 0.)
         self._rotation_angle0: float = 0.
+        self._rotation_angle: float = 0.
         self._rotation_snapshot: dict = {}
+        self._undoStack = QUndoStack()
         self._handler = dict(self._mapping(d) for d in descriptions)
 
     def __iter__(self) -> Iterator[QTrap]:
@@ -192,30 +199,19 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Operations on traps
 
-    def addTrap(self, traps: QTrap | list[QTrap] | QtCore.QPointF) -> bool:
-        '''Register a trap or group with the overlay.
+    def _addTrap(self, traps: QTrap) -> None:
+        '''Register a trap or group with the overlay (internal).
 
-        When called as a mouse handler with a ``QPointF``, creates a new
-        ``QTweezer`` at that position.
+        Attaches ``traps`` as a Qt child of the overlay, registers all
+        leaf spots, and emits ``trapAdded``.  Called directly by
+        ``addTrap`` for programmatic additions, and by ``AddTrapCommand``
+        and ``RemoveTrapCommand`` during undo/redo.
 
         Parameters
         ----------
-        traps : QTrap or list[QTrap] or QPointF
-            A single trap or group, a list of traps, or a position at
-            which to create a new ``QTweezer``.
-
-        Returns
-        -------
-        bool
-            ``True`` on success.
+        traps : QTrap
+            A single trap or a group to register.
         '''
-        if isinstance(traps, QtCore.QPointF):
-            self.addTrap(QTweezer(r=(traps.x(), traps.y(), 0.)))
-            return True
-        if isinstance(traps, list):
-            for trap in traps:
-                self.addTrap(trap)
-            return True
         traps.setParent(self)
         for trap in traps.leaves():
             trap._index = len(self._traps)
@@ -234,31 +230,49 @@ class QTrapOverlay(ScatterPlotItem):
         if isinstance(traps, QTrapGroup):
             traps.changed.connect(self._onGroupChanged)
         self.trapAdded.emit(traps)
-        return True
 
-    def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
-        '''Remove a trap from the overlay.
+    def addTrap(self, traps: QTrap | list[QTrap] | QtCore.QPointF) -> bool:
+        '''Register a trap or group with the overlay.
 
-        If the trap belongs to a group, the entire group is removed.
-        When called as a mouse handler with a ``QPointF``, removes the
-        trap nearest to that position.
+        When called as a mouse handler with a ``QPointF``, pushes an
+        ``AddTrapCommand`` onto the undo stack so the operation can be
+        undone.
 
         Parameters
         ----------
-        trap : QTrap or QPointF
-            The trap to remove, or a position identifying the nearest trap.
+        traps : QTrap or list[QTrap] or QPointF
+            A single trap or group, a list of traps, or a position at
+            which to create a new ``QTweezer``.
 
         Returns
         -------
         bool
-            ``True`` if a trap was removed, ``False`` if no trap was found.
+            ``True`` on success.
         '''
-        if isinstance(trap, QtCore.QPointF):
-            pts = self.pointsAt(trap)
-            if len(pts) == 0:
-                return False
-            return self.removeTrap(pts[0].data())
-        group = self.groupOf(trap)
+        if isinstance(traps, QtCore.QPointF):
+            self._undoStack.push(
+                AddTrapCommand(self, traps.x(), traps.y()))
+            return True
+        if isinstance(traps, list):
+            for trap in traps:
+                self._addTrap(trap)
+            return True
+        self._addTrap(traps)
+        return True
+
+    def _removeTrap(self, group: QTrap) -> None:
+        '''Deregister a top-level trap or group from the overlay (internal).
+
+        Disconnects signals, removes leaf spots, detaches the group from
+        Qt's object hierarchy, and emits ``trapRemoved``.  Called by
+        ``removeTrap`` for programmatic removal, and by
+        ``RemoveTrapCommand`` and ``AddTrapCommand`` during undo/redo.
+
+        Parameters
+        ----------
+        group : QTrap
+            The top-level trap or group to remove.
+        '''
         self.trapRemoved.emit(group)
         for t in list(group.leaves()):
             try:
@@ -276,10 +290,37 @@ class QTrapOverlay(ScatterPlotItem):
                 pass
         group.setParent(None)
         self._rebuildSpots()
+
+    def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
+        '''Remove a trap from the overlay.
+
+        If the trap belongs to a group, the entire group is removed.
+        When called as a mouse handler with a ``QPointF``, pushes a
+        ``RemoveTrapCommand`` onto the undo stack so the operation can
+        be undone.
+
+        Parameters
+        ----------
+        trap : QTrap or QPointF
+            The trap to remove, or a position identifying the nearest trap.
+
+        Returns
+        -------
+        bool
+            ``True`` if a trap was removed, ``False`` if no trap was found.
+        '''
+        if isinstance(trap, QtCore.QPointF):
+            pts = self.pointsAt(trap)
+            if len(pts) == 0:
+                return False
+            group = self.groupOf(pts[0].data())
+            self._undoStack.push(RemoveTrapCommand(self, group))
+            return True
+        self._removeTrap(self.groupOf(trap))
         return True
 
     def clearTraps(self) -> None:
-        '''Remove all traps from the overlay.'''
+        '''Remove all traps from the overlay and clear the undo stack.'''
         top_level = list(self)
         for trap in list(self._traps):
             trap.changed.disconnect(self._onTrapChanged)
@@ -294,6 +335,7 @@ class QTrapOverlay(ScatterPlotItem):
                     pass
             item.setParent(None)
             self.trapRemoved.emit(item)
+        self._undoStack.clear()
 
     def _rebuildSpots(self) -> None:
         '''Rebuild all SpotItems after a removal, resequencing ``_index``.'''
@@ -590,6 +632,7 @@ class QTrapOverlay(ScatterPlotItem):
             return False
         trap = pts[0].data()
         self._selected = self.groupOf(trap)
+        self._move_origin = self._selected._r.copy()
         self._setGroupBrush(self._selected, self.State.SELECTED)
         return True
 
@@ -658,6 +701,7 @@ class QTrapOverlay(ScatterPlotItem):
             angle_now = np.arctan2(pos.y() - cy, pos.x() - cx)
             angle = angle_now - self._rotation_angle0
             angle = (angle + np.pi) % (2. * np.pi) - np.pi
+            self._rotation_angle = angle
             self._rotating.rotate(angle, self._rotation_snapshot)
         elif self._selected is not None and self._drag_last is not None:
             dx = pos.x() - self._drag_last.x()
@@ -682,12 +726,23 @@ class QTrapOverlay(ScatterPlotItem):
         if self._selection.isVisible():
             self.endSelection()
         if self._rotating is not None:
+            if abs(self._rotation_angle) > 1e-10:
+                self._undoStack.push(
+                    RotateCommand(self._rotating,
+                                  self._rotation_snapshot))
             self._setGroupBrush(self._rotating, self.State.NORMAL)
             self._rotating = None
             self._rotation_snapshot = {}
+            self._rotation_angle = 0.
         if self._selected is not None:
+            if (self._move_origin is not None
+                    and not np.allclose(self._selected._r,
+                                        self._move_origin)):
+                self._undoStack.push(
+                    MoveCommand(self._selected, self._move_origin))
             self._setGroupBrush(self._selected, self.State.NORMAL)
         self._selected = None
+        self._move_origin = None
         self._drag_last = None
         event.accept()
 
@@ -747,6 +802,7 @@ class QTrapOverlay(ScatterPlotItem):
             angle_now = np.arctan2(pos.y() - cy, pos.x() - cx)
             angle = angle_now - self._rotation_angle0
             angle = (angle + np.pi) % (2. * np.pi) - np.pi
+            self._rotation_angle = angle
             self._rotating.rotate(angle, self._rotation_snapshot)
         elif self._selected is not None and self._drag_last is not None:
             dx = pos.x() - self._drag_last.x()
@@ -763,7 +819,8 @@ class QTrapOverlay(ScatterPlotItem):
     def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
         '''Handle a release event forwarded by QHOTScreen.
 
-        Finalizes any active rubber-band selection and clears drag state.
+        Finalizes any active rubber-band selection, pushes undo commands
+        for completed moves and rotations, and clears drag state.
 
         Parameters
         ----------
@@ -778,12 +835,23 @@ class QTrapOverlay(ScatterPlotItem):
         if self._selection.isVisible():
             self.endSelection()
         if self._rotating is not None:
+            if abs(self._rotation_angle) > 1e-10:
+                self._undoStack.push(
+                    RotateCommand(self._rotating,
+                                  self._rotation_snapshot))
             self._setGroupBrush(self._rotating, self.State.NORMAL)
             self._rotating = None
             self._rotation_snapshot = {}
+            self._rotation_angle = 0.
         if self._selected is not None:
+            if (self._move_origin is not None
+                    and not np.allclose(self._selected._r,
+                                        self._move_origin)):
+                self._undoStack.push(
+                    MoveCommand(self._selected, self._move_origin))
             self._setGroupBrush(self._selected, self.State.NORMAL)
         self._selected = None
+        self._move_origin = None
         self._drag_last = None
         return True
 
@@ -813,6 +881,7 @@ class QTrapOverlay(ScatterPlotItem):
         new_r = group._r.copy()
         new_r[2] += dz
         group.r = new_r
+        self._undoStack.push(WheelCommand(group, dz))
         return True
 
     # Serialization

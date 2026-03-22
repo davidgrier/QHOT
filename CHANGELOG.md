@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.3.0] — 2026-03-22
+
+### Added
+- Undo/redo support for all interactive trap operations.  Ctrl+Z / Ctrl+Y
+  (or ⌘Z / ⇧⌘Z on macOS) now undo and redo the most recent action.
+- `lib/traps/commands.py`: five `QUndoCommand` subclasses that implement
+  the undo/redo logic:
+    - `AddTrapCommand` — add a `QTweezer` at a given position.
+    - `RemoveTrapCommand` — remove a top-level trap or group.
+    - `MoveCommand` — move a trap group (pre-executed; first redo is a no-op).
+    - `RotateCommand` — rotate a trap group (pre-executed; stores
+      before/after snapshots and uses `QTrapGroup.rotate(0., snapshot)` to
+      restore positions exactly).
+    - `WheelCommand` — scroll a trap's z-coordinate; consecutive wheel
+      events on the same group are merged into a single undo entry.
+- `QTrapOverlay._undoStack`: a `QUndoStack` owned by each overlay.
+- `QTrapOverlay._addTrap()` / `QTrapOverlay._removeTrap()`: private helpers
+  that perform the actual registration / deregistration logic; the public
+  `addTrap` and `removeTrap` methods now delegate to these when called
+  programmatically, and push undo commands when called interactively.
+- `QTrapOverlay._move_origin` / `QTrapOverlay._rotation_angle`: new state
+  variables used to detect actual movement before pushing an undo command.
+- Edit menu in the main window with **Undo** and **Redo** actions wired to
+  the overlay's undo stack; inserted between the File and Tasks menus.
+- `_onTrapRemoved` in `QHOT` now disconnects `_scheduleCompute` from removed
+  traps' signals to prevent duplicate connections during undo/redo cycles.
+
 ## [1.2.0] — 2026-03-22
 
 ### Added

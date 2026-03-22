@@ -1,1 +1,6 @@
-__version__ = '1.1.0'
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version('QHOT')
+except PackageNotFoundError:  # package not installed (e.g. bare source checkout)
+    __version__ = 'unknown'

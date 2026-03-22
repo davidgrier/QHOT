@@ -87,7 +87,7 @@ class QHOT(QtWidgets.QMainWindow):
         undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redoAction = stack.createRedoAction(self, '&Redo')
         redoAction.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
-        toggleAction = QtWidgets.QAction('Toggle &Overlay', self)
+        toggleAction = QtGui.QAction('Toggle &Overlay', self)
         toggleAction.setShortcut(QtGui.QKeySequence('Ctrl+\\'))
         toggleAction.triggered.connect(self.toggleOverlay)
         editMenu = QtWidgets.QMenu('&Edit', self.menubar)
@@ -107,7 +107,7 @@ class QHOT(QtWidgets.QMainWindow):
             QtGui.QKeySequence.StandardKey.SaveAs)
         self.actionClearTraps.setShortcut(
             QtGui.QKeySequence('Ctrl+Backspace'))
-        addAction = QtWidgets.QAction('Add &Tweezer', self)
+        addAction = QtGui.QAction('Add &Tweezer', self)
         addAction.setShortcut(QtGui.QKeySequence('Ctrl+T'))
         addAction.triggered.connect(self.addTweezerAtCenter)
         clearAction = self.menuTasks.actions()[1]

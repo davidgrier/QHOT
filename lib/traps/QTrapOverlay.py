@@ -418,6 +418,7 @@ class QTrapOverlay(ScatterPlotItem):
         centroid = np.mean([t._r for t in candidates], axis=0)
         grp = QTrapGroup(r=centroid, parent=self)
         grp.addTrap(candidates)
+        grp.changed.connect(self._onGroupChanged)
         self.trapAdded.emit(grp)
 
     def startSelection(self, pos: QtCore.QPointF) -> None:
@@ -540,6 +541,7 @@ class QTrapOverlay(ScatterPlotItem):
             self.trapRemoved.emit(outer)
             outer.removeTrap(direct)
             direct.setParent(self)
+            direct.changed.connect(self._onGroupChanged)
             if not list(outer) and outer.parent() is self:
                 outer.setParent(None)
             else:

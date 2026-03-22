@@ -3,11 +3,6 @@
 Supports NVIDIA CUDA, AMD ROCm, and Apple Silicon MPS via a single
 implementation that selects the best available device at startup.
 '''
-from __future__ import annotations
-
-import weakref
-from functools import partial
-
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
 
@@ -107,14 +102,7 @@ class TorchCGH(CGH):
             Complex field tensor on ``self.device`` with shape
             ``self.shape``.
         '''
-        if trap not in self._connected_traps:
-            trap_ref = weakref.ref(trap)
-            trap.changed.connect(partial(self._invalidateField, trap_ref))
-            if (not isinstance(trap, QTrapGroup)
-                    and hasattr(trap, 'structureChanged')):
-                trap.structureChanged.connect(
-                    partial(self._invalidateStructure, trap_ref))
-            self._connected_traps.add(trap)
+        self._connectTrap(trap)
         if trap not in self._field_cache:
             r = self.transform(QtGui.QVector3D(*trap.r))
             rx = np.float32(r.x())

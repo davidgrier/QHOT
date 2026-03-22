@@ -498,6 +498,28 @@ class CGH(QtCore.QObject):
             trap = trap.parent()
         return trap
 
+    def _connectTrap(self, trap: QTrap) -> None:
+        '''Connect cache-invalidation slots for a trap if not already done.
+
+        Called once per trap the first time ``fieldOf`` sees it.
+        Uses a weak reference so that the trap can be garbage-collected
+        without keeping the CGH alive.
+
+        Parameters
+        ----------
+        trap : QTrap
+            The trap to connect.
+        '''
+        if trap in self._connected_traps:
+            return
+        trap_ref = weakref.ref(trap)
+        trap.changed.connect(partial(self._invalidateField, trap_ref))
+        if (not isinstance(trap, QTrapGroup)
+                and hasattr(trap, 'structureChanged')):
+            trap.structureChanged.connect(
+                partial(self._invalidateStructure, trap_ref))
+        self._connected_traps.add(trap)
+
     def fieldOf(self, trap: QTrap) -> Field:
         '''Compute the complex field contribution of a trap or group.
 
@@ -523,13 +545,7 @@ class CGH(QtCore.QObject):
         Field
             Complex field array with shape equal to ``self.shape``.
         '''
-        if trap not in self._connected_traps:
-            trap_ref = weakref.ref(trap)
-            trap.changed.connect(partial(self._invalidateField, trap_ref))
-            if not isinstance(trap, QTrapGroup) and hasattr(trap, 'structureChanged'):
-                trap.structureChanged.connect(
-                    partial(self._invalidateStructure, trap_ref))
-            self._connected_traps.add(trap)
+        self._connectTrap(trap)
         if trap not in self._field_cache:
             r = self.transform(QtGui.QVector3D(*trap.r))
             rx, ry, rz = np.float32(r.x()), np.float32(r.y()), np.float32(r.z())

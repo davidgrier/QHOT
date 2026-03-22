@@ -31,7 +31,7 @@
 - `recordhowto.html` link typo `videotab.htm` → `videotab.html`
 - Trap creation gesture documented as Shift+left-click (was incorrectly
   stated as right-click)
-- Selected-trap marker colour documented as pink (was incorrectly stated
+- Selected-trap marker color documented as pink (was incorrectly stated
   as red)
 - `index.html` dead link to non-existent SLM tab removed
 

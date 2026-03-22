@@ -29,7 +29,7 @@ htmlcov/
 # Sphinx build output
 docs/_build/
 
-# Legacy and generated artefacts
+# Legacy and generated artifacts
 old/
 help/html/
 help/old/

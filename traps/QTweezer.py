@@ -6,7 +6,7 @@ class QTweezer(QTrap):
     '''Single Gaussian optical tweezer.
 
     Subclass of ``QTrap`` with no additional properties or structure.
-    The trapping beam is a plain focused Gaussian; all behaviour is
+    The trapping beam is a plain focused Gaussian; all behavior is
     inherited directly from ``QTrap``.
     '''
 

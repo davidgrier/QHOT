@@ -226,7 +226,7 @@ class TestImageAs(_Base):
                             'getSaveFileName',
                             return_value=(chosen, 'PNG Image (*.png)'))
 
-    def test_cancelled_returns_empty_string(self):
+    def test_canceled_returns_empty_string(self):
         with self._patch_dialog(''):
             result = self.save.imageAs(self.array)
         self.assertEqual(result, '')

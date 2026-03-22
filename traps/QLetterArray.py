@@ -78,7 +78,7 @@ def _char_positions(char: str) -> list[tuple[int, int]]:
 
     Looks up the character directly (supporting distinct upper- and
     lower-case glyphs), falls back to the uppercase glyph, then to
-    space for unrecognised characters.
+    space for unrecognized characters.
 
     The origin is the top-left of the cell.  Column increases to the
     right; row increases downward.
@@ -112,7 +112,7 @@ class QLetterArray(QTrapArray):
     becomes one ``QTweezer``; blank dots produce no trap.
 
     Characters A-Z, a-z, 0-9 and space are supported.  Upper- and
-    lower-case letters use distinct glyphs.  Unrecognised characters
+    lower-case letters use distinct glyphs.  Unrecognized characters
     are rendered as spaces.
 
     The ``nx`` and ``ny`` properties are fixed at 5 and 7 and are not

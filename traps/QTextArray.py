@@ -10,11 +10,11 @@ class QTextArray(QTrapGroup):
     Renders a string of characters using a 7-row × 5-column dot-matrix
     typeface.  Each character occupies a fixed 5 × 7 cell rendered by a
     child ``QLetterArray``.  The text block is positioned so that the
-    geometric centre of the character cells coincides with the group's
+    geometric center of the character cells coincides with the group's
     own position.
 
     Characters A-Z, a-z, 0-9 and space are supported.  Upper- and
-    lower-case letters use distinct glyphs.  Unrecognised characters
+    lower-case letters use distinct glyphs.  Unrecognized characters
     are rendered as spaces.
 
     Inherits
@@ -92,16 +92,16 @@ class QTextArray(QTrapGroup):
 
         Each character cell is 5 columns wide with a 1-column gap
         between characters, giving a 6-column stride.  The cells are
-        positioned so that their geometric centre coincides with
+        positioned so that their geometric center coincides with
         ``self._r``.
         '''
         cx, cy, cz = self._r
         n = len(self._text)
         if n == 0:
             return
-        # Character i cell-centre offset from the group centre:
-        #   stride = 6 columns; cell centre at column 2 within each cell.
-        #   For n characters the layout centre is at column 3*(n-1).
+        # Character i cell-center offset from the group center:
+        #   stride = 6 columns; cell center at column 2 within each cell.
+        #   For n characters the layout center is at column 3*(n-1).
         #   Offset of char i = 6*i + 2 - 3*(n-1) = 3*(2*i - n + 1) columns.
         letters = [
             QLetterArray(char=char,

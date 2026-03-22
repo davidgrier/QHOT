@@ -156,7 +156,7 @@ class TestStructure(unittest.TestCase):
 
 
 class TestLetterPositions(unittest.TestCase):
-    '''Letter cell centres follow a 6-column stride centred on ta.r.'''
+    '''Letter cell centers follow a 6-column stride centerd on ta.r.'''
 
     def setUp(self):
         self.sep = 10.
@@ -189,11 +189,11 @@ class TestLetterPositions(unittest.TestCase):
         offsets = [l.r[0] - cx for l in letters]
         self.assertAlmostEqual(offsets[0], -offsets[-1], places=5)
 
-    def test_ta_r_is_centre_of_letter_x_positions(self):
+    def test_ta_r_is_center_of_letter_x_positions(self):
         letter_xs = np.array([l.r[0] for l in self.ta])
         self.assertAlmostEqual(letter_xs.mean(), self.ta.r[0], places=5)
 
-    def test_single_letter_centred_at_ta_r(self):
+    def test_single_letter_centerd_at_ta_r(self):
         ta = QTextArray(text='A', separation=10.)
         letter = list(ta)[0]
         np.testing.assert_array_almost_equal(letter.r, ta.r, decimal=5)

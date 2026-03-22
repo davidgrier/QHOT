@@ -150,7 +150,7 @@ class QHOT(QtWidgets.QMainWindow):
             self._trapFile = filename
             self.setStatus(f'Opened traps from {filename}')
         else:
-            self.setStatus('Open traps cancelled')
+            self.setStatus('Open traps canceled')
 
     @QtCore.pyqtSlot()
     def saveTraps(self) -> None:
@@ -167,7 +167,7 @@ class QHOT(QtWidgets.QMainWindow):
             self._trapFile = filename
             self.setStatus(f'Saved traps to {filename}')
         else:
-            self.setStatus('Save traps cancelled')
+            self.setStatus('Save traps canceled')
 
     @QtCore.pyqtSlot()
     def saveImage(self) -> None:
@@ -182,7 +182,7 @@ class QHOT(QtWidgets.QMainWindow):
         if filename:
             self.setStatus(f'Saved image as {filename}')
         else:
-            self.setStatus('Save image cancelled')
+            self.setStatus('Save image canceled')
 
     @QtCore.pyqtSlot()
     def saveHologram(self) -> None:
@@ -197,7 +197,7 @@ class QHOT(QtWidgets.QMainWindow):
         if filename:
             self.setStatus(f'Saved hologram as {filename}')
         else:
-            self.setStatus('Save hologram cancelled')
+            self.setStatus('Save hologram canceled')
 
     @QtCore.pyqtSlot()
     def saveSettings(self) -> None:

@@ -139,7 +139,7 @@ class QSaveFile(QtCore.QObject):
         Returns
         -------
         str
-            Path of the file that was written, or empty string if cancelled.
+            Path of the file that was written, or empty string if canceled.
         '''
         default = self.filename(prefix=prefix, suffix='.png')
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -179,7 +179,7 @@ class QSaveFile(QtCore.QObject):
         Returns
         -------
         str
-            Path of the file that was written, or empty string if cancelled.
+            Path of the file that was written, or empty string if canceled.
         '''
         default = self.filename(prefix='traps', suffix='.json')
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -199,7 +199,7 @@ class QSaveFile(QtCore.QObject):
         Returns
         -------
         str
-            Path of the file that was read, or empty string if cancelled.
+            Path of the file that was read, or empty string if canceled.
         '''
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
             self.parent(), 'Open Traps', str(self.datadir), self.trap_format)

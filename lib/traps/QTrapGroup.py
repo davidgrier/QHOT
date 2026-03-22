@@ -90,7 +90,7 @@ class QTrapGroup(QTrap):
 
     @QTrap.r.setter
     def r(self, r: npt.ArrayLike) -> None:
-        '''Translate the group so its centre moves to ``r``.
+        '''Translate the group so its center moves to ``r``.
 
         Moves the group node and all descendants by the same delta,
         emits ``groupMoved`` for bulk cache invalidation, then emits

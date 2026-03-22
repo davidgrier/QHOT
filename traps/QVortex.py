@@ -16,7 +16,7 @@ class QVortex(QTrap):
     '''Optical vortex trap.
 
     Applies a helical phase ramp ``exp(i ell θ)`` to the trapping beam,
-    producing a ring-shaped focus with a phase singularity at the centre.
+    producing a ring-shaped focus with a phase singularity at the center.
 
     Parameters
     ----------

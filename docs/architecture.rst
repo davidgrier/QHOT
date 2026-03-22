@@ -1,7 +1,7 @@
 Architecture
 ============
 
-QHOT is organised into four layers.  Each layer depends only on the
+QHOT is organized into four layers.  Each layer depends only on the
 layers below it.
 
 .. code-block:: text
@@ -30,11 +30,11 @@ Translating a group moves all contained traps together and emits
 rather than recomputing every trap individually.
 
 :class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is a
-``pyqtgraph.ScatterPlotItem`` that renders each trap as a coloured spot and
+``pyqtgraph.ScatterPlotItem`` that renders each trap as a colored spot and
 dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
 and break traps.
 
-**Serialisation.**  Every trap class implements ``to_dict()``, which returns a
+**Serialization.**  Every trap class implements ``to_dict()``, which returns a
 plain ``dict`` containing a ``'type'`` key (the class name) and all registered
 properties.  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
 ``'children'`` list; :class:`~QHOT.traps.QTrapArray.QTrapArray` overrides
@@ -92,7 +92,7 @@ Application layer — ``QHOT.qhot``
 :class:`~QHOT.qhot.QHOT` loads ``QHOT.ui`` and wires all subsystems
 together via Qt signals.
 
-**File menu.**  The File menu is organised into three groups:
+**File menu.**  The File menu is organized into three groups:
 
 * **Open / Save / Save As** — trap configuration (``.json``).  ``saveTraps()``
   saves to the previously used path if one exists; otherwise it behaves like

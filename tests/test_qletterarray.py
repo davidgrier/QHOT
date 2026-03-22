@@ -158,12 +158,12 @@ class TestCharSetter(unittest.TestCase):
 class TestCentering(unittest.TestCase):
 
     def test_grid_centered_on_group_r(self):
-        # For a full grid (no masking), centroid of dots equals group centre.
+        # For a full grid (no masking), centroid of dots equals group center.
         # Pick a char with roughly uniform dot distribution for a clean test:
         # we use the mask directly rather than a specific char.
         la = QLetterArray(char='H', separation=10., r=(50., 60., 0.))
         positions = np.array([t.r for t in la.leaves()])
-        # The geometric grid centre equals la.r:
+        # The geometric grid center equals la.r:
         cx, cy, cz = la.r
         xs = cx + 10. * (np.arange(5) - 2.)
         ys = cy + 10. * (np.arange(7) - 3.)

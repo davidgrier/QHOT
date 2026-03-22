@@ -732,7 +732,7 @@ class QTrapOverlay(ScatterPlotItem):
         group.r = new_r
         return True
 
-    # Serialisation
+    # Serialization
 
     def _make_trap(self, d: dict) -> QTrap:
         '''Reconstruct a trap or group from a serialised dict.

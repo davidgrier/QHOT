@@ -4,8 +4,8 @@ from pyqtgraph.Qt import QtGui
 def letterSymbol(letter: str) -> QtGui.QPainterPath:
     '''Return a normalised ``QPainterPath`` glyph for use as a trap symbol.
 
-    Renders ``letter`` in bold Arial at 14 pt, then scales and centres the
-    resulting path so it fits within the unit square centred on the origin.
+    Renders ``letter`` in bold Arial at 14 pt, then scales and centers the
+    resulting path so it fits within the unit square centered on the origin.
 
     Parameters
     ----------

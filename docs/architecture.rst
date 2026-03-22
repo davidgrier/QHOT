@@ -21,8 +21,10 @@ Trap layer — ``QHOT.lib.traps``
 --------------------------------
 
 :class:`~QHOT.lib.traps.QTrap.QTrap` is the abstract base for all optical
-traps.  Each trap holds a 3D position ``r``, an ``amplitude``, and a
-``phase``, and emits ``changed`` whenever any property is updated.
+traps.  Each trap holds a 3D position ``r``, an ``amplitude``, a ``phase``,
+and a ``locked`` flag.  It emits ``changed`` whenever a positional or
+structural property is updated.  When ``locked`` is ``True`` the overlay
+silently ignores move, scroll, and rotate gestures on that trap.
 
 :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` provides recursive grouping.
 Translating a group moves all contained traps together and emits ``changed``
@@ -35,15 +37,43 @@ ensuring that all per-trap and per-group CGH caches are invalidated correctly.
 :class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is a
 ``pyqtgraph.ScatterPlotItem`` that renders each trap as a colored spot and
 dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
-rotate, and break traps.
+rotate, lock, and break traps.  Every interactive gesture pushes an undoable
+command onto an embedded ``QUndoStack`` so that all operations can be reversed
+with Ctrl+Z / Cmd+Z.
 
 **Serialization.**  Every trap class implements ``to_dict()``, which returns a
-plain ``dict`` containing a ``'type'`` key (the class name) and all registered
-properties.  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
+plain ``dict`` containing a ``'type'`` key (the class name), all registered
+properties, and ``'locked': True`` when the trap is locked (omitted otherwise
+to keep JSON compact).  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
 ``'children'`` list; :class:`~QHOT.traps.QTrapArray.QTrapArray` overrides
 this to omit the auto-generated children and instead stores the ``mask``.
 ``QTrapOverlay.save(path)`` and ``QTrapOverlay.load(path)`` write and read
 these dicts as a JSON array.
+
+**Undo/redo commands** (``QHOT.lib.traps.commands``).
+Each interactive gesture is wrapped in a ``QUndoCommand`` subclass and pushed
+onto the overlay's ``QUndoStack``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Command
+     - Action
+   * - ``AddTrapCommand``
+     - Add a ``QTweezer`` at a given position.
+   * - ``RemoveTrapCommand``
+     - Remove a top-level trap or group.
+   * - ``MoveCommand``
+     - Move a trap or group (pre-executed; first redo is a no-op).
+   * - ``RotateCommand``
+     - Rotate a group (pre-executed; stores before/after position snapshots).
+   * - ``WheelCommand``
+     - Scroll a trap's z-coordinate; consecutive scrolls on the same group
+       are merged into a single undo entry.
+   * - ``LockCommand``
+     - Toggle the locked state of a trap or group; undo and redo are both
+       a toggle.
 
 New trap types are registered automatically via
 :meth:`QTrap.__init_subclass__ <QHOT.lib.traps.QTrap.QTrap.__init_subclass__>`,
@@ -104,6 +134,10 @@ together via Qt signals.
 * **Export** submenu — camera images and SLM hologram patterns.
 * **Preferences** submenu — CGH calibration settings (saved to
   ``~/.pyfab/QCGHTree.toml``).
+
+**Edit menu.**  Added programmatically by ``_setupEditMenu()`` and inserted
+between the File and Tasks menus.  Contains **Undo** (Ctrl+Z / Cmd+Z) and
+**Redo** (Ctrl+Y / Shift+Cmd+Z), wired to the overlay's ``QUndoStack``.
 
 **Central signal flow:**
 

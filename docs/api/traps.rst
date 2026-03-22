@@ -19,6 +19,12 @@ Trap infrastructure
 .. automodule:: QHOT.lib.traps.QTrapMenu
    :members:
 
+Undo/Redo commands
+------------------
+
+.. automodule:: QHOT.lib.traps.commands
+   :members:
+
 Concrete trap types
 -------------------
 

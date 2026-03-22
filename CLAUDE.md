@@ -73,6 +73,17 @@ pyfab.py (QFabWindow)
 - Prefer single quotes over double quotes for strings, including docstrings.
 - Docstrings use NumPy style.
 
+## Circular imports
+
+`CGH` → `lib/traps` → `QTrapOverlay` → `traps/` → `QVortex`/`QRingTrap` forms a cycle. Annotate `cgh` parameters in trap subclasses with `TYPE_CHECKING`:
+
+```python
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from QFab.lib.holograms.CGH import CGH
+```
+
 ## Naming conventions
 
 Follow the PyQt camelCase convention for all instance attributes on Qt classes:

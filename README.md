@@ -1,5 +1,11 @@
 # QHOT
 
+[![PyPI version](https://img.shields.io/pypi/v/QHOT.svg)](https://pypi.org/project/QHOT/)
+[![Python versions](https://img.shields.io/pypi/pyversions/QHOT.svg)](https://pypi.org/project/QHOT/)
+[![Tests](https://github.com/davidgrier/QHOT/actions/workflows/tests.yml/badge.svg)](https://github.com/davidgrier/QHOT/actions/workflows/tests.yml)
+[![Documentation](https://readthedocs.org/projects/qhot/badge/?version=latest)](https://qhot.readthedocs.io/en/latest/)
+[![License](https://img.shields.io/github/license/davidgrier/QHOT.svg)](LICENSE)
+
 **QHOT** is a Python application for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps
 in real time using a live camera feed.

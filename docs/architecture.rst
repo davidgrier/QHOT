@@ -133,11 +133,59 @@ together via Qt signals.
   :class:`~QHOT.lib.QSaveFile.QSaveFile`.
 * **Export** submenu — camera images and SLM hologram patterns.
 * **Preferences** submenu — CGH calibration settings (saved to
-  ``~/.pyfab/QCGHTree.toml``).
+  ``~/.qhot/QCGHTree.toml``).
 
 **Edit menu.**  Added programmatically by ``_setupEditMenu()`` and inserted
-between the File and Tasks menus.  Contains **Undo** (Ctrl+Z / Cmd+Z) and
-**Redo** (Ctrl+Y / Shift+Cmd+Z), wired to the overlay's ``QUndoStack``.
+between the File and Tasks menus.  Contains **Undo** (Ctrl+Z / Cmd+Z),
+**Redo** (Ctrl+Y / Shift+Cmd+Z), wired to the overlay's ``QUndoStack``,
+and **Toggle Overlay** (Ctrl+\\ / Cmd+\\) which shows or hides the trap
+overlay without removing any traps.
+
+**Tasks menu.**  Defined in ``QHOT.ui`` and extended at runtime by
+``_setupShortcuts()``:
+
+* **Add Trap** submenu — choose a trap type to place via
+  :class:`~QHOT.lib.traps.QTrapMenu.QTrapMenu`.
+* **Add Tweezer** (Ctrl+T / Cmd+T) — immediately adds a
+  :class:`~QHOT.traps.QTweezer.QTweezer` at the optical axis
+  (``CGH.xc``, ``CGH.yc``).
+* **Clear Traps** (Ctrl+Backspace / Cmd+Backspace) — removes all traps
+  and clears the undo stack.
+
+**Keyboard shortcuts** are assigned by ``_setupShortcuts()`` on the
+existing File and Tasks actions:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 30 30
+
+   * - Action
+     - Mac
+     - Other
+   * - Open traps
+     - Cmd+O
+     - Ctrl+O
+   * - Save traps
+     - Cmd+S
+     - Ctrl+S
+   * - Save traps as
+     - Shift+Cmd+S
+     - Ctrl+Shift+S
+   * - Add tweezer at center
+     - Cmd+T
+     - Ctrl+T
+   * - Clear all traps
+     - Cmd+Backspace
+     - Ctrl+Backspace
+   * - Toggle overlay
+     - Cmd+\\
+     - Ctrl+\\
+   * - Undo
+     - Cmd+Z
+     - Ctrl+Z
+   * - Redo
+     - Shift+Cmd+Z
+     - Ctrl+Y
 
 **Central signal flow:**
 

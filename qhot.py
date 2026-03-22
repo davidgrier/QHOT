@@ -77,18 +77,42 @@ class QHOT(QtWidgets.QMainWindow):
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])
         self.helpBrowser.setSource(QtCore.QUrl('index.html'))
         self._setupEditMenu()
+        self._setupShortcuts()
 
     def _setupEditMenu(self) -> None:
-        '''Insert an Edit menu with Undo/Redo between File and Tasks.'''
+        '''Insert an Edit menu with Undo/Redo/Toggle Overlay between
+        File and Tasks.'''
         stack = self.screen.overlay._undoStack
         undoAction = stack.createUndoAction(self, '&Undo')
         undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redoAction = stack.createRedoAction(self, '&Redo')
         redoAction.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
+        toggleAction = QtWidgets.QAction('Toggle &Overlay', self)
+        toggleAction.setShortcut(QtGui.QKeySequence('Ctrl+\\'))
+        toggleAction.triggered.connect(self.toggleOverlay)
         editMenu = QtWidgets.QMenu('&Edit', self.menubar)
         editMenu.addAction(undoAction)
         editMenu.addAction(redoAction)
+        editMenu.addSeparator()
+        editMenu.addAction(toggleAction)
         self.menubar.insertMenu(self.menuTasks.menuAction(), editMenu)
+
+    def _setupShortcuts(self) -> None:
+        '''Assign keyboard shortcuts to menu actions.'''
+        self.actionOpenTraps.setShortcut(
+            QtGui.QKeySequence.StandardKey.Open)
+        self.actionSaveTraps.setShortcut(
+            QtGui.QKeySequence.StandardKey.Save)
+        self.actionSaveTrapsAs.setShortcut(
+            QtGui.QKeySequence.StandardKey.SaveAs)
+        self.actionClearTraps.setShortcut(
+            QtGui.QKeySequence('Ctrl+Backspace'))
+        addAction = QtWidgets.QAction('Add &Tweezer', self)
+        addAction.setShortcut(QtGui.QKeySequence('Ctrl+T'))
+        addAction.triggered.connect(self.addTweezerAtCenter)
+        clearAction = self.menuTasks.actions()[1]
+        self.menuTasks.insertSeparator(clearAction)
+        self.menuTasks.insertAction(clearAction, addAction)
 
     def _connectSignals(self) -> None:
         '''Wire signals and slots between subsystems.'''
@@ -188,6 +212,18 @@ class QHOT(QtWidgets.QMainWindow):
             self.dvr.newFrame.disconnect(self.screen.setImage)
             self.source.newFrame.connect(self.screen.setImage)
         self.cameraTree.setDisabled(playback)
+
+    @QtCore.pyqtSlot()
+    def addTweezerAtCenter(self) -> None:
+        '''Add a tweezer at the optical axis (CGH center).'''
+        pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
+        self.screen.overlay.addTrap(pos)
+
+    @QtCore.pyqtSlot()
+    def toggleOverlay(self) -> None:
+        '''Toggle the visibility of the trap overlay.'''
+        overlay = self.screen.overlay
+        overlay.setVisible(not overlay.isVisible())
 
     @QtCore.pyqtSlot()
     def openTraps(self) -> None:

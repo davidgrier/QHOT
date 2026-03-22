@@ -4,11 +4,11 @@ Holograms
 CGH
 ---
 
-.. automodule:: QFab.lib.holograms.CGH
+.. automodule:: QHOT.lib.holograms.CGH
    :members:
 
 QCGHTree
 --------
 
-.. automodule:: QFab.lib.holograms.QCGHTree
+.. automodule:: QHOT.lib.holograms.QCGHTree
    :members:

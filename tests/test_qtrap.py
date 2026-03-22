@@ -2,7 +2,7 @@
 import unittest
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
-from QFab.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrap import QTrap
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

@@ -1,6 +1,6 @@
-# QFab
+# QHOT
 
-**QFab** is a Python application for holographic optical trapping — controlling
+**QHOT** is a Python application for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps
 in real time using a live camera feed.
 
@@ -27,27 +27,27 @@ in real time using a live camera feed.
 ## Installation
 
 ```bash
-pip install QFab
+pip install QHOT
 ```
 
 Or for development:
 
 ```bash
-git clone https://github.com/davidgrier/QFab.git
-cd QFab
+git clone https://github.com/davidgrier/QHOT.git
+cd QHOT
 pip install -e .
 ```
 
 ## Usage
 
 ```bash
-pyfab
+qhot
 ```
 
 Or from Python:
 
 ```python
-from QFab.pyfab import main
+from QHOT.qhot import main
 main()
 ```
 
@@ -65,12 +65,12 @@ main()
 ## Project structure
 
 ```
-QFab/
-├── pyfab.py          — Main application window
-├── PyFab.ui          — Qt Designer UI layout
+QHOT/
+├── qhot.py          — Main application window
+├── QHOT.ui          — Qt Designer UI layout
 ├── lib/              — Core library (SLM, CGH, trap infrastructure)
 │   ├── QSLM.py
-│   ├── QFabScreen.py
+│   ├── QHOTScreen.py
 │   ├── QSaveFile.py
 │   ├── holograms/    — Hologram computation
 │   └── traps/        — Trap base classes and overlay

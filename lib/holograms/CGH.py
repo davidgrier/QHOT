@@ -7,9 +7,9 @@ from functools import partial
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
 
-from QFab.lib.types import Field, Hologram, Shape
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.types import Field, Hologram, Shape
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
 
 
 logger = logging.getLogger(__name__)
@@ -630,7 +630,7 @@ class CGH(QtCore.QObject):
         tweezer trap, and prints the result shape and dtype. Can be
         called on any subclass.
         '''
-        from QFab.traps.QTweezer import QTweezer
+        from QHOT.traps.QTweezer import QTweezer
 
         cgh = cls()
         trap = QTweezer(r=(cgh.xc, cgh.yc, 0.))

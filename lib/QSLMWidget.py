@@ -1,6 +1,6 @@
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 from pyqtgraph.Qt import QtCore
-from QFab.lib.QSLM import Hologram
+from QHOT.lib.QSLM import Hologram
 import numpy as np
 import logging
 

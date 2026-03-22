@@ -3,9 +3,9 @@ import unittest
 from unittest.mock import patch
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
 import importlib as _importlib
-from QFab.lib.traps.QTrapMenu import QTrapMenu
-_qtrapmenu_mod = _importlib.import_module('QFab.lib.traps.QTrapMenu')
-import QFab.traps
+from QHOT.lib.traps.QTrapMenu import QTrapMenu
+_qtrapmenu_mod = _importlib.import_module('QHOT.lib.traps.QTrapMenu')
+import QHOT.traps
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -53,7 +53,7 @@ class TestTrapRequested(unittest.TestCase):
         self.assertEqual(len(spy), 1)
 
     def test_emits_correct_trap_class(self):
-        from QFab.traps.QTweezer import QTweezer
+        from QHOT.traps.QTweezer import QTweezer
         menu = QTrapMenu()
         spy = QtTest.QSignalSpy(menu.trapRequested)
         self._trigger_action(menu, 'QTweezer')
@@ -86,7 +86,7 @@ class TestTrapRequested(unittest.TestCase):
     def test_unknown_trap_does_not_emit(self):
         menu = QTrapMenu()
         spy = QtTest.QSignalSpy(menu.trapRequested)
-        with self.assertLogs('QFab.lib.traps.QTrapMenu', level='WARNING'):
+        with self.assertLogs('QHOT.lib.traps.QTrapMenu', level='WARNING'):
             menu._onTrapSelected('NoSuchTrap')
         self.assertEqual(len(spy), 0)
 

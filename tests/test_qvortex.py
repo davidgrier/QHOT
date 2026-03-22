@@ -2,8 +2,8 @@
 import unittest
 import numpy as np
 from pyqtgraph.Qt import QtWidgets, QtTest
-from QFab.traps.QVortex import QVortex
-from QFab.lib.holograms.CGH import CGH
+from QHOT.traps.QVortex import QVortex
+from QHOT.lib.holograms.CGH import CGH
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

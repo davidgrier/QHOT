@@ -15,12 +15,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # -- Project information -----------------------------------------------------
 
-project = 'QFab'
+project = 'QHOT'
 author = 'David G. Grier'
 copyright = '2026, David G. Grier'
 try:
     from importlib.metadata import version as _get_version
-    release = _get_version('QFab')
+    release = _get_version('QHOT')
 except Exception:
     release = '0.1.0'
 
@@ -91,12 +91,12 @@ def setup(app):
 # -- HTML output -------------------------------------------------------------
 
 html_theme = 'pydata_sphinx_theme'
-html_title = 'QFab'
+html_title = 'QHOT'
 html_static_path = ['_static']
 html_css_files = ['nyu.css']
 
 html_theme_options = {
-    'github_url': 'https://github.com/davidgrier/QFab',
+    'github_url': 'https://github.com/davidgrier/QHOT',
     'show_toc_level': 2,
     'navigation_with_keys': True,
     'show_nav_level': 2,

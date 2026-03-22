@@ -1,9 +1,9 @@
 '''Unit tests for QTrapWidget.'''
 import unittest
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
-from QFab.lib.traps.QTrapWidget import (
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.QTrapWidget import (
     QTrapPropertyEdit, QTrapPropertyWidget, QTrapWidget)
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
@@ -204,13 +204,13 @@ class TestQTrapWidget(unittest.TestCase):
 
     def test_register_duplicate_logs_warning(self):
         self.widget.registerTrap(self.trap)
-        with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING') as cm:
+        with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING') as cm:
             self.widget.registerTrap(self.trap)
         self.assertTrue(any('already registered' in line for line in cm.output))
 
     def test_register_duplicate_does_not_add_row(self):
         self.widget.registerTrap(self.trap)
-        with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING'):
+        with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING'):
             self.widget.registerTrap(self.trap)
         self.assertEqual(self.widget.count(), 2)
 
@@ -228,13 +228,13 @@ class TestQTrapWidget(unittest.TestCase):
         self.assertAlmostEqual(row.wid['x'].value, initial_x, places=2)
 
     def test_unregister_unknown_trap_logs_warning(self):
-        with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING') as cm:
+        with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING') as cm:
             self.widget.unregisterTrap(self.trap)
         self.assertTrue(any('not registered' in line for line in cm.output))
 
     def test_unregister_unknown_trap_does_not_raise(self):
         try:
-            with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING'):
+            with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING'):
                 self.widget.unregisterTrap(self.trap)
         except Exception as e:
             self.fail(f'unregisterTrap raised unexpectedly: {e}')
@@ -319,13 +319,13 @@ class TestQTrapWidgetDuplicateLeaf(unittest.TestCase):
     def test_duplicate_leaf_logs_warning(self):
         # Register t1 individually first, then register the group that contains it.
         self.widget.registerTrap(self.t1)
-        with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING') as cm:
+        with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING') as cm:
             self.widget.registerTrap(self.grp)
         self.assertTrue(any('Leaf already registered' in line for line in cm.output))
 
     def test_duplicate_leaf_not_added_twice(self):
         self.widget.registerTrap(self.t1)
-        with self.assertLogs('QFab.lib.traps.QTrapWidget', level='WARNING'):
+        with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING'):
             self.widget.registerTrap(self.grp)
         # t1 should appear only once in _trap_widgets
         self.assertEqual(

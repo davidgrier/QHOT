@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import importlib as _importlib
-from QFab.lib.QSLM import QSLM
-_qslm_mod = _importlib.import_module('QFab.lib.QSLM')
+from QHOT.lib.QSLM import QSLM
+_qslm_mod = _importlib.import_module('QHOT.lib.QSLM')
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

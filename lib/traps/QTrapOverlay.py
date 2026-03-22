@@ -2,9 +2,9 @@ import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 from pyqtgraph import mkBrush, mkPen
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
-from QFab.traps.QTweezer import QTweezer
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.traps.QTweezer import QTweezer
 from enum import Enum
 import json
 import numpy as np
@@ -46,7 +46,7 @@ class QTrapOverlay(ScatterPlotItem):
     * **Standalone** – embedded directly in a ``pyqtgraph.PlotWidget``;
       Qt calls ``mousePressEvent`` / ``mouseMoveEvent`` /
       ``mouseReleaseEvent`` automatically.
-    * **Hosted** – embedded in a ``QFabScreen``; the screen calls
+    * **Hosted** – embedded in a ``QHOTScreen``; the screen calls
       ``mousePress`` / ``mouseMove`` / ``mouseRelease`` / ``wheel``
       explicitly with pre-transformed coordinates.
 
@@ -618,11 +618,11 @@ class QTrapOverlay(ScatterPlotItem):
         self._drag_last = None
         event.accept()
 
-    # Event handlers (called by QFabScreen)
+    # Event handlers (called by QHOTScreen)
 
     def mousePress(self, event: QtGui.QMouseEvent,
                    pos: QtCore.QPointF) -> bool:
-        '''Handle a press event forwarded by QFabScreen.
+        '''Handle a press event forwarded by QHOTScreen.
 
         Dispatches to the registered handler for the event's button/modifier
         signature, falling back to ``selectGroup``. Starts a rubber-band
@@ -650,7 +650,7 @@ class QTrapOverlay(ScatterPlotItem):
 
     def mouseMove(self, event: QtGui.QMouseEvent,
                   pos: QtCore.QPointF) -> bool:
-        '''Handle a move event forwarded by QFabScreen.
+        '''Handle a move event forwarded by QHOTScreen.
 
         Drags the selected group when the left button is held, or grows the
         rubber-band selection if one is active. Ignores non-left-button moves.
@@ -682,7 +682,7 @@ class QTrapOverlay(ScatterPlotItem):
         return True
 
     def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
-        '''Handle a release event forwarded by QFabScreen.
+        '''Handle a release event forwarded by QHOTScreen.
 
         Finalizes any active rubber-band selection and clears drag state.
 
@@ -706,7 +706,7 @@ class QTrapOverlay(ScatterPlotItem):
 
     def wheel(self, event: QtGui.QWheelEvent,
               pos: QtCore.QPointF) -> bool:
-        '''Handle a wheel event forwarded by QFabScreen.
+        '''Handle a wheel event forwarded by QHOTScreen.
 
         Adjusts the z-coordinate of the nearest trap group by one step
         per notch of wheel rotation.

@@ -1,7 +1,7 @@
 import functools
 from pyqtgraph.Qt import QtCore, QtWidgets
-from QFab.lib.traps.QTrap import QTrap
-import QFab.traps
+from QHOT.lib.traps.QTrap import QTrap
+import QHOT.traps
 import logging
 
 

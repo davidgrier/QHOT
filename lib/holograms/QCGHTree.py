@@ -1,6 +1,6 @@
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from pyqtgraph.Qt import QtCore
-from QFab.lib.holograms.CGH import CGH
+from QHOT.lib.holograms.CGH import CGH
 from collections.abc import KeysView
 import logging
 

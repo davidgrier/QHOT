@@ -1,4 +1,4 @@
-# QFab — Future Work
+# QHOT — Future Work
 
 Ideas for upgrades and extensions, in no particular order.
 
@@ -93,16 +93,16 @@ Support different custom trapping instruments without code changes.
 
 - Per-instrument TOML profile: CGH parameters, camera, SLM geometry
 - Profile selector at startup or in settings
-- Profiles stored in a well-defined location (`~/.config/QFab/` or project-local)
+- Profiles stored in a well-defined location (`~/.config/QHOT/` or project-local)
 - Migration path from the current `parameters.toml` in `lib/holograms/`
 
 ---
 
 ## Wireless Phone / Tablet Interface
 
-Remote control of QFab from a mobile device.
+Remote control of QHOT from a mobile device.
 
-- WebSocket or REST API server embedded in QFab
+- WebSocket or REST API server embedded in QHOT
 - Minimal browser-based UI for trap manipulation (drag, add, delete)
 - Authentication / local-network-only access
 - Possible use cases: hands-free trap repositioning during experiments
@@ -183,7 +183,7 @@ Strengthen type safety across the codebase.
 
 ## Release and Distribution
 
-Prepare QFab for public release.
+Prepare QHOT for public release.
 
 - Check appropriateness of current license for a public release
 - Create a PyPI package and publish to the Python Package Index
@@ -197,6 +197,6 @@ Prepare QFab for public release.
 Combined holographic manipulation and in-situ characterization.
 
 - Feed live camera frames to pylorenzmie for particle tracking and sizing
-- Overlay characterization results (radius, refractive index) on `QFabScreen`
+- Overlay characterization results (radius, refractive index) on `QHOTScreen`
 - Closed-loop control: move traps based on characterization output
 - Enables automated single-particle measurements

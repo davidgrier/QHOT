@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets, QtTest
 import importlib as _importlib
-from QFab.lib.holograms.CGH import CGH
-_cgh_mod = _importlib.import_module('QFab.lib.holograms.CGH')
-from QFab.lib.traps.QTrap import QTrap
+from QHOT.lib.holograms.CGH import CGH
+_cgh_mod = _importlib.import_module('QHOT.lib.holograms.CGH')
+from QHOT.lib.traps.QTrap import QTrap
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -226,7 +226,7 @@ class TestSettings(unittest.TestCase):
 
     def test_setter_unknown_key_does_not_raise(self):
         try:
-            with self.assertLogs('QFab.lib.holograms.CGH', level='WARNING'):
+            with self.assertLogs('QHOT.lib.holograms.CGH', level='WARNING'):
                 self.cgh.settings = {'nonexistent': 42}
         except Exception as e:
             self.fail(f'settings setter raised unexpectedly: {e}')
@@ -408,7 +408,7 @@ class TestFieldOf(unittest.TestCase):
         self.assertIs(self.cgh._structure_cache[trap], structure_before)
 
     def test_trap_change_invalidates_cache(self):
-        from QFab.traps.QTweezer import QTweezer
+        from QHOT.traps.QTweezer import QTweezer
         trap = QTweezer(r=(0., 0., 0.), phase=0.)
         first = self.cgh.fieldOf(trap)
         trap.x = 10.
@@ -416,7 +416,7 @@ class TestFieldOf(unittest.TestCase):
         self.assertIsNot(first, second)
 
     def test_changed_does_not_invalidate_structure_cache(self):
-        from QFab.traps.QVortex import QVortex
+        from QHOT.traps.QVortex import QVortex
         trap = QVortex(r=(0., 0., 0.), phase=0., ell=1)
         self.cgh.fieldOf(trap)
         structure_before = self.cgh._structure_cache[trap]
@@ -426,7 +426,7 @@ class TestFieldOf(unittest.TestCase):
         self.assertIs(self.cgh._structure_cache[trap], structure_before)
 
     def test_structure_changed_invalidates_only_structure_cache(self):
-        from QFab.traps.QVortex import QVortex
+        from QHOT.traps.QVortex import QVortex
         trap = QVortex(r=(0., 0., 0.), phase=0., ell=1)
         self.cgh.fieldOf(trap)
         self.assertIn(trap, self.cgh._field_cache)
@@ -436,7 +436,7 @@ class TestFieldOf(unittest.TestCase):
         self.assertNotIn(trap, self.cgh._structure_cache)
 
     def test_field_of_connects_structure_changed(self):
-        from QFab.traps.QVortex import QVortex
+        from QHOT.traps.QVortex import QVortex
         trap = QVortex(r=(0., 0., 0.), phase=0., ell=0)
         self.cgh.fieldOf(trap)
         trap.ell = 3
@@ -517,8 +517,8 @@ class TestDtype(unittest.TestCase):
 class TestGroupMoved(unittest.TestCase):
 
     def setUp(self):
-        from QFab.lib.traps.QTrapGroup import QTrapGroup
-        from QFab.traps.QTweezer import QTweezer
+        from QHOT.lib.traps.QTrapGroup import QTrapGroup
+        from QHOT.traps.QTweezer import QTweezer
         self.cgh = CGH(xc=0., yc=0., zc=0., thetac=0., splay=0.)
         self.group = QTrapGroup(r=(0., 0., 0.))
         self.t1 = QTweezer(r=(0., 0., 0.), phase=0.)
@@ -526,7 +526,7 @@ class TestGroupMoved(unittest.TestCase):
         self.group.addTrap([self.t1, self.t2])
 
     def test_fieldof_connects_to_parent_group(self):
-        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        from QHOT.lib.traps.QTrapGroup import QTrapGroup
         self.cgh.fieldOf(self.t1)
         self.assertIn(self.group, self.cgh._connected_groups)
 
@@ -540,7 +540,7 @@ class TestGroupMoved(unittest.TestCase):
         self.assertNotIn(self.t2, self.cgh._field_cache)
 
     def test_group_field_built_on_first_compute(self):
-        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        from QHOT.lib.traps.QTrapGroup import QTrapGroup
         traps = [self.t1, self.t2]
         self.cgh.compute(traps)
         self.assertIn(self.group, self.cgh._group_field_cache)
@@ -602,7 +602,7 @@ class TestGroupMoved(unittest.TestCase):
         self.assertNotIn(self.group, self.cgh._group_field_cache)
 
     def test_ungrouped_traps_unaffected(self):
-        from QFab.traps.QTweezer import QTweezer
+        from QHOT.traps.QTweezer import QTweezer
         solo = QTweezer(r=(50., 50., 0.), phase=0.)
         result = self.cgh.compute([self.t1, self.t2, solo])
         self.assertIsInstance(result, np.ndarray)

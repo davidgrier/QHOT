@@ -4,7 +4,7 @@ import numpy as np
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 from pyqtgraph.Qt import QtCore, QtGui
 
-from QFab.lib.types import Hologram, Shape
+from QHOT.lib.types import Hologram, Shape
 
 
 logger = logging.getLogger(__name__)

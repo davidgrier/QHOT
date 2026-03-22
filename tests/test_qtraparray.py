@@ -2,9 +2,9 @@
 import unittest
 import numpy as np
 from pyqtgraph.Qt import QtWidgets, QtTest
-from QFab.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
-from QFab.traps.QTrapArray import QTrapArray
-from QFab.traps.QTweezer import QTweezer
+from QHOT.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
+from QHOT.traps.QTrapArray import QTrapArray
+from QHOT.traps.QTweezer import QTweezer
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

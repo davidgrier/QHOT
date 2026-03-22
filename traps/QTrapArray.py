@@ -2,8 +2,8 @@ import numpy as np
 import numpy.typing as npt
 from pyqtgraph.Qt import QtCore
 
-from QFab.lib.traps.QTrapGroup import QTrapGroup
-from QFab.lib.types import Shape
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.types import Shape
 from .QTweezer import QTweezer
 
 

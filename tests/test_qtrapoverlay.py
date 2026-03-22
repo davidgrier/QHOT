@@ -3,10 +3,10 @@ import unittest
 import numpy as np
 from unittest.mock import MagicMock, patch
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
-from QFab.lib.traps.QTrapOverlay import QTrapOverlay
-from QFab.traps.QTweezer import QTweezer
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
+from QHOT.traps.QTweezer import QTweezer
 
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
@@ -939,7 +939,7 @@ class TestMouseReleaseEvent(unittest.TestCase):
 
 
 class TestMousePress(unittest.TestCase):
-    '''Tests for the QFabScreen hosted event path.'''
+    '''Tests for the QHOTScreen hosted event path.'''
 
     def _make_event(self, buttons, modifiers):
         event = MagicMock()
@@ -975,7 +975,7 @@ class TestMousePress(unittest.TestCase):
 
 
 class TestMouseMove(unittest.TestCase):
-    '''Tests for the QFabScreen hosted event path.'''
+    '''Tests for the QHOTScreen hosted event path.'''
 
     def _make_event(self, buttons):
         event = MagicMock()
@@ -1018,7 +1018,7 @@ class TestMouseMove(unittest.TestCase):
 
 
 class TestMouseRelease(unittest.TestCase):
-    '''Tests for the QFabScreen hosted event path.'''
+    '''Tests for the QHOTScreen hosted event path.'''
 
     def _make_event(self):
         return MagicMock()
@@ -1101,7 +1101,7 @@ class TestReshapeSignals(unittest.TestCase):
     '''Cover _connectGroup, _onGroupReshaping, _onGroupReshaped.'''
 
     def setUp(self):
-        from QFab.traps.QTrapArray import QTrapArray
+        from QHOT.traps.QTrapArray import QTrapArray
         self.overlay = make_overlay()
         self.array = QTrapArray(shape=(2, 2), separation=10.)
         self.overlay.addTrap(self.array)
@@ -1189,7 +1189,7 @@ class TestSaveLoad(unittest.TestCase):
         self.assertAlmostEqual(trap.z, 7.)
 
     def test_roundtrip_group(self):
-        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        from QHOT.lib.traps.QTrapGroup import QTrapGroup
         grp = QTrapGroup(r=(0., 0., 0.), phase=0.)
         grp.addTrap(QTweezer(r=(10., 10., 0.), phase=0.))
         grp.addTrap(QTweezer(r=(20., 20., 0.), phase=0.))
@@ -1199,7 +1199,7 @@ class TestSaveLoad(unittest.TestCase):
         self.assertEqual(len(self.overlay._traps), 2)
 
     def test_roundtrip_trap_array(self):
-        from QFab.traps.QTrapArray import QTrapArray
+        from QHOT.traps.QTrapArray import QTrapArray
         arr = QTrapArray(shape=(3, 2), separation=30., r=(100., 100., 0.))
         self.overlay.addTrap(arr)
         self.overlay.save(self.path)

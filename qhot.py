@@ -5,19 +5,19 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets, QtGui, uic
 
 from QVideo.lib import choose_camera, QCameraTree
-from QFab.lib import QSLM, QSLMWidget, QSaveFile  # noqa: F401
-from QFab.lib.holograms import CGH, QCGHTree      # noqa: F401
-from QFab.lib.traps import QTrap, QTrapMenu       # noqa: F401
+from QHOT.lib import QSLM, QSLMWidget, QSaveFile  # noqa: F401
+from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
+from QHOT.lib.traps import QTrap, QTrapMenu       # noqa: F401
 
 
 logger = logging.getLogger(__name__)
 
 
-class PyFab(QtWidgets.QMainWindow):
+class QHOT(QtWidgets.QMainWindow):
 
     '''Main application window for the QFab optical trapping system.
 
-    Integrates a live camera view (``QFabScreen``) with an SLM display
+    Integrates a live camera view (``QHOTScreen``) with an SLM display
     (``QSLM``), a hologram computation engine (``CGH``), a parameter
     tree (``QCGHTree``), and a DVR for recording.  The UI layout is
     defined in ``PyFab.ui``.
@@ -30,9 +30,9 @@ class PyFab(QtWidgets.QMainWindow):
         Forwarded to ``QMainWindow``.
     '''
 
-    UIFILE = Path(__file__).parent / 'PyFab.ui'
+    UIFILE = Path(__file__).parent / 'QHOT.ui'
     HELPDIR = Path(__file__).parent / 'help'
-    SETTINGS = ('QFab', 'PyFab')
+    SETTINGS = ('QHOT', 'QHOT')
 
     _computeRequested = QtCore.pyqtSignal(list)
 

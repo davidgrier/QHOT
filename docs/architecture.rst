@@ -9,7 +9,7 @@ layers below it.
    ┌──────────────────────────────────────────────────┐
    │  PyFab  (main window, PyFab.ui)                  │  application layer
    ├──────────────────┬───────────────────────────────┤
-   │  QCGHTree        │  QFabScreen  QSLMWidget        │  UI layer
+   │  QCGHTree        │  QHOTScreen  QSLMWidget        │  UI layer
    │                  │  QSaveFile   QSLM              │
    ├──────────────────┴───────────────────────────────┤
    │  CGH  (QThread)                                  │  computation layer
@@ -17,42 +17,42 @@ layers below it.
    │  QTrap / QTrapGroup / QTrapOverlay               │  trap layer
    └──────────────────────────────────────────────────┘
 
-Trap layer — ``QFab.lib.traps``
+Trap layer — ``QHOT.lib.traps``
 --------------------------------
 
-:class:`~QFab.lib.traps.QTrap.QTrap` is the abstract base for all optical
+:class:`~QHOT.lib.traps.QTrap.QTrap` is the abstract base for all optical
 traps.  Each trap holds a 3D position ``r``, an ``amplitude``, and a
 ``phase``, and emits ``changed`` whenever any property is updated.
 
-:class:`~QFab.lib.traps.QTrapGroup.QTrapGroup` provides recursive grouping.
+:class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` provides recursive grouping.
 Translating a group moves all contained traps together and emits
 ``groupMoved`` so the CGH can update the accumulated group field in place
 rather than recomputing every trap individually.
 
-:class:`~QFab.lib.traps.QTrapOverlay.QTrapOverlay` is a
+:class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is a
 ``pyqtgraph.ScatterPlotItem`` that renders each trap as a coloured spot and
 dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
 and break traps.
 
 **Serialisation.**  Every trap class implements ``to_dict()``, which returns a
 plain ``dict`` containing a ``'type'`` key (the class name) and all registered
-properties.  :class:`~QFab.lib.traps.QTrapGroup.QTrapGroup` adds a
-``'children'`` list; :class:`~QFab.traps.QTrapArray.QTrapArray` overrides
+properties.  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
+``'children'`` list; :class:`~QHOT.traps.QTrapArray.QTrapArray` overrides
 this to omit the auto-generated children and instead stores the ``mask``.
 ``QTrapOverlay.save(path)`` and ``QTrapOverlay.load(path)`` write and read
 these dicts as a JSON array.
 
 New trap types are registered automatically via
-:meth:`QTrap.__init_subclass__ <QFab.lib.traps.QTrap.QTrap.__init_subclass__>`,
+:meth:`QTrap.__init_subclass__ <QHOT.lib.traps.QTrap.QTrap.__init_subclass__>`,
 which inserts every subclass into ``QTrap._registry`` at class-definition time.
 ``load()`` dispatches on the ``'type'`` key using this registry, so custom trap
 classes are supported without any changes to the overlay — they just need to be
 imported before ``load()`` is called.
 
-Computation layer — ``QFab.lib.holograms.CGH``
+Computation layer — ``QHOT.lib.holograms.CGH``
 -----------------------------------------------
 
-:class:`~QFab.lib.holograms.CGH.CGH` computes phase holograms in a
+:class:`~QHOT.lib.holograms.CGH.CGH` computes phase holograms in a
 ``QThread``.  Calibration attributes (pixel pitch, wavelength, focal length,
 camera rotation, etc.) are set via ``__setattr__``, which automatically
 triggers ``updateGeometry`` or ``updateTransformationMatrix`` and emits
@@ -64,32 +64,32 @@ so only modified traps are recomputed on each frame.  Trap groups share a
 single accumulated field that is updated in place by a phase-shift broadcast
 on each group translation.
 
-When the field accumulation is complete, :meth:`~QFab.lib.holograms.CGH.CGH.compute`
+When the field accumulation is complete, :meth:`~QHOT.lib.holograms.CGH.CGH.compute`
 quantizes the phase to uint8 and emits ``hologramReady``.
 
 UI layer
 --------
 
-:class:`~QFab.lib.QFabScreen.QFabScreen` subclasses
+:class:`~QHOT.lib.QHOTScreen.QHOTScreen` subclasses
 ``QVideo.lib.QVideoScreen`` to add a
-:class:`~QFab.lib.traps.QTrapOverlay.QTrapOverlay` rendered on top of the
+:class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` rendered on top of the
 live camera feed.  It translates Qt mouse and wheel events into the overlay's
 coordinate system and forwards them for trap interaction.
 
-:class:`~QFab.lib.holograms.QCGHTree.QCGHTree` is a
+:class:`~QHOT.lib.holograms.QCGHTree.QCGHTree` is a
 ``pyqtgraph.ParameterTree`` widget that exposes every CGH calibration
 attribute as an editable spin box.  Writing to any parameter directly
 updates the corresponding ``CGH`` attribute.
 
-:class:`~QFab.lib.QSLM.QSLM` manages the SLM display window on a secondary
+:class:`~QHOT.lib.QSLM.QSLM` manages the SLM display window on a secondary
 screen and exposes a ``setData`` slot that accepts a uint8 phase array.
-:class:`~QFab.lib.QSLMWidget.QSLMWidget` shows a preview of the current
+:class:`~QHOT.lib.QSLMWidget.QSLMWidget` shows a preview of the current
 hologram inside the main window.
 
-Application layer — ``QFab.pyfab``
+Application layer — ``QHOT.pyfab``
 -------------------------------------
 
-:class:`~QFab.pyfab.PyFab` loads ``PyFab.ui`` and wires all subsystems
+:class:`~QHOT.pyfab.PyFab` loads ``PyFab.ui`` and wires all subsystems
 together via Qt signals.
 
 **File menu.**  The File menu is organised into three groups:
@@ -97,7 +97,7 @@ together via Qt signals.
 * **Open / Save / Save As** — trap configuration (``.json``).  ``saveTraps()``
   saves to the previously used path if one exists; otherwise it behaves like
   ``saveTrapsAs()``.  File I/O is delegated to
-  :class:`~QFab.lib.QSaveFile.QSaveFile`.
+  :class:`~QHOT.lib.QSaveFile.QSaveFile`.
 * **Export** submenu — camera images and SLM hologram patterns.
 * **Preferences** submenu — CGH calibration settings (saved to
   ``~/.pyfab/QCGHTree.toml``).
@@ -115,7 +115,7 @@ together via Qt signals.
 Concrete trap types
 -------------------
 
-The :mod:`QFab.traps` package provides ready-to-use trap classes:
+The :mod:`QHOT.traps` package provides ready-to-use trap classes:
 
 .. list-table::
    :header-rows: 1
@@ -123,15 +123,15 @@ The :mod:`QFab.traps` package provides ready-to-use trap classes:
 
    * - Class
      - Description
-   * - :class:`~QFab.traps.QTweezer.QTweezer`
+   * - :class:`~QHOT.traps.QTweezer.QTweezer`
      - Single Gaussian tweezer
-   * - :class:`~QFab.traps.QVortex.QVortex`
+   * - :class:`~QHOT.traps.QVortex.QVortex`
      - Laguerre-Gaussian vortex beam
-   * - :class:`~QFab.traps.QRingTrap.QRingTrap`
+   * - :class:`~QHOT.traps.QRingTrap.QRingTrap`
      - Ring-shaped optical trap
-   * - :class:`~QFab.traps.QTrapArray.QTrapArray`
+   * - :class:`~QHOT.traps.QTrapArray.QTrapArray`
      - Rectangular grid of tweezers with optional mask and position jitter
-   * - :class:`~QFab.traps.QLetterArray.QLetterArray`
+   * - :class:`~QHOT.traps.QLetterArray.QLetterArray`
      - Single dot-matrix character rendered as tweezers
-   * - :class:`~QFab.traps.QTextArray.QTextArray`
+   * - :class:`~QHOT.traps.QTextArray.QTextArray`
      - String of ``QLetterArray`` characters

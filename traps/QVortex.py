@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.letterSymbol import letterSymbol
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.letterSymbol import letterSymbol
 from pyqtgraph.Qt import QtCore
 from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from QFab.lib.holograms.CGH import CGH
-    from QFab.lib.types import Field
+    from QHOT.lib.holograms.CGH import CGH
+    from QHOT.lib.types import Field
 
 
 class QVortex(QTrap):

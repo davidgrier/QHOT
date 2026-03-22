@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 from pyqtgraph.Qt import QtWidgets
-from QFab.lib.QSLMWidget import QSLMWidget
+from QHOT.lib.QSLMWidget import QSLMWidget
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

@@ -1,5 +1,5 @@
 from pyqtgraph.Qt import QtCore
-from QFab.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from .QLetterArray import QLetterArray
 
 
@@ -19,7 +19,7 @@ class QTextArray(QTrapGroup):
 
     Inherits
     --------
-    QFab.lib.traps.QTrapGroup
+    QHOT.lib.traps.QTrapGroup
 
     Parameters
     ----------

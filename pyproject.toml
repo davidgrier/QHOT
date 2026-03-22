@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "QFab"
+name = "QHOT"
 version = "1.0.0"
 description = "Holographic optical trapping instrument control"
 readme = "README.md"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["holographic optical trapping", "SLM", "CGH", "optics"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
@@ -33,29 +33,29 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/davidgrier/QFab"
-Repository = "https://github.com/davidgrier/QFab"
-Issues = "https://github.com/davidgrier/QFab/issues"
+Homepage = "https://github.com/davidgrier/QHOT"
+Repository = "https://github.com/davidgrier/QHOT"
+Issues = "https://github.com/davidgrier/QHOT/issues"
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov"]
 docs = ["pydata-sphinx-theme", "sphinx", "sphinx-autodoc-typehints"]
 
 [project.scripts]
-pyfab = "QFab.pyfab:main"
+qhot = "QHOT.qhot:main"
 
 [tool.setuptools.packages.find]
 where = [".."]
-include = ["QFab*"]
+include = ["QHOT*"]
 
 [tool.setuptools.package-data]
-QFab = ["PyFab.ui", "help/**/*"]
+QHOT = ["QHOT.ui", "help/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["QFab"]
+source = ["QHOT"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

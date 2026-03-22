@@ -2,8 +2,8 @@
 import unittest
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

@@ -1,5 +1,5 @@
 from pyqtgraph.Qt import QtCore
-from QFab.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrap import QTrap
 from collections.abc import Iterator
 import numpy as np
 import numpy.typing as npt

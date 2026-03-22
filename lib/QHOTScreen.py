@@ -1,5 +1,5 @@
 from QVideo.lib import QVideoScreen, QCamera
-from QFab.lib.traps.QTrapOverlay import QTrapOverlay
+from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import numpy as np
 import logging
@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class QFabScreen(QVideoScreen):
+class QHOTScreen(QVideoScreen):
 
     '''Video screen with overlay for interacting with optical traps.
 
@@ -113,4 +113,4 @@ class QFabScreen(QVideoScreen):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    QFabScreen.example()
+    QHOTScreen.example()

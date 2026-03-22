@@ -4,29 +4,29 @@ Core library
 Types
 -----
 
-.. automodule:: QFab.lib.types
+.. automodule:: QHOT.lib.types
    :members:
 
-QFabScreen
+QHOTScreen
 ----------
 
-.. automodule:: QFab.lib.QFabScreen
+.. automodule:: QHOT.lib.QHOTScreen
    :members:
 
 QSLM
 ----
 
-.. automodule:: QFab.lib.QSLM
+.. automodule:: QHOT.lib.QSLM
    :members:
 
 QSLMWidget
 ----------
 
-.. automodule:: QFab.lib.QSLMWidget
+.. automodule:: QHOT.lib.QSLMWidget
    :members:
 
 QSaveFile
 ---------
 
-.. automodule:: QFab.lib.QSaveFile
+.. automodule:: QHOT.lib.QSaveFile
    :members:

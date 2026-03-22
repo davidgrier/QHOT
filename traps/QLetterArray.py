@@ -1,5 +1,5 @@
 import numpy as np
-from QFab.traps.QTrapArray import QTrapArray
+from QHOT.traps.QTrapArray import QTrapArray
 
 
 # 7-row x 5-column dot-matrix font.

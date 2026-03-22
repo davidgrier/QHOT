@@ -10,8 +10,8 @@ from pyqtgraph import ImageItem
 from pyqtgraph.Qt import QtCore, QtWidgets
 
 import importlib as _importlib
-from QFab.lib.QSaveFile import QSaveFile
-_qsavefile_mod = _importlib.import_module('QFab.lib.QSaveFile')
+from QHOT.lib.QSaveFile import QSaveFile
+_qsavefile_mod = _importlib.import_module('QHOT.lib.QSaveFile')
 
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

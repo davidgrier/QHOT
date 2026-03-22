@@ -1,12 +1,12 @@
-'''Unit tests for QFabScreen.'''
+'''Unit tests for QHOTScreen.'''
 import unittest
 import numpy as np
 from unittest.mock import MagicMock, patch
 from pyqtgraph.Qt import QtWidgets, QtCore, QtGui, QtTest
-from QFab.lib.QFabScreen import QFabScreen
-from QFab.lib.traps.QTrap import QTrap
-from QFab.lib.traps.QTrapGroup import QTrapGroup
-from QFab.lib.traps.QTrapOverlay import QTrapOverlay
+from QHOT.lib.QHOTScreen import QHOTScreen
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QVideo.lib.QVideoScreen import QVideoScreen
 
 
@@ -14,7 +14,7 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
 def make_screen():
-    return QFabScreen()
+    return QHOTScreen()
 
 
 def make_press_event(pos, button=QtCore.Qt.MouseButton.LeftButton,

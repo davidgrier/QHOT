@@ -4,38 +4,38 @@ Traps
 Trap infrastructure
 -------------------
 
-.. automodule:: QFab.lib.traps.QTrap
+.. automodule:: QHOT.lib.traps.QTrap
    :members:
 
-.. automodule:: QFab.lib.traps.QTrapGroup
+.. automodule:: QHOT.lib.traps.QTrapGroup
    :members:
 
-.. automodule:: QFab.lib.traps.QTrapOverlay
+.. automodule:: QHOT.lib.traps.QTrapOverlay
    :members:
 
-.. automodule:: QFab.lib.traps.QTrapWidget
+.. automodule:: QHOT.lib.traps.QTrapWidget
    :members:
 
-.. automodule:: QFab.lib.traps.QTrapMenu
+.. automodule:: QHOT.lib.traps.QTrapMenu
    :members:
 
 Concrete trap types
 -------------------
 
-.. automodule:: QFab.traps.QTweezer
+.. automodule:: QHOT.traps.QTweezer
    :members:
 
-.. automodule:: QFab.traps.QVortex
+.. automodule:: QHOT.traps.QVortex
    :members:
 
-.. automodule:: QFab.traps.QRingTrap
+.. automodule:: QHOT.traps.QRingTrap
    :members:
 
-.. automodule:: QFab.traps.QTrapArray
+.. automodule:: QHOT.traps.QTrapArray
    :members:
 
-.. automodule:: QFab.traps.QLetterArray
+.. automodule:: QHOT.traps.QLetterArray
    :members:
 
-.. automodule:: QFab.traps.QTextArray
+.. automodule:: QHOT.traps.QTextArray
    :members:

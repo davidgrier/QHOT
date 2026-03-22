@@ -5,7 +5,7 @@ import numpy.typing as npt
 from pyqtgraph.Qt import QtCore
 from collections.abc import Iterator
 
-from QFab.lib.types import Position
+from QHOT.lib.types import Position
 
 
 logger = logging.getLogger(__name__)

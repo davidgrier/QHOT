@@ -1,4 +1,4 @@
-from QFab.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.QTrap import QTrap
 
 
 class QTweezer(QTrap):

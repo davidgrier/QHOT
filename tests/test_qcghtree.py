@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from pyqtgraph.Qt import QtWidgets
-from QFab.lib.holograms.CGH import CGH
-from QFab.lib.holograms.QCGHTree import QCGHTree
+from QHOT.lib.holograms.CGH import CGH
+from QHOT.lib.holograms.QCGHTree import QCGHTree
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -76,7 +76,7 @@ class TestSet(unittest.TestCase):
         self.assertAlmostEqual(self.widget.get('wavelength'), 0.532, places=4)
 
     def test_unknown_key_logs_warning(self):
-        with self.assertLogs('QFab.lib.holograms.QCGHTree', level='WARNING') as cm:
+        with self.assertLogs('QHOT.lib.holograms.QCGHTree', level='WARNING') as cm:
             self.widget.set('nonexistent', 1.0)
         self.assertTrue(any('nonexistent' in line for line in cm.output))
 
@@ -104,7 +104,7 @@ class TestSettings(unittest.TestCase):
 
     def test_setter_ignores_unknown_keys(self):
         try:
-            with self.assertLogs('QFab.lib.holograms.QCGHTree', level='WARNING'):
+            with self.assertLogs('QHOT.lib.holograms.QCGHTree', level='WARNING'):
                 self.widget.settings = {'nonexistent': 99.}
         except Exception as e:
             self.fail(f'settings setter raised unexpectedly: {e}')
@@ -162,7 +162,7 @@ class TestUpdateCGH(unittest.TestCase):
         self.assertEqual(self.cgh.wavelength, original)
 
     def test_unknown_field_logs_warning(self):
-        with self.assertLogs('QFab.lib.holograms.QCGHTree', level='WARNING') as cm:
+        with self.assertLogs('QHOT.lib.holograms.QCGHTree', level='WARNING') as cm:
             self.widget.updateCGH(None, [self._make_change('nonexistent', 1.)])
         self.assertTrue(any('nonexistent' in line for line in cm.output))
 

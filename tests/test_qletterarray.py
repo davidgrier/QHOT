@@ -2,10 +2,10 @@
 import unittest
 import numpy as np
 from pyqtgraph.Qt import QtWidgets, QtTest
-from QFab.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
-from QFab.traps.QTrapArray import QTrapArray
-from QFab.traps.QLetterArray import QLetterArray, _FONT, _char_positions, _char_mask
-from QFab.traps.QTweezer import QTweezer
+from QHOT.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
+from QHOT.traps.QTrapArray import QTrapArray
+from QHOT.traps.QLetterArray import QLetterArray, _FONT, _char_positions, _char_mask
+from QHOT.traps.QTweezer import QTweezer
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -226,11 +226,11 @@ class TestSignals(unittest.TestCase):
 class TestInMenu(unittest.TestCase):
 
     def test_in_all(self):
-        import QFab.traps as traps_pkg
+        import QHOT.traps as traps_pkg
         self.assertIn('QLetterArray', traps_pkg.__all__)
 
     def test_importable(self):
-        from QFab.traps import QLetterArray as LA
+        from QHOT.traps import QLetterArray as LA
         self.assertIsNotNone(LA)
 
 

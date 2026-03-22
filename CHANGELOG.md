@@ -12,7 +12,7 @@
 - `reshaping` / `reshaped` signals on `QTrapArray` and `QTextArray` to bracket
   trap-population changes
 - Pre-push git hook running the full unit-test suite before every `git push`
-- `pyproject.toml` packaging metadata and `pyfab` entry-point script
+- `pyproject.toml` packaging metadata and `qhot` entry-point script
 - Comprehensive unit-test suite (~700 tests) covering all trap classes,
   overlay, CGH, SLM, save/restore, and UI widgets
 
@@ -23,7 +23,7 @@
 ### Fixed
 - Mask shape validation in `QTrapArray.__init__` now raises `ValueError`
   immediately rather than deferring to the setter
-- `QFabScreen._overlayPos` now works across PyQt5 builds where `pos()` is
+- `QHOTScreen._overlayPos` now works across PyQt5 builds where `pos()` is
   absent from `QWheelEvent` or `position()` is absent from `QMouseEvent`;
   wheel-scroll z-axis movement restored
 - Five broken `traptab.html` links in `traphowto.html` corrected to

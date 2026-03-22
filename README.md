@@ -22,18 +22,19 @@ in real time using a live camera feed.
 - numpy ≥ 1.24
 - scipy ≥ 1.10
 - tomlkit ≥ 0.11
-- [QVideo](https://github.com/davidgrier/QVideo) — camera interface library
+- QVideo ≥ 3.2.3
 
 ## Installation
 
 ```bash
-# Install QVideo first (see its own instructions), then:
-pip install .
+pip install QFab
 ```
 
 Or for development:
 
 ```bash
+git clone https://github.com/davidgrier/QFab.git
+cd QFab
 pip install -e .
 ```
 

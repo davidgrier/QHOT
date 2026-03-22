@@ -29,6 +29,7 @@ dependencies = [
     "pyqtgraph>=0.13",
     "tomlkit>=0.11",
     "PyQt5>=5.15",
+    "QVideo>=3.2.3",
 ]
 
 [project.urls]

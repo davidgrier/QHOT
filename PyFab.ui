@@ -167,12 +167,29 @@
     <property name="title">
      <string>File</string>
     </property>
-    <addaction name="actionRestoreSettings"/>
-    <addaction name="actionSaveSettings"/>
-    <addaction name="actionSaveImage"/>
-    <addaction name="actionSaveImageAs"/>
-    <addaction name="actionSaveHologram"/>
-    <addaction name="actionSaveHologramAs"/>
+    <widget class="QMenu" name="menuExport">
+     <property name="title">
+      <string>Export</string>
+     </property>
+     <addaction name="actionSaveImage"/>
+     <addaction name="actionSaveImageAs"/>
+     <addaction name="actionSaveHologram"/>
+     <addaction name="actionSaveHologramAs"/>
+    </widget>
+    <widget class="QMenu" name="menuPreferences">
+     <property name="title">
+      <string>Preferences</string>
+     </property>
+     <addaction name="actionSaveSettings"/>
+     <addaction name="actionRestoreSettings"/>
+    </widget>
+    <addaction name="actionOpenTraps"/>
+    <addaction name="actionSaveTraps"/>
+    <addaction name="actionSaveTrapsAs"/>
+    <addaction name="separator"/>
+    <addaction name="menuExport"/>
+    <addaction name="separator"/>
+    <addaction name="menuPreferences"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -192,6 +209,21 @@
    <addaction name="menuTasks"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOpenTraps">
+   <property name="text">
+    <string>Open Traps ...</string>
+   </property>
+  </action>
+  <action name="actionSaveTraps">
+   <property name="text">
+    <string>Save Traps</string>
+   </property>
+  </action>
+  <action name="actionSaveTrapsAs">
+   <property name="text">
+    <string>Save Traps As ...</string>
+   </property>
+  </action>
   <action name="actionSaveImage">
    <property name="text">
     <string>Save Image</string>
@@ -395,6 +427,54 @@
    </hints>
   </connection>
   <connection>
+   <sender>actionOpenTraps</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openTraps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>510</x>
+     <y>257</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveTraps</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>saveTraps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>510</x>
+     <y>257</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveTrapsAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>saveTrapsAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>510</x>
+     <y>257</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>actionSaveImage</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
@@ -493,6 +573,9 @@
  </connections>
  <slots>
   <slot>setStatus(str)</slot>
+  <slot>openTraps()</slot>
+  <slot>saveTraps()</slot>
+  <slot>saveTrapsAs()</slot>
   <slot>saveImage()</slot>
   <slot>saveImageAs()</slot>
   <slot>saveHologram()</slot>

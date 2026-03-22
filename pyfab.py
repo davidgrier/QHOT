@@ -53,6 +53,7 @@ class PyFab(QtWidgets.QMainWindow):
         self._connectSignals()
         self._addFilters()
         self.save = QSaveFile(self)
+        self._trapFile: str | None = None
         self.restoreSettings()
         self._cghThread.start()
 
@@ -143,6 +144,33 @@ class PyFab(QtWidgets.QMainWindow):
         self.cameraTree.setDisabled(playback)
 
     @QtCore.pyqtSlot()
+    def openTraps(self) -> None:
+        '''Prompt for a JSON file and load traps from it.'''
+        filename = self.save.openTraps(self.screen.overlay)
+        if filename:
+            self._trapFile = filename
+            self.setStatus(f'Opened traps from {filename}')
+        else:
+            self.setStatus('Open traps cancelled')
+
+    @QtCore.pyqtSlot()
+    def saveTraps(self) -> None:
+        '''Save traps to the current file, or prompt if none is set.'''
+        filename = self.save.traps(self.screen.overlay, self._trapFile)
+        self._trapFile = filename
+        self.setStatus(f'Saved traps to {filename}')
+
+    @QtCore.pyqtSlot()
+    def saveTrapsAs(self) -> None:
+        '''Prompt for a filename and save traps to it.'''
+        filename = self.save.trapsAs(self.screen.overlay)
+        if filename:
+            self._trapFile = filename
+            self.setStatus(f'Saved traps to {filename}')
+        else:
+            self.setStatus('Save traps cancelled')
+
+    @QtCore.pyqtSlot()
     def saveImage(self) -> None:
         '''Save the current camera frame to disk.'''
         filename = self.save.image(self.screen.image)
@@ -205,17 +233,18 @@ class PyFab(QtWidgets.QMainWindow):
         '''Size the window so the screen shows the camera frame with no bars.
 
         Sets the splitter so the screen gets exactly the camera's native
-        width, then resizes the window height to match the camera height
-        plus the menu bar and status bar.  Only called on first launch
-        when no saved geometry exists.
+        width, then resizes the window height to the larger of the camera
+        height and the panel's preferred height, plus chrome.  Only called
+        on first launch when no saved geometry exists.
         '''
         cam = self.screen.sizeHint()
         if not cam.isValid():
             return
         panel_w = self.tabWidget.sizeHint().width()
+        panel_h = self.tabWidget.sizeHint().height()
         self.splitter.setSizes([cam.width(), panel_w])
         self.resize(cam.width() + panel_w + self.splitter.handleWidth(),
-                    cam.height() + self._chromeHeight)
+                    max(cam.height(), panel_h) + self._chromeHeight)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         '''Schedule an aspect-ratio correction after every resize.'''
@@ -227,7 +256,9 @@ class PyFab(QtWidgets.QMainWindow):
 
         Reads the screen widget's actual width after the layout has
         settled, computes the ideal height, and resizes the window if
-        they differ.  The correction is a no-op when the ratio is already
+        they differ.  The height is floored at the panel's minimum size
+        hint so that the controls are never squished when the window is
+        narrow.  The correction is a no-op when the height is already
         correct, so the resulting second resize event terminates the loop.
         '''
         cam = self.screen.sizeHint()
@@ -237,7 +268,8 @@ class PyFab(QtWidgets.QMainWindow):
         if screen_w <= 0:
             return
         ideal_h = screen_w * cam.height() // cam.width()
-        desired_h = ideal_h + self._chromeHeight
+        min_panel_h = self.tabWidget.minimumSizeHint().height()
+        desired_h = max(ideal_h, min_panel_h) + self._chromeHeight
         if self.height() != desired_h:
             self.resize(self.width(), desired_h)
 

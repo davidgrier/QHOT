@@ -32,6 +32,8 @@ class QSaveFile(QtCore.QObject):
                     'JPEG Image (*.jpg *.jpeg);;'
                     'TIFF Image (*.tif *.tiff)')
 
+    trap_format: str = 'Trap Configuration (*.json)'
+
     def __init__(self, parent: QtWidgets.QMainWindow) -> None:
         super().__init__(parent)
         self._makeDirs()
@@ -144,6 +146,66 @@ class QSaveFile(QtCore.QObject):
             self.parent(), 'Save As', default, self.formats)
         if filename:
             return self.image(data, filename=filename)
+        return ''
+
+    def traps(self, overlay, filename: str | None = None) -> str:
+        '''Save a trap overlay to a JSON file.
+
+        Parameters
+        ----------
+        overlay : QTrapOverlay
+            Overlay whose traps will be saved.
+        filename : str or None
+            Destination path.  If ``None``, a timestamped ``.json`` file
+            is created in the data directory.
+
+        Returns
+        -------
+        str
+            Path of the file that was written.
+        '''
+        filename = filename or self.filename(prefix='traps', suffix='.json')
+        overlay.save(filename)
+        return filename
+
+    def trapsAs(self, overlay) -> str:
+        '''Save a trap overlay to a user-chosen JSON file via a Save As dialog.
+
+        Parameters
+        ----------
+        overlay : QTrapOverlay
+            Overlay whose traps will be saved.
+
+        Returns
+        -------
+        str
+            Path of the file that was written, or empty string if cancelled.
+        '''
+        default = self.filename(prefix='traps', suffix='.json')
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self.parent(), 'Save Traps As', default, self.trap_format)
+        if filename:
+            return self.traps(overlay, filename)
+        return ''
+
+    def openTraps(self, overlay) -> str:
+        '''Load traps from a user-chosen JSON file via an Open dialog.
+
+        Parameters
+        ----------
+        overlay : QTrapOverlay
+            Overlay to populate with the loaded traps.
+
+        Returns
+        -------
+        str
+            Path of the file that was read, or empty string if cancelled.
+        '''
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self.parent(), 'Open Traps', str(self.datadir), self.trap_format)
+        if filename:
+            overlay.load(filename)
+            return filename
         return ''
 
     def toToml(self, qobj: QtCore.QObject) -> str:

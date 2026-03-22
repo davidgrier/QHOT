@@ -34,6 +34,21 @@ rather than recomputing every trap individually.
 dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
 and break traps.
 
+**Serialisation.**  Every trap class implements ``to_dict()``, which returns a
+plain ``dict`` containing a ``'type'`` key (the class name) and all registered
+properties.  :class:`~QFab.lib.traps.QTrapGroup.QTrapGroup` adds a
+``'children'`` list; :class:`~QFab.traps.QTrapArray.QTrapArray` overrides
+this to omit the auto-generated children and instead stores the ``mask``.
+``QTrapOverlay.save(path)`` and ``QTrapOverlay.load(path)`` write and read
+these dicts as a JSON array.
+
+New trap types are registered automatically via
+:meth:`QTrap.__init_subclass__ <QFab.lib.traps.QTrap.QTrap.__init_subclass__>`,
+which inserts every subclass into ``QTrap._registry`` at class-definition time.
+``load()`` dispatches on the ``'type'`` key using this registry, so custom trap
+classes are supported without any changes to the overlay — they just need to be
+imported before ``load()`` is called.
+
 Computation layer — ``QFab.lib.holograms.CGH``
 -----------------------------------------------
 
@@ -75,7 +90,19 @@ Application layer — ``QFab.pyfab``
 -------------------------------------
 
 :class:`~QFab.pyfab.PyFab` loads ``PyFab.ui`` and wires all subsystems
-together via Qt signals.  The central signal flow is:
+together via Qt signals.
+
+**File menu.**  The File menu is organised into three groups:
+
+* **Open / Save / Save As** — trap configuration (``.json``).  ``saveTraps()``
+  saves to the previously used path if one exists; otherwise it behaves like
+  ``saveTrapsAs()``.  File I/O is delegated to
+  :class:`~QFab.lib.QSaveFile.QSaveFile`.
+* **Export** submenu — camera images and SLM hologram patterns.
+* **Preferences** submenu — CGH calibration settings (saved to
+  ``~/.pyfab/QCGHTree.toml``).
+
+**Central signal flow:**
 
 1. ``QTrapOverlay`` emits ``trapAdded`` / ``trapRemoved`` → leaf trap
    ``changed`` signals are connected to ``_scheduleCompute``.

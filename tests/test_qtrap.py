@@ -265,5 +265,30 @@ class TestProperties(unittest.TestCase):
         self.assertEqual(self.trap.properties['phase']['decimals'], 4)
 
 
+class TestToDict(unittest.TestCase):
+
+    def setUp(self):
+        self.trap = QTrap(r=(1., 2., 3.), amplitude=0.5, phase=1.0)
+
+    def test_has_type_key(self):
+        self.assertEqual(self.trap.to_dict()['type'], 'QTrap')
+
+    def test_has_position_keys(self):
+        d = self.trap.to_dict()
+        self.assertAlmostEqual(d['x'], 1.)
+        self.assertAlmostEqual(d['y'], 2.)
+        self.assertAlmostEqual(d['z'], 3.)
+
+    def test_has_amplitude(self):
+        self.assertAlmostEqual(self.trap.to_dict()['amplitude'], 0.5)
+
+    def test_has_phase(self):
+        self.assertAlmostEqual(self.trap.to_dict()['phase'], 1.0)
+
+    def test_no_extra_keys(self):
+        d = self.trap.to_dict()
+        self.assertEqual(set(d.keys()), {'type', 'x', 'y', 'z', 'amplitude', 'phase'})
+
+
 if __name__ == '__main__':
     unittest.main()

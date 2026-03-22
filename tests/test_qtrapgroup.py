@@ -300,5 +300,31 @@ class TestTranslateSilently(unittest.TestCase):
         self.assertEqual(len(spy), 0)
 
 
+class TestToDict(unittest.TestCase):
+
+    def setUp(self):
+        self.group = QTrapGroup(r=(0., 0., 0.), phase=0.)
+        self.child_a = QTrap(r=(1., 2., 0.), phase=0.)
+        self.child_b = QTrap(r=(3., 4., 0.), phase=0.)
+        self.group.addTrap([self.child_a, self.child_b])
+
+    def test_type_key(self):
+        self.assertEqual(self.group.to_dict()['type'], 'QTrapGroup')
+
+    def test_children_present(self):
+        self.assertIn('children', self.group.to_dict())
+
+    def test_children_count(self):
+        self.assertEqual(len(self.group.to_dict()['children']), 2)
+
+    def test_children_have_type(self):
+        for child in self.group.to_dict()['children']:
+            self.assertIn('type', child)
+
+    def test_empty_group(self):
+        empty = QTrapGroup(r=(0., 0., 0.), phase=0.)
+        self.assertEqual(empty.to_dict()['children'], [])
+
+
 if __name__ == '__main__':
     unittest.main()

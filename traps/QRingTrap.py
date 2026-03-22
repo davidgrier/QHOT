@@ -39,7 +39,7 @@ class QRingTrap(QTrap):
 
     def __init__(self, *args,
                  radius: float = 10.,
-                 ell: float = 0.,
+                 ell: float = 10.,
                  **kwargs) -> None:
         self._radius = float(radius)
         self._ell = float(ell)

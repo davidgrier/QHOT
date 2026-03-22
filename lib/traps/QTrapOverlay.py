@@ -6,6 +6,7 @@ from QFab.lib.traps.QTrap import QTrap
 from QFab.lib.traps.QTrapGroup import QTrapGroup
 from QFab.traps.QTweezer import QTweezer
 from enum import Enum
+import json
 import numpy as np
 from collections.abc import Callable, Iterator
 import functools
@@ -728,6 +729,71 @@ class QTrapOverlay(ScatterPlotItem):
         new_r[2] += dz
         group.r = new_r
         return True
+
+    # Serialisation
+
+    def _make_trap(self, d: dict) -> QTrap:
+        '''Reconstruct a trap or group from a serialised dict.
+
+        Parameters
+        ----------
+        d : dict
+            A dict produced by ``QTrap.to_dict()`` or
+            ``QTrapGroup.to_dict()``.
+
+        Returns
+        -------
+        QTrap
+            The reconstructed trap or group, with children attached.
+        '''
+        d = dict(d)
+        trap_type = d.pop('type')
+        children = d.pop('children', None)
+        mask = d.pop('mask', None)
+        r = (d.pop('x'), d.pop('y'), d.pop('z'))
+        cls = QTrap._registry.get(trap_type)
+        if cls is None:
+            raise KeyError(f'Unknown trap type {trap_type!r}. '
+                           f'Import its module before calling load().')
+
+        kwargs: dict = {'r': r, **d}
+        if mask is not None:
+            kwargs['mask'] = np.array(mask, dtype=bool)
+        if trap_type == 'QTrapArray':
+            nx = int(kwargs.pop('nx'))
+            ny = int(kwargs.pop('ny'))
+            kwargs['shape'] = (nx, ny)
+        trap = cls(**kwargs)
+        if children is not None:
+            for child_d in children:
+                trap.addTrap(self._make_trap(child_d))
+        return trap
+
+    def save(self, path: str) -> None:
+        '''Save all traps to a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            Destination file path.
+        '''
+        data = [trap.to_dict() for trap in self]
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    def load(self, path: str) -> None:
+        '''Load traps from a JSON file, replacing the current configuration.
+
+        Parameters
+        ----------
+        path : str
+            Source file path produced by ``save()``.
+        '''
+        with open(path) as f:
+            data = json.load(f)
+        self.clearTraps()
+        for d in data:
+            self.addTrap(self._make_trap(d))
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

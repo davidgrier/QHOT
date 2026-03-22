@@ -185,6 +185,23 @@ class QTrapArray(QTrapGroup):
         if traps:
             self.addTrap(traps)
 
+    def to_dict(self) -> dict:
+        '''Serialise this array's parameters to a plain dict.
+
+        Overrides ``QTrapGroup.to_dict()`` to omit children, which are
+        reconstructed automatically from ``shape``, ``separation``,
+        ``fuzz``, and ``mask`` when the object is re-created.
+
+        Returns
+        -------
+        dict
+            A dict with ``'type'``, registered properties, and ``'mask'``
+            (a nested list of bools, or ``None``).
+        '''
+        d = {'type': type(self).__name__, **self.settings}
+        d['mask'] = self._mask.tolist() if self._mask is not None else None
+        return d
+
     def _repopulate(self) -> None:
         '''Signal, clear direct children, repopulate, and signal again.'''
         self.reshaping.emit()

@@ -1153,5 +1153,67 @@ class TestReshapeSignals(unittest.TestCase):
             self.assertNotIn(leaf, self.overlay._traps)
 
 
+class TestSaveLoad(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        import tempfile, os
+        self._tmp = tempfile.NamedTemporaryFile(suffix='.json', delete=False)
+        self._tmp.close()
+        self.path = self._tmp.name
+
+    def tearDown(self):
+        import os
+        os.unlink(self.path)
+
+    def test_save_creates_file(self):
+        self.overlay.addTrap(QTweezer(r=(10., 20., 0.), phase=0.))
+        self.overlay.save(self.path)
+        import os
+        self.assertGreater(os.path.getsize(self.path), 0)
+
+    def test_roundtrip_tweezer_count(self):
+        for x in (10., 50., 90.):
+            self.overlay.addTrap(QTweezer(r=(x, 30., 0.), phase=0.))
+        self.overlay.save(self.path)
+        self.overlay.load(self.path)
+        self.assertEqual(len(self.overlay._traps), 3)
+
+    def test_roundtrip_tweezer_position(self):
+        self.overlay.addTrap(QTweezer(r=(123., 456., 7.), phase=0.))
+        self.overlay.save(self.path)
+        self.overlay.load(self.path)
+        trap = self.overlay._traps[0]
+        self.assertAlmostEqual(trap.x, 123.)
+        self.assertAlmostEqual(trap.y, 456.)
+        self.assertAlmostEqual(trap.z, 7.)
+
+    def test_roundtrip_group(self):
+        from QFab.lib.traps.QTrapGroup import QTrapGroup
+        grp = QTrapGroup(r=(0., 0., 0.), phase=0.)
+        grp.addTrap(QTweezer(r=(10., 10., 0.), phase=0.))
+        grp.addTrap(QTweezer(r=(20., 20., 0.), phase=0.))
+        self.overlay.addTrap(grp)
+        self.overlay.save(self.path)
+        self.overlay.load(self.path)
+        self.assertEqual(len(self.overlay._traps), 2)
+
+    def test_roundtrip_trap_array(self):
+        from QFab.traps.QTrapArray import QTrapArray
+        arr = QTrapArray(shape=(3, 2), separation=30., r=(100., 100., 0.))
+        self.overlay.addTrap(arr)
+        self.overlay.save(self.path)
+        self.overlay.load(self.path)
+        self.assertEqual(len(self.overlay._traps), 6)
+
+    def test_load_replaces_existing(self):
+        self.overlay.addTrap(QTweezer(r=(1., 1., 0.), phase=0.))
+        self.overlay.save(self.path)
+        for x in (10., 20., 30., 40.):
+            self.overlay.addTrap(QTweezer(r=(x, 0., 0.), phase=0.))
+        self.overlay.load(self.path)
+        self.assertEqual(len(self.overlay._traps), 1)
+
+
 if __name__ == '__main__':
     unittest.main()

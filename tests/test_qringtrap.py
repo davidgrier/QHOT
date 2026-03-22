@@ -14,7 +14,7 @@ class TestInit(unittest.TestCase):
         self.assertAlmostEqual(QRingTrap().radius, 10.)
 
     def test_default_ell(self):
-        self.assertAlmostEqual(QRingTrap().ell, 0.)
+        self.assertAlmostEqual(QRingTrap().ell, 10.)
 
     def test_custom_radius(self):
         self.assertAlmostEqual(QRingTrap(radius=5.).radius, 5.)

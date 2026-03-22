@@ -32,7 +32,7 @@ class QVortex(QTrap):
 
     structureChanged = QtCore.pyqtSignal()
 
-    def __init__(self, *args, ell: int = 0, **kwargs) -> None:
+    def __init__(self, *args, ell: int = 10, **kwargs) -> None:
         self._ell = int(ell)
         super().__init__(*args, **kwargs)
 

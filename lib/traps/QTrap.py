@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class QTrap(QtCore.QObject):
+
+    _registry: dict[str, type] = {}
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        QTrap._registry[cls.__name__] = cls
     '''Abstract representation of an optical trap.
 
     Subclass of ``QtCore.QObject``.
@@ -184,6 +190,17 @@ class QTrap(QtCore.QObject):
             registered via ``registerProperty``.
         '''
         return {p: getattr(self, p) for p in self.properties.keys()}
+
+    def to_dict(self) -> dict:
+        '''Serialise this trap to a plain dict suitable for JSON export.
+
+        Returns
+        -------
+        dict
+            A dict with a ``'type'`` key (the class name) and one key per
+            registered property.
+        '''
+        return {'type': type(self).__name__, **self.settings}
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

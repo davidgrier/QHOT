@@ -104,6 +104,19 @@ class QTrapGroup(QTrap):
             leaf.changed.emit()
         self.changed.emit()
 
+    def to_dict(self) -> dict:
+        '''Serialise this group and all its children to a plain dict.
+
+        Returns
+        -------
+        dict
+            A dict with ``'type'``, the registered properties, and a
+            ``'children'`` list of recursively serialised child traps.
+        '''
+        d = {'type': type(self).__name__, **self.settings}
+        d['children'] = [child.to_dict() for child in self]
+        return d
+
     @property
     def traps(self) -> list[QTrap]:
         '''Returns the list of traps in the group.'''

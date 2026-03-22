@@ -11,7 +11,7 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 class TestInit(unittest.TestCase):
 
     def test_default_ell(self):
-        self.assertEqual(QVortex().ell, 0)
+        self.assertEqual(QVortex().ell, 10)
 
     def test_custom_ell(self):
         self.assertEqual(QVortex(ell=3).ell, 3)

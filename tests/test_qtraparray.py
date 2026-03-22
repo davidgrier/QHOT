@@ -465,5 +465,32 @@ class TestMask(unittest.TestCase):
             self.assertIsInstance(trap, QTweezer)
 
 
+class TestToDict(unittest.TestCase):
+
+    def test_type_key(self):
+        arr = QTrapArray(shape=(3, 2), separation=40.)
+        self.assertEqual(arr.to_dict()['type'], 'QTrapArray')
+
+    def test_no_children_key(self):
+        arr = QTrapArray(shape=(3, 2), separation=40.)
+        self.assertNotIn('children', arr.to_dict())
+
+    def test_shape_in_settings(self):
+        arr = QTrapArray(shape=(3, 2), separation=40.)
+        d = arr.to_dict()
+        self.assertEqual(d['nx'], 3)
+        self.assertEqual(d['ny'], 2)
+
+    def test_mask_none(self):
+        arr = QTrapArray(shape=(2, 2))
+        self.assertIsNone(arr.to_dict()['mask'])
+
+    def test_mask_serialised(self):
+        mask = np.array([[True, False], [False, True]])
+        arr = QTrapArray(shape=(2, 2), mask=mask)
+        d = arr.to_dict()
+        self.assertEqual(d['mask'], [[True, False], [False, True]])
+
+
 if __name__ == '__main__':
     unittest.main()

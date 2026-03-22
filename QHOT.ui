@@ -277,7 +277,7 @@
   <customwidget>
    <class>QHOTScreen</class>
    <extends>QGraphicsView</extends>
-   <header>QFab.lib.QHOTScreen</header>
+   <header>QHOT.lib.QHOTScreen</header>
    <slots>
     <signal>status(str)</signal>
     <slot>clearTraps()</slot>
@@ -293,23 +293,23 @@
   <customwidget>
    <class>QTrapWidget</class>
    <extends>QFrame</extends>
-   <header>QFab.lib.traps.QTrapWidget</header>
+   <header>QHOT.lib.traps.QTrapWidget</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>QTrapMenu</class>
    <extends>QMenu</extends>
-   <header>QFab.lib.traps.QTrapMenu</header>
+   <header>QHOT.lib.traps.QTrapMenu</header>
   </customwidget>
   <customwidget>
    <class>QCGHTree</class>
    <extends>QTreeWidget</extends>
-   <header>QFab.lib.holograms.QCGHTree</header>
+   <header>QHOT.lib.holograms.QCGHTree</header>
   </customwidget>
   <customwidget>
    <class>QSLMWidget</class>
    <extends>QGraphicsView</extends>
-   <header>QFab.lib.QSLMWidget</header>
+   <header>QHOT.lib.QSLMWidget</header>
   </customwidget>
  </customwidgets>
  <resources/>

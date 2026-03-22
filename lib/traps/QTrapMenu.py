@@ -12,7 +12,7 @@ class QTrapMenu(QtWidgets.QMenu):
 
     '''Context menu for adding a trap of a chosen type to the overlay.
 
-    Populates itself from ``QFab.traps.__all__`` and emits
+    Populates itself from ``QHOT.traps.__all__`` and emits
     ``trapRequested`` when the user picks an entry.  Set ``pos``
     before executing the menu so the emitted trap is positioned where
     the user clicked.
@@ -56,8 +56,8 @@ class QTrapMenu(QtWidgets.QMenu):
         self._pos = pos
 
     def _populateMenu(self) -> None:
-        '''Add one action per trap type listed in ``QFab.traps.__all__``.'''
-        for trapname in QFab.traps.__all__:
+        '''Add one action per trap type listed in ``QHOT.traps.__all__``.'''
+        for trapname in QHOT.traps.__all__:
             action = self.addAction(trapname)
             action.triggered.connect(
                 functools.partial(self._onTrapSelected, trapname))
@@ -70,9 +70,9 @@ class QTrapMenu(QtWidgets.QMenu):
         ----------
         trapname : str
             Name of the trap class to instantiate, as listed in
-            ``QFab.traps.__all__``.
+            ``QHOT.traps.__all__``.
         '''
-        trap_class = getattr(QFab.traps, trapname, None)
+        trap_class = getattr(QHOT.traps, trapname, None)
         if trap_class is None:
             logger.warning(f'Unknown trap type: {trapname}')
             return

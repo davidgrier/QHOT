@@ -19,12 +19,12 @@ class TestInit(unittest.TestCase):
 
     def test_action_count_matches_all(self):
         menu = QTrapMenu()
-        self.assertEqual(len(menu.actions()), len(QFab.traps.__all__))
+        self.assertEqual(len(menu.actions()), len(QHOT.traps.__all__))
 
     def test_action_names_match_all(self):
         menu = QTrapMenu()
         names = [a.text() for a in menu.actions()]
-        for trapname in QFab.traps.__all__:
+        for trapname in QHOT.traps.__all__:
             self.assertIn(trapname, names)
 
 
@@ -70,7 +70,7 @@ class TestTrapRequested(unittest.TestCase):
         self.assertAlmostEqual(pos.y(), 13.)
 
     def test_each_trap_type_emits(self):
-        for trapname in QFab.traps.__all__:
+        for trapname in QHOT.traps.__all__:
             with self.subTest(trapname=trapname):
                 menu = QTrapMenu()
                 spy = QtTest.QSignalSpy(menu.trapRequested)

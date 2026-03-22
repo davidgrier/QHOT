@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 
-"""CUDA-accelerated CGH computation pipeline implemented with cupy"""
+'''CUDA-accelerated CGH computation pipeline implemented with cupy.'''
 
 from .CGH import CGH
-import cupy as cp
 import math
 
-cp.cuda.Device()
+try:
+    import cupy as cp
+except (ImportError, ModuleNotFoundError):
+    cp = None
 
 
 class cupyCGH(CGH):
     def __init__(self, *args, **kwargs):
         super(cupyCGH, self).__init__(*args, **kwargs)
 
+        cp.cuda.Device()
         self.block = (16, 16, 1)
         self.grid = (math.ceil(self.height / self.block[0]),
                      math.ceil(self.width / self.block[1]))

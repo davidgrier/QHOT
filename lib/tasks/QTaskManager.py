@@ -23,12 +23,17 @@ class QTaskManager(QtCore.QObject):
     finishes.  Non-blocking tasks start immediately and run in
     parallel with the blocking queue.
 
+    The full ordered list of registered blocking tasks is retained in
+    ``scheduled`` even after tasks complete, so the same sequence can
+    be inspected and re-run.  Call ``clear()`` to discard it, or
+    ``restart()`` to run it again from fresh instances.
+
     When a blocking task finishes, the completed task object is
     passed to the next task's ``initialize()`` via ``task.previous``,
     allowing results to flow down the queue without a shared
     dictionary.
 
-    If a blocking task fails, the entire blocking queue is cleared
+    If a blocking task fails, the remaining pending tasks are cleared
     and logged.  Background tasks fail independently without
     affecting the queue.
 
@@ -71,6 +76,7 @@ class QTaskManager(QtCore.QObject):
         self.overlay = overlay
         self.cgh     = cgh
         self.dvr     = dvr
+        self._schedule:        list[QTask]  = []
         self._queue:           deque[QTask] = deque()
         self._background:      list[QTask]  = []
         self._current:         QTask | None = None
@@ -116,11 +122,21 @@ class QTaskManager(QtCore.QObject):
 
         Includes the activated-but-not-yet-stepped task (if any) at
         position 0, followed by the remaining pending tasks.  This is
-        the canonical list for the queue display and for saving.
+        the canonical list for saving.
         '''
         head = ([] if self._current_stepped or self._current is None
                 else [self._current])
         return head + list(self._queue)
+
+    @property
+    def scheduled(self) -> list[QTask]:
+        '''All registered blocking tasks in registration order.
+
+        Includes tasks in every state (pending, running, completed,
+        failed).  This list persists until ``clear()`` is called,
+        allowing completed runs to be inspected and restarted.
+        '''
+        return list(self._schedule)
 
     @property
     def background(self) -> list[QTask]:
@@ -160,6 +176,7 @@ class QTaskManager(QtCore.QObject):
         if blocking:
             task.finished.connect(self._onBlockingFinished)
             task.failed.connect(self._onBlockingFailed)
+            self._schedule.append(task)
             self._queue.append(task)
             if self._current is None:
                 self._activateNext()
@@ -209,10 +226,10 @@ class QTaskManager(QtCore.QObject):
             self.register(task)
 
     def stop(self) -> None:
-        '''Abort all tasks and clear the blocking queue.
+        '''Abort active and background tasks; clear pending tasks.
 
-        Active and background tasks are aborted; queued tasks are
-        discarded without being started.
+        The ``scheduled`` list is preserved so the run can be
+        inspected or restarted.  Call ``clear()`` to discard it.
         '''
         self._queue.clear()
         if self._current is not None:
@@ -223,6 +240,30 @@ class QTaskManager(QtCore.QObject):
             task.abort('manager stopped')
         self._background.clear()
         self.changed.emit()
+
+    def clear(self) -> None:
+        '''Stop all tasks and discard the entire schedule.
+
+        After this call the manager is completely idle with no
+        registered blocking tasks.
+        '''
+        self.stop()
+        self._schedule.clear()
+        self.changed.emit()
+
+    def restart(self) -> None:
+        '''Re-run the current schedule from fresh task instances.
+
+        Serialises the current ``scheduled`` list, clears the manager,
+        then reloads the specs so that every task starts from
+        ``PENDING`` with its saved parameters.  Has no effect if the
+        schedule is empty.
+        '''
+        specs = [t.to_dict() for t in self._schedule]
+        if not specs:
+            return
+        self.clear()
+        self.load(specs)
 
     # ------------------------------------------------------------------
     # Private slots
@@ -250,7 +291,7 @@ class QTaskManager(QtCore.QObject):
     def _onBlockingFailed(self, reason: str) -> None:
         task = self.sender()
         logger.error(f'Blocking task {type(task).__name__} '
-                     f'failed ({reason}); clearing queue')
+                     f'failed ({reason}); clearing pending tasks')
         self._queue.clear()
         if self._current is task:
             self._current = None
@@ -287,4 +328,15 @@ class QTaskManager(QtCore.QObject):
         else:
             self._current = None
             self._current_stepped = False
+            if self._schedule:
+                # All tasks completed — reset each and re-queue for
+                # the next run, then activate the first one so it is
+                # ready to step immediately on resume.
+                for task in self._schedule:
+                    task.reset()
+                    self._queue.append(task)
+                self._current = self._queue.popleft()
+                self._current._start()
+                self._paused = True
+                logger.debug('Schedule complete; reset and paused')
         self.changed.emit()

@@ -16,6 +16,11 @@ class TestDelayInit(unittest.TestCase):
         task = Delay(10)
         self.assertEqual(task.duration, 10)
 
+    def test_setting_frames_updates_duration(self):
+        task = Delay(10)
+        task.frames = 50
+        self.assertEqual(task.duration, 50)
+
     def test_initial_state_is_pending(self):
         task = Delay(5)
         self.assertEqual(task.state, QTask.State.PENDING)

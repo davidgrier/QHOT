@@ -39,14 +39,14 @@ class TestQTaskManagerWidgetInit(unittest.TestCase):
     def test_stop_button_disabled_without_manager(self):
         self.assertFalse(self.widget._stopButton.isEnabled())
 
+    def test_clear_button_disabled_without_manager(self):
+        self.assertFalse(self.widget._clearButton.isEnabled())
+
     def test_status_emitted_on_init(self):
         spy = QtTest.QSignalSpy(self.widget.status)
         self.widget._refresh()
         self.assertEqual(len(spy), 1)
         self.assertIn('not connected', spy[0][0])
-
-    def test_active_list_empty_without_task(self):
-        self.assertEqual(self.widget._activeList.count(), 0)
 
     def test_queue_list_empty(self):
         self.assertEqual(self.widget._queueList.count(), 0)
@@ -69,12 +69,14 @@ class TestQTaskManagerWidgetManagerProperty(unittest.TestCase):
         self.widget.manager = self.manager
         self.assertTrue(self.widget._pauseButton.isEnabled())
         self.assertTrue(self.widget._stopButton.isEnabled())
+        self.assertTrue(self.widget._clearButton.isEnabled())
 
     def test_setting_none_disables_buttons(self):
         self.widget.manager = self.manager
         self.widget.manager = None
         self.assertFalse(self.widget._pauseButton.isEnabled())
         self.assertFalse(self.widget._stopButton.isEnabled())
+        self.assertFalse(self.widget._clearButton.isEnabled())
 
     def test_same_manager_is_noop(self):
         self.widget.manager = self.manager
@@ -113,35 +115,68 @@ class TestQTaskManagerWidgetDisplay(unittest.TestCase):
         for _ in range(n):
             self.screen.rendered.emit()
 
-    def test_active_list_shows_task_name(self):
+    def test_registered_task_appears_in_queue_list(self):
         task = QTask()
         self.manager.register(task)
-        self._emit()          # first frame moves task to active display
-        self.assertEqual(self.widget._activeList.count(), 1)
-        self.assertEqual(self.widget._activeList.item(0).text(), 'QTask')
-
-    def test_active_list_clears_after_task_completes(self):
-        task = QTask(duration=1)
-        self.manager.register(task)
-        task._step()
-        self.assertEqual(self.widget._activeList.count(), 0)
-
-    def test_queue_list_shows_pending_task_name(self):
-        t1, t2 = QTask(), QTask()
-        self.manager.register(t1)
-        self.manager.register(t2)
-        self._emit()          # first frame moves t1 to active
         self.assertEqual(self.widget._queueList.count(), 1)
         self.assertEqual(self.widget._queueList.item(0).text(), 'QTask')
 
-    def test_queue_list_clears_when_task_activates(self):
+    def test_active_task_shown_bold(self):
+        task = QTask()
+        self.manager.register(task)
+        self._emit()          # first frame: task becomes active
+        item = self.widget._queueList.item(0)
+        self.assertTrue(item.font().bold())
+
+    def test_completed_task_remains_in_queue_list(self):
+        task = QTask(duration=1)
+        self.manager.register(task)
+        self._emit(1)         # task completes
+        self.assertEqual(self.widget._queueList.count(), 1)
+
+    def test_completed_task_shown_gray(self):
+        t1 = QTask(duration=1)
+        t2 = QTask()          # won't auto-complete; keeps t1 visible as COMPLETED
+        self.manager.register(t1)
+        self.manager.register(t2)
+        self._emit(1)         # t1 completes, t2 activates
+        item = self.widget._queueList.item(0)
+        color = item.foreground().color()
+        self.assertEqual(color.red(),   128)
+        self.assertEqual(color.green(), 128)
+        self.assertEqual(color.blue(),  128)
+
+    def test_failed_task_shown_red(self):
+        task = QTask()
+        self.manager.register(task)
+        task.abort('test')
+        item = self.widget._queueList.item(0)
+        color = item.foreground().color()
+        self.assertEqual(color.red(),   192)
+        self.assertEqual(color.green(),   0)
+        self.assertEqual(color.blue(),    0)
+
+    def test_pending_task_not_bold(self):
+        t1, t2 = QTask(), QTask()
+        self.manager.register(t1)
+        self.manager.register(t2)
+        self._emit()          # first frame: t1 active (index 0), t2 pending (index 1)
+        item = self.widget._queueList.item(1)
+        self.assertFalse(item.font().bold())
+
+    def test_multiple_tasks_all_shown(self):
+        for _ in range(3):
+            self.manager.register(QTask())
+        self.assertEqual(self.widget._queueList.count(), 3)
+
+    def test_queue_list_count_stable_during_execution(self):
         t1 = QTask(duration=1)
         t2 = QTask()
         self.manager.register(t1)
         self.manager.register(t2)
-        self._emit()          # completes t1, activates t2 (not yet stepped)
-        self._emit()          # first frame for t2 — moves it to active
-        self.assertEqual(self.widget._queueList.count(), 0)
+        self._emit(1)         # t1 completes, t2 activates
+        self._emit(1)         # t2 stepped
+        self.assertEqual(self.widget._queueList.count(), 2)
 
     def test_background_list_shows_task_name(self):
         task = QTask()
@@ -200,34 +235,42 @@ class TestQTaskManagerWidgetControls(unittest.TestCase):
         self.manager.pause(True)
         self.assertTrue(any('Paused' in s[0] for s in spy))
 
-    def test_stop_button_calls_manager_stop(self):
+    def test_stop_aborts_active_task(self):
         task = QTask()
         self.manager.register(task)
         self.widget._stopButton.click()
         self.assertIsNone(self.manager.active)
-        self.assertEqual(self.manager.queue_size, 0)
 
-    def test_stop_clears_background_list(self):
-        self.manager.register(QTask(), blocking=False)
-        self.widget._stopButton.click()
-        self.assertEqual(self.widget._bgList.count(), 0)
-
-    def test_stop_clears_queue_list(self):
+    def test_stop_preserves_schedule(self):
         t1, t2 = QTask(), QTask()
         self.manager.register(t1)
         self.manager.register(t2)
         self.widget._stopButton.click()
+        self.assertEqual(self.widget._queueList.count(), 2)
+
+    def test_clear_button_empties_queue_list(self):
+        t1, t2 = QTask(), QTask()
+        self.manager.register(t1)
+        self.manager.register(t2)
+        self.widget._clearButton.click()
         self.assertEqual(self.widget._queueList.count(), 0)
+
+    def test_clear_button_clears_background_list(self):
+        self.manager.register(QTask(), blocking=False)
+        self.widget._clearButton.click()
+        self.assertEqual(self.widget._bgList.count(), 0)
 
     def test_pause_button_no_op_without_manager(self):
         self.widget.manager = None
-        # Should not raise
-        self.widget._onPauseClicked()
+        self.widget._onPauseClicked()   # should not raise
 
     def test_stop_button_no_op_without_manager(self):
         self.widget.manager = None
-        # Should not raise
-        self.widget._onStopClicked()
+        self.widget._onStopClicked()    # should not raise
+
+    def test_clear_button_no_op_without_manager(self):
+        self.widget.manager = None
+        self.widget._onClearClicked()   # should not raise
 
 
 class TestQTaskManagerWidgetParamTree(unittest.TestCase):
@@ -248,25 +291,24 @@ class TestQTaskManagerWidgetParamTree(unittest.TestCase):
         from QHOT.tasks.Delay import Delay
         task = Delay(frames=100)
         self.manager.register(task)
-        self._emit()          # first frame moves task to active display
+        self._emit()          # first frame: task becomes active (index 0)
         self.manager.pause(True)
-        item = self.widget._activeList.item(0)
+        item = self.widget._queueList.item(0)
         self.widget._onTaskItemClicked(item)
-        # One group item at root; its children are the task parameters
         self.assertIsNotNone(self.widget._taskTree)
         root = self.widget._taskTree.invisibleRootItem()
         self.assertEqual(root.childCount(), 1)
         n_params = len(type(task).parameters)
         self.assertEqual(root.child(0).childCount(), n_params)
 
-    def test_clicking_queue_task_populates_param_tree(self):
+    def test_clicking_pending_task_populates_param_tree(self):
         from QHOT.tasks.Delay import Delay
         t1 = Delay(frames=100)
         t2 = Delay(frames=200)
         self.manager.register(t1)
         self.manager.register(t2)
-        self._emit()          # first frame: t1 → activeList; t2 → queueList[0]
-        item = self.widget._queueList.item(0)
+        self._emit()          # first frame: t1 active (index 0), t2 pending (index 1)
+        item = self.widget._queueList.item(1)
         self.widget._onTaskItemClicked(item)
         self.assertIsNotNone(self.widget._taskTree)
         root = self.widget._taskTree.invisibleRootItem()
@@ -274,16 +316,16 @@ class TestQTaskManagerWidgetParamTree(unittest.TestCase):
         n_params = len(type(t2).parameters)
         self.assertEqual(root.child(0).childCount(), n_params)
 
-    def test_param_tree_cleared_when_task_disappears(self):
+    def test_param_tree_removed_when_task_cleared(self):
         from QHOT.tasks.Delay import Delay
         task = Delay(frames=100)
         self.manager.register(task)
-        self._emit()          # first frame moves task to active display
+        self._emit()
         self.manager.pause(True)
-        item = self.widget._activeList.item(0)
+        item = self.widget._queueList.item(0)
         self.widget._onTaskItemClicked(item)
-        # Stop clears all tasks; _reselectTask should remove the tree
-        self.manager.stop()
+        # Clear removes all tasks; _reselectTask should remove the tree
+        self.manager.clear()
         self.assertIsNone(self.widget._selectedTask)
         self.assertIsNone(self.widget._taskTree)
 
@@ -292,11 +334,10 @@ class TestQTaskManagerWidgetParamTree(unittest.TestCase):
         t2 = QTask()
         self.manager.register(t1)
         self.manager.register(t2)
-        self._emit()          # first frame: t1 → activeList; t2 → queueList[0]
-        item = self.widget._queueList.item(0)
+        self._emit()          # first frame: t1 active (index 0), t2 pending (index 1)
+        item = self.widget._queueList.item(1)
         self.widget._onTaskItemClicked(item)
         self.assertIs(self.widget._selectedTask, t2)
-        # Trigger a refresh (e.g. pause)
         self.manager.pause(True)
         self.assertIs(self.widget._selectedTask, t2)
 

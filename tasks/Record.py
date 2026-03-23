@@ -42,7 +42,17 @@ class Record(QTask):
         duration = nframes if nframes > 0 else None
         super().__init__(*args, duration=duration, **kwargs)
         self.filename = filename
-        self.nframes  = nframes
+        self._nframes = int(nframes)
+
+    @property
+    def nframes(self) -> int:
+        '''Number of frames to record (0 = unlimited).'''
+        return self._nframes
+
+    @nframes.setter
+    def nframes(self, value: int) -> None:
+        self._nframes = int(value)
+        self.duration = self._nframes if self._nframes > 0 else None
 
     def initialize(self) -> None:
         if self.filename:

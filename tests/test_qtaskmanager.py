@@ -294,8 +294,157 @@ class TestQTaskManagerStop(unittest.TestCase):
         self.manager.stop()
         self.assertIsNone(self.manager.active)
 
+    def test_stop_preserves_schedule(self):
+        tasks = [QTask() for _ in range(3)]
+        for t in tasks:
+            self.manager.register(t)
+        self.manager.stop()
+        self.assertEqual(len(self.manager.scheduled), 3)
+
     def test_stop_on_empty_manager_does_not_raise(self):
         self.manager.stop()
+
+
+class TestQTaskManagerSchedule(unittest.TestCase):
+
+    def setUp(self):
+        self.screen  = MockScreen()
+        self.manager = QTaskManager(self.screen)
+
+    def _emit(self, n: int = 1) -> None:
+        for _ in range(n):
+            self.screen.rendered.emit()
+
+    def test_scheduled_empty_initially(self):
+        self.assertEqual(self.manager.scheduled, [])
+
+    def test_registered_task_in_scheduled(self):
+        task = QTask()
+        self.manager.register(task)
+        self.assertIn(task, self.manager.scheduled)
+
+    def test_scheduled_preserves_order(self):
+        tasks = [QTask() for _ in range(3)]
+        for t in tasks:
+            self.manager.register(t)
+        self.assertEqual(self.manager.scheduled, tasks)
+
+    def test_scheduled_persists_after_task_completes(self):
+        task = QTask(duration=1)
+        self.manager.register(task)
+        self._emit(1)
+        self.assertIn(task, self.manager.scheduled)
+
+    def test_scheduled_persists_after_stop(self):
+        task = QTask()
+        self.manager.register(task)
+        self.manager.stop()
+        self.assertIn(task, self.manager.scheduled)
+
+    def test_scheduled_property_is_copy(self):
+        task = QTask()
+        self.manager.register(task)
+        s = self.manager.scheduled
+        s.clear()
+        self.assertEqual(len(self.manager.scheduled), 1)
+
+    def test_background_tasks_not_in_scheduled(self):
+        bg = QTask()
+        self.manager.register(bg, blocking=False)
+        self.assertNotIn(bg, self.manager.scheduled)
+
+    def test_clear_empties_schedule(self):
+        for _ in range(3):
+            self.manager.register(QTask())
+        self.manager.clear()
+        self.assertEqual(self.manager.scheduled, [])
+
+    def test_clear_also_stops_execution(self):
+        task = QTask()
+        self.manager.register(task)
+        self.manager.clear()
+        self.assertIsNone(self.manager.active)
+        self.assertEqual(self.manager.queue_size, 0)
+
+    def test_clear_on_empty_manager_does_not_raise(self):
+        self.manager.clear()
+
+    def test_restart_reruns_schedule(self):
+        from QHOT.tasks.Delay import Delay
+        self.manager.register(Delay(frames=5))
+        self.manager.restart()
+        self.assertEqual(len(self.manager.scheduled), 1)
+        self.assertEqual(self.manager.active_raw.frames, 5)
+
+    def test_restart_creates_fresh_instances(self):
+        from QHOT.tasks.Delay import Delay
+        task = Delay(frames=1)
+        self.manager.register(task)
+        self._emit(1)         # task completes
+        self.manager.restart()
+        new_task = self.manager.active_raw
+        self.assertIsNot(new_task, task)
+        self.assertEqual(new_task.state, QTask.State.RUNNING)
+
+    def test_restart_on_empty_schedule_is_noop(self):
+        self.manager.restart()  # should not raise
+        self.assertEqual(self.manager.scheduled, [])
+
+
+class TestQTaskManagerAutoReset(unittest.TestCase):
+
+    def setUp(self):
+        self.screen  = MockScreen()
+        self.manager = QTaskManager(self.screen)
+
+    def _emit(self, n: int = 1) -> None:
+        for _ in range(n):
+            self.screen.rendered.emit()
+
+    def test_manager_paused_after_auto_reset(self):
+        from QHOT.tasks.Delay import Delay
+        self.manager.register(Delay(frames=1))
+        self._emit(1)             # task completes → auto-reset
+        self.assertTrue(self.manager.paused)
+
+    def test_first_task_activated_after_auto_reset(self):
+        from QHOT.tasks.Delay import Delay
+        task = Delay(frames=1)
+        self.manager.register(task)
+        self._emit(1)             # task completes → auto-reset, re-activated
+        self.assertIs(self.manager.active_raw, task)
+
+    def test_task_running_after_auto_reset(self):
+        from QHOT.tasks.Delay import Delay
+        task = Delay(frames=1)
+        self.manager.register(task)
+        self._emit(1)
+        self.assertEqual(task.state, QTask.State.RUNNING)
+
+    def test_schedule_preserved_after_auto_reset(self):
+        from QHOT.tasks.Delay import Delay
+        task = Delay(frames=1)
+        self.manager.register(task)
+        self._emit(1)
+        self.assertIn(task, self.manager.scheduled)
+
+    def test_resuming_after_auto_reset_reruns_tasks(self):
+        from QHOT.tasks.Delay import Delay
+        from pyqtgraph.Qt import QtTest
+        task = Delay(frames=1)
+        self.manager.register(task)
+        self._emit(1)             # first run completes → auto-reset, re-activated
+        spy = QtTest.QSignalSpy(task.started)
+        self.manager.pause(False)
+        self._emit(1)             # second run
+        self.assertGreater(len(spy), 0)
+
+    def test_auto_reset_does_not_occur_after_stop(self):
+        from QHOT.tasks.Delay import Delay
+        self.manager.register(Delay(frames=1))
+        self.manager.stop()
+        self.assertFalse(self.manager.paused)
+        self.assertEqual(self.manager.queue_size, 0)
 
 
 class TestQTaskManagerBackground(unittest.TestCase):

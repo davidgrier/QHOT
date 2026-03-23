@@ -1,14 +1,15 @@
 import logging
 
-from pyqtgraph.Qt import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
+from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QTaskTree import QTaskTree
 
 
 logger = logging.getLogger(__name__)
 
-__all__ = 'QTaskManagerWidget'.split()
+__all__ = ['QTaskManagerWidget']
 
 _ROLE = QtCore.Qt.ItemDataRole.UserRole
 
@@ -17,13 +18,14 @@ class QTaskManagerWidget(QtWidgets.QWidget):
 
     '''Widget for monitoring and controlling a QTaskManager.
 
-    Displays the active blocking task, the pending queue, and the
-    currently running background tasks.  Clicking any task item
-    expands a ParameterTree below showing that task's editable
-    parameters; changes are written back to the task immediately.
-    Provides Pause/Resume and Stop controls.  Emits ``status`` with
-    a human-readable description of the manager state on every
-    refresh.
+    Displays all scheduled blocking tasks in a single queue list.
+    The active task is shown in bold; completed tasks are grayed;
+    failed tasks are shown in red.  Background tasks appear in a
+    separate list.  Clicking any task item shows its editable
+    parameters in a ParameterTree below; changes are written back to
+    the task immediately.  Provides Pause/Resume, Stop, and Clear
+    controls.  Emits ``status`` with a human-readable description of
+    the manager state on every refresh.
 
     The widget requires no arguments at construction time.  Connect
     it to a manager via the ``manager`` property after construction::
@@ -63,23 +65,13 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(6)
 
-        # Active task
-        activeGroup = QtWidgets.QGroupBox('Active task')
-        activeLayout = QtWidgets.QVBoxLayout(activeGroup)
-        self._activeList = QtWidgets.QListWidget()
-        self._activeList.setSelectionMode(
-            QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
-        self._activeList.setMaximumHeight(36)
-        activeLayout.addWidget(self._activeList)
-        layout.addWidget(activeGroup)
-
-        # Blocking queue
+        # Blocking queue (all scheduled tasks; active shown bold)
         queueGroup = QtWidgets.QGroupBox('Queue')
         queueLayout = QtWidgets.QVBoxLayout(queueGroup)
         self._queueList = QtWidgets.QListWidget()
         self._queueList.setSelectionMode(
             QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
-        self._queueList.setMaximumHeight(80)
+        self._queueList.setMaximumHeight(120)
         queueLayout.addWidget(self._queueList)
         layout.addWidget(queueGroup)
 
@@ -104,14 +96,17 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         self._pauseButton.setEnabled(False)
         self._stopButton = QtWidgets.QPushButton('Stop')
         self._stopButton.setEnabled(False)
+        self._clearButton = QtWidgets.QPushButton('Clear')
+        self._clearButton.setEnabled(False)
         controlLayout.addWidget(self._pauseButton)
         controlLayout.addWidget(self._stopButton)
+        controlLayout.addWidget(self._clearButton)
         controlLayout.addStretch()
         layout.addLayout(controlLayout)
 
         self._pauseButton.clicked.connect(self._onPauseClicked)
         self._stopButton.clicked.connect(self._onStopClicked)
-        self._activeList.itemClicked.connect(self._onTaskItemClicked)
+        self._clearButton.clicked.connect(self._onClearClicked)
         self._queueList.itemClicked.connect(self._onTaskItemClicked)
         self._bgList.itemClicked.connect(self._onTaskItemClicked)
 
@@ -138,10 +133,21 @@ class QTaskManagerWidget(QtWidgets.QWidget):
     # Private helpers
 
     @staticmethod
-    def _taskItem(task) -> QtWidgets.QListWidgetItem:
-        '''Create a list item carrying the task object as UserRole data.'''
+    def _taskItem(task: QTask) -> QtWidgets.QListWidgetItem:
+        '''Create a list item styled according to the task's state.'''
         item = QtWidgets.QListWidgetItem(type(task).__name__)
         item.setData(_ROLE, task)
+        state = task.state
+        if state is QTask.State.RUNNING:
+            font = item.font()
+            font.setBold(True)
+            item.setFont(font)
+        elif state is QTask.State.COMPLETED:
+            item.setForeground(QtGui.QBrush(
+                QtGui.QColor(128, 128, 128)))
+        elif state is QTask.State.FAILED:
+            item.setForeground(QtGui.QBrush(
+                QtGui.QColor(192, 0, 0)))
         return item
 
     def _reselectTask(self) -> None:
@@ -151,7 +157,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         '''
         if self._selectedTask is None:
             return
-        for lst in (self._activeList, self._queueList, self._bgList):
+        for lst in (self._queueList, self._bgList):
             for i in range(lst.count()):
                 item = lst.item(i)
                 if item.data(_ROLE) is self._selectedTask:
@@ -173,6 +179,11 @@ class QTaskManagerWidget(QtWidgets.QWidget):
     def _onStopClicked(self) -> None:
         if self._manager is not None:
             self._manager.stop()
+
+    @QtCore.pyqtSlot()
+    def _onClearClicked(self) -> None:
+        if self._manager is not None:
+            self._manager.clear()
 
     def _removeTaskTree(self) -> None:
         '''Detach and discard the current QTaskTree, if any.'''
@@ -197,10 +208,10 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         has_manager = self._manager is not None
         self._pauseButton.setEnabled(has_manager)
         self._stopButton.setEnabled(has_manager)
+        self._clearButton.setEnabled(has_manager)
 
         if not has_manager:
             self.status.emit('Task manager: not connected')
-            self._activeList.clear()
             self._queueList.clear()
             self._bgList.clear()
             self._selectedTask = None
@@ -222,15 +233,9 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             self.status.emit('Task manager: Idle')
             self._pauseButton.setText('Pause')
 
-        # Active task
-        self._activeList.clear()
-        active = self._manager.active
-        if active is not None:
-            self._activeList.addItem(self._taskItem(active))
-
-        # Queue list
+        # Blocking queue: all scheduled tasks with state-based styling
         self._queueList.clear()
-        for task in self._manager.queued:
+        for task in self._manager.scheduled:
             self._queueList.addItem(self._taskItem(task))
 
         # Background tasks

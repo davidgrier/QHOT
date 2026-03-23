@@ -192,6 +192,18 @@ class QTask(QtCore.QObject):
             self._state = self.State.FAILED
             self.failed.emit(reason)
 
+    def reset(self) -> None:
+        '''Return the task to ``PENDING`` state for re-execution.
+
+        Resets the frame counter and clears ``previous``.  Has no
+        effect on a task that is currently ``RUNNING``.
+        '''
+        if self._state is not self.State.RUNNING:
+            self._state    = self.State.PENDING
+            self._frame    = 0
+            self._skip     = 0
+            self.previous  = None
+
     # ------------------------------------------------------------------
     # Serialisation
 

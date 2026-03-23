@@ -353,5 +353,63 @@ class TestQTaskSignals(unittest.TestCase):
         self.assertEqual(order, ['initialize', 'started'])
 
 
+class TestQTaskReset(unittest.TestCase):
+
+    def test_reset_pending_stays_pending(self):
+        task = QTask()
+        task.reset()
+        self.assertEqual(task.state, QTask.State.PENDING)
+
+    def test_reset_completed_returns_to_pending(self):
+        task = QTask(duration=1)
+        task._start()
+        task._step()
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+        task.reset()
+        self.assertEqual(task.state, QTask.State.PENDING)
+
+    def test_reset_failed_returns_to_pending(self):
+        task = QTask()
+        task._start()
+        task.abort('test')
+        task.reset()
+        self.assertEqual(task.state, QTask.State.PENDING)
+
+    def test_reset_clears_frame_counter(self):
+        task = QTask(duration=2)
+        task._start()
+        task._step()
+        task._step()                  # completes after 2 steps
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+        task.reset()
+        self.assertEqual(task._frame, 0)
+
+    def test_reset_clears_previous(self):
+        t1 = QTask(duration=1)
+        t2 = QTask(duration=1)
+        t1._start()
+        t1._step()
+        t2._start(previous=t1)
+        t2._step()                    # complete t2 so reset applies
+        t2.reset()
+        self.assertIsNone(t2.previous)
+
+    def test_reset_does_not_affect_running_task(self):
+        task = QTask()
+        task._start()
+        task.reset()
+        self.assertEqual(task.state, QTask.State.RUNNING)
+
+    def test_reset_allows_task_to_run_again(self):
+        task = QTask(duration=1)
+        task._start()
+        task._step()
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+        task.reset()
+        task._start()
+        task._step()
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -226,19 +226,16 @@ class QTaskManager(QtCore.QObject):
             self.register(task)
 
     def stop(self) -> None:
-        '''Abort active and background tasks; clear pending tasks.
+        '''Rewind the schedule to the beginning and pause.
 
-        The ``scheduled`` list is preserved so the run can be
-        inspected or restarted.  Call ``clear()`` to discard it.
+        Aborts any running tasks, resets every scheduled task to
+        ``PENDING``, and leaves the manager paused at the first task —
+        ready to run again when ``pause(False)`` is called.
+        The ``scheduled`` list is preserved.  Call ``clear()`` to
+        discard it entirely.
         '''
-        self._queue.clear()
-        if self._current is not None:
-            self._current.abort('manager stopped')
-            self._current = None
-            self._current_stepped = False
-        for task in list(self._background):
-            task.abort('manager stopped')
-        self._background.clear()
+        self._abort_active_and_background()
+        self._reset_to_start()
         self.changed.emit()
 
     def clear(self) -> None:
@@ -247,8 +244,12 @@ class QTaskManager(QtCore.QObject):
         After this call the manager is completely idle with no
         registered blocking tasks.
         '''
-        self.stop()
+        self._abort_active_and_background()
         self._schedule.clear()
+        self._queue.clear()
+        self._current = None
+        self._current_stepped = False
+        self._paused = False
         self.changed.emit()
 
     def restart(self) -> None:
@@ -318,6 +319,38 @@ class QTaskManager(QtCore.QObject):
     # ------------------------------------------------------------------
     # Private helpers
 
+    def _abort_active_and_background(self) -> None:
+        '''Abort the active and all background tasks.
+
+        Clears ``_queue`` first so that ``_onBlockingFailed`` (which
+        fires synchronously inside ``abort()``) finds an already-empty
+        queue and treats the abort as a no-op to the schedule.
+        '''
+        self._queue.clear()
+        if self._current is not None:
+            self._current.abort('manager stopped')
+        for task in list(self._background):
+            task.abort('manager stopped')
+        self._background.clear()
+        self._current = None
+        self._current_stepped = False
+
+    def _reset_to_start(self) -> None:
+        '''Reset every scheduled task to PENDING and activate the first.
+
+        Repopulates ``_queue`` from ``_schedule``, pops and starts the
+        first task, and sets ``_paused = True`` so execution waits for
+        an explicit resume.
+        '''
+        for task in self._schedule:
+            task.reset()
+            self._queue.append(task)
+        if self._queue:
+            self._current = self._queue.popleft()
+            self._current_stepped = False
+            self._current._start()
+        self._paused = True
+
     def _activateNext(self,
                       previous: QTask | None = None) -> None:
         if self._queue:
@@ -329,14 +362,7 @@ class QTaskManager(QtCore.QObject):
             self._current = None
             self._current_stepped = False
             if self._schedule:
-                # All tasks completed — reset each and re-queue for
-                # the next run, then activate the first one so it is
-                # ready to step immediately on resume.
-                for task in self._schedule:
-                    task.reset()
-                    self._queue.append(task)
-                self._current = self._queue.popleft()
-                self._current._start()
-                self._paused = True
+                # All tasks completed — reset to start for next run
+                self._reset_to_start()
                 logger.debug('Schedule complete; reset and paused')
         self.changed.emit()

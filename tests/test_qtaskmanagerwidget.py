@@ -33,8 +33,8 @@ class TestQTaskManagerWidgetInit(unittest.TestCase):
     def test_manager_is_none_initially(self):
         self.assertIsNone(self.widget.manager)
 
-    def test_pause_button_disabled_without_manager(self):
-        self.assertFalse(self.widget._pauseButton.isEnabled())
+    def test_play_button_disabled_without_manager(self):
+        self.assertFalse(self.widget._playButton.isEnabled())
 
     def test_stop_button_disabled_without_manager(self):
         self.assertFalse(self.widget._stopButton.isEnabled())
@@ -65,16 +65,26 @@ class TestQTaskManagerWidgetManagerProperty(unittest.TestCase):
         self.widget.manager = self.manager
         self.assertIs(self.widget.manager, self.manager)
 
-    def test_setting_manager_enables_buttons(self):
+    def test_setting_manager_enables_clear_button(self):
         self.widget.manager = self.manager
-        self.assertTrue(self.widget._pauseButton.isEnabled())
-        self.assertTrue(self.widget._stopButton.isEnabled())
         self.assertTrue(self.widget._clearButton.isEnabled())
+
+    def test_play_stop_disabled_when_schedule_empty(self):
+        self.widget.manager = self.manager
+        self.assertFalse(self.widget._playButton.isEnabled())
+        self.assertFalse(self.widget._stopButton.isEnabled())
+
+    def test_play_stop_enabled_after_task_registered(self):
+        self.widget.manager = self.manager
+        self.manager.register(QTask())
+        self.assertTrue(self.widget._playButton.isEnabled())
+        self.assertTrue(self.widget._stopButton.isEnabled())
 
     def test_setting_none_disables_buttons(self):
         self.widget.manager = self.manager
+        self.manager.register(QTask())
         self.widget.manager = None
-        self.assertFalse(self.widget._pauseButton.isEnabled())
+        self.assertFalse(self.widget._playButton.isEnabled())
         self.assertFalse(self.widget._stopButton.isEnabled())
         self.assertFalse(self.widget._clearButton.isEnabled())
 
@@ -211,35 +221,52 @@ class TestQTaskManagerWidgetControls(unittest.TestCase):
 
     def setUp(self):
         self.widget  = QTaskManagerWidget()
-        self.manager = _make_manager()
+        self.manager, self.screen = _make_manager_with_screen()
         self.widget.manager = self.manager
 
-    def test_pause_button_shows_pause_when_running(self):
-        self.assertEqual(self.widget._pauseButton.text(), 'Pause')
+    def _emit(self, n=1):
+        for _ in range(n):
+            self.screen.rendered.emit()
+
+    def test_play_button_shows_play_when_idle(self):
+        self.assertEqual(self.widget._playButton.text(), 'Play')
+
+    def test_play_button_shows_pause_when_running(self):
+        self.manager.register(QTask())
+        self._emit()          # first frame: task becomes active
+        self.assertEqual(self.widget._playButton.text(), 'Pause')
+
+    def test_play_button_shows_play_when_paused(self):
+        self.manager.register(QTask())
+        self.manager.pause(True)
+        self.assertEqual(self.widget._playButton.text(), 'Play')
+
+    def test_clicking_play_unpauses_manager(self):
+        self.manager.register(QTask())
+        self.manager.pause(True)
+        self.widget._playButton.click()
+        self.assertFalse(self.manager.paused)
 
     def test_clicking_pause_pauses_manager(self):
-        self.widget._pauseButton.click()
+        self.manager.register(QTask())
+        self._emit()          # task is active (not paused)
+        self.widget._playButton.click()
         self.assertTrue(self.manager.paused)
-
-    def test_pause_button_shows_resume_when_paused(self):
-        self.manager.pause(True)
-        self.assertEqual(self.widget._pauseButton.text(), 'Resume')
-
-    def test_clicking_resume_unpauses_manager(self):
-        self.manager.pause(True)
-        self.widget._pauseButton.click()
-        self.assertFalse(self.manager.paused)
 
     def test_status_paused_when_manager_paused(self):
         spy = QtTest.QSignalSpy(self.widget.status)
         self.manager.pause(True)
         self.assertTrue(any('Paused' in s[0] for s in spy))
 
-    def test_stop_aborts_active_task(self):
-        task = QTask()
-        self.manager.register(task)
+    def test_stop_rewinds_to_start(self):
+        t1, t2 = QTask(), QTask()
+        self.manager.register(t1)
+        self.manager.register(t2)
+        self._emit()          # t1 active
         self.widget._stopButton.click()
+        # After rewind: paused at first task, not yet stepped
         self.assertIsNone(self.manager.active)
+        self.assertTrue(self.manager.paused)
 
     def test_stop_preserves_schedule(self):
         t1, t2 = QTask(), QTask()
@@ -260,9 +287,9 @@ class TestQTaskManagerWidgetControls(unittest.TestCase):
         self.widget._clearButton.click()
         self.assertEqual(self.widget._bgList.count(), 0)
 
-    def test_pause_button_no_op_without_manager(self):
+    def test_play_button_no_op_without_manager(self):
         self.widget.manager = None
-        self.widget._onPauseClicked()   # should not raise
+        self.widget._onPlayClicked()    # should not raise
 
     def test_stop_button_no_op_without_manager(self):
         self.widget.manager = None

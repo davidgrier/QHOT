@@ -265,17 +265,23 @@ class TestQTaskManagerStop(unittest.TestCase):
         self.screen  = MockScreen()
         self.manager = QTaskManager(self.screen)
 
-    def test_stop_clears_queue(self):
+    def test_stop_rewinds_queue(self):
+        # After stop, tasks are reset and first is activated;
+        # remaining tasks are back in the queue.
         for _ in range(3):
             self.manager.register(QTask())
         self.manager.stop()
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queue_size, 2)
 
-    def test_stop_aborts_active_task(self):
+    def test_stop_resets_active_task_to_running(self):
+        # stop() aborts the current task then resets and re-activates it.
         task = QTask()
         self.manager.register(task)
         self.manager.stop()
-        self.assertEqual(task.state, QTask.State.FAILED)
+        # Task is reset to PENDING then immediately started → RUNNING,
+        # but not yet stepped so active returns None.
+        self.assertIsNone(self.manager.active)
+        self.assertEqual(self.manager.active_raw.state, QTask.State.RUNNING)
 
     def test_stop_removes_background_tasks(self):
         for _ in range(2):
@@ -439,12 +445,11 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
         self._emit(1)             # second run
         self.assertGreater(len(spy), 0)
 
-    def test_auto_reset_does_not_occur_after_stop(self):
+    def test_stop_leaves_manager_paused(self):
         from QHOT.tasks.Delay import Delay
         self.manager.register(Delay(frames=1))
         self.manager.stop()
-        self.assertFalse(self.manager.paused)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertTrue(self.manager.paused)
 
 
 class TestQTaskManagerBackground(unittest.TestCase):

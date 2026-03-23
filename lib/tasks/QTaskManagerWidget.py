@@ -92,19 +92,19 @@ class QTaskManagerWidget(QtWidgets.QWidget):
 
         # Controls
         controlLayout = QtWidgets.QHBoxLayout()
-        self._pauseButton = QtWidgets.QPushButton('Pause')
-        self._pauseButton.setEnabled(False)
+        self._playButton = QtWidgets.QPushButton('Play')
+        self._playButton.setEnabled(False)
         self._stopButton = QtWidgets.QPushButton('Stop')
         self._stopButton.setEnabled(False)
         self._clearButton = QtWidgets.QPushButton('Clear')
         self._clearButton.setEnabled(False)
-        controlLayout.addWidget(self._pauseButton)
+        controlLayout.addWidget(self._playButton)
         controlLayout.addWidget(self._stopButton)
         controlLayout.addWidget(self._clearButton)
         controlLayout.addStretch()
         layout.addLayout(controlLayout)
 
-        self._pauseButton.clicked.connect(self._onPauseClicked)
+        self._playButton.clicked.connect(self._onPlayClicked)
         self._stopButton.clicked.connect(self._onStopClicked)
         self._clearButton.clicked.connect(self._onClearClicked)
         self._queueList.itemClicked.connect(self._onTaskItemClicked)
@@ -171,7 +171,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
     # Slots
 
     @QtCore.pyqtSlot()
-    def _onPauseClicked(self) -> None:
+    def _onPlayClicked(self) -> None:
         if self._manager is not None:
             self._manager.pause(not self._manager.paused)
 
@@ -206,8 +206,10 @@ class QTaskManagerWidget(QtWidgets.QWidget):
     def _refresh(self) -> None:
         '''Repopulate all display elements from the manager state.'''
         has_manager = self._manager is not None
-        self._pauseButton.setEnabled(has_manager)
-        self._stopButton.setEnabled(has_manager)
+        has_schedule = bool(
+            has_manager and self._manager.scheduled)
+        self._playButton.setEnabled(has_schedule)
+        self._stopButton.setEnabled(has_schedule)
         self._clearButton.setEnabled(has_manager)
 
         if not has_manager:
@@ -218,20 +220,20 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             self._removeTaskTree()
             return
 
-        # Status signal
+        # Status signal and play-button label
         if self._manager.paused:
             self.status.emit('Task manager: Paused')
-            self._pauseButton.setText('Resume')
+            self._playButton.setText('Play')
         elif (self._manager.active is not None
               or self._manager.background):
             self.status.emit('Task manager: Running')
-            self._pauseButton.setText('Pause')
+            self._playButton.setText('Pause')
         elif self._manager.queued:
             self.status.emit('Task manager: Ready')
-            self._pauseButton.setText('Pause')
+            self._playButton.setText('Play')
         else:
             self.status.emit('Task manager: Idle')
-            self._pauseButton.setText('Pause')
+            self._playButton.setText('Play')
 
         # Blocking queue: all scheduled tasks with state-based styling
         self._queueList.clear()

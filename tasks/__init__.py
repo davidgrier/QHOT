@@ -4,5 +4,11 @@ from .ClearTraps import ClearTraps
 from .Delay import Delay
 from .MoveTraps import MoveTraps
 from .Record import Record
+from .StartRecording import StartRecording
+from .StopRecording import StopRecording
 
-__all__ = 'QTask QTaskManager AddTweezer ClearTraps Delay MoveTraps Record'.split()
+
+__all__ = '''
+QTask QTaskManager AddTweezer ClearTraps Delay MoveTraps
+StartRecording StopRecording Record
+'''.split()

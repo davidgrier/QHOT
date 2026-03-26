@@ -146,6 +146,14 @@ class TestQTaskManagerWidgetDisplay(unittest.TestCase):
         item = self.widget._queueList.item(0)
         self.assertTrue(item.font().bold())
 
+    def test_active_task_has_nyu_tint_background(self):
+        from pyqtgraph.Qt import QtGui
+        task = QTask()
+        self.manager.register(task)
+        self._emit()
+        item = self.widget._queueList.item(0)
+        self.assertEqual(item.background().color().name(), '#e8d5f5')
+
     def test_completed_task_remains_in_queue_list(self):
         task = QTask(duration=1)
         self.manager.register(task)

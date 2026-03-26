@@ -182,6 +182,8 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             font = item.font()
             font.setBold(True)
             item.setFont(font)
+            item.setBackground(QtGui.QBrush(
+                QtGui.QColor('#e8d5f5')))  # light tint of NYU violet #57068c
         elif state is QTask.State.COMPLETED:
             item.setForeground(QtGui.QBrush(
                 QtGui.QColor(128, 128, 128)))

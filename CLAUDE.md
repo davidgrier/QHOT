@@ -32,6 +32,19 @@ pip install -e ".[docs]"  # for documentation builds
 qhot
 ```
 
+## Releasing
+
+When pushing a new version, always create a GitHub Release (not just a tag) so
+that Zenodo's webhook fires and mints a DOI:
+
+```bash
+git tag vX.Y.Z && git push origin vX.Y.Z
+gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
+```
+
+Pushing the tag alone is not sufficient — Zenodo listens for the GitHub
+`release` event, not a raw tag push.
+
 ## Architecture
 
 QHOT is a holographic optical trapping system. It uses a spatial light modulator (SLM) to display computer-generated holograms (CGH) that focus laser light into configurable optical traps. The main window (`qhot.py`) orchestrates several subsystems connected via Qt signals:

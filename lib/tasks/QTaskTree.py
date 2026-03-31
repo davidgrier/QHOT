@@ -53,6 +53,7 @@ class QTaskTree(ParameterTree):
         for spec in type(self._task).parameters:
             s = dict(spec)
             s['value'] = getattr(self._task, s['name'], s.get('value'))
+            s.setdefault('default', s['value'])
             specs.append(s)
         return Parameter.create(
             name=type(self._task).__name__, type='group', children=specs)

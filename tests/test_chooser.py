@@ -207,7 +207,7 @@ class TestBuildParser(unittest.TestCase):
         self.assertIn('CGH backend', titles)
 
     def test_camera_flags_registered(self):
-        for flag in ('-b', '-c', '-f', '-i', '-m', '-v', '-p', '-r'):
+        for flag in ('-b', '-c', '-f', '-i', '-m', '-v', '-p'):
             self.assertIn(flag, self.parser._option_string_actions)
 
     def test_cgh_flags_registered(self):

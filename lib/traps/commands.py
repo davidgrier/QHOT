@@ -25,7 +25,7 @@ __all__ = ('QUndoCommand QUndoStack '
            'MoveCommand RotateCommand WheelCommand '
            'LockCommand').split()
 
-_WHEEL_ID = 0xC0DE_0001
+_WHEEL_ID = 0x0001_C0DE  # must fit in Qt's int32 range
 
 
 class AddTrapCommand(QUndoCommand):

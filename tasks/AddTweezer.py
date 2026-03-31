@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 
 from QHOT.lib.tasks.QTask import QTask
 

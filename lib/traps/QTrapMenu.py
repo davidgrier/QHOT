@@ -1,5 +1,5 @@
 import functools
-from pyqtgraph.Qt import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 from QHOT.lib.traps.QTrap import QTrap
 import QHOT.traps
 import logging
@@ -32,13 +32,13 @@ class QTrapMenu(QtWidgets.QMenu):
 
     Signals
     -------
-    trapRequested : QtCore.pyqtSignal(QtCore.QPointF, QTrap)
+    trapRequested : QtCore.Signal(QtCore.QPointF, QTrap)
         Emitted with the configured ``pos`` and a freshly constructed
         trap instance when the user selects a trap type.
     '''
 
     #: Emitted with (position, trap) when the user selects a trap type.
-    trapRequested = QtCore.pyqtSignal(QtCore.QPointF, QTrap)
+    trapRequested = QtCore.Signal(QtCore.QPointF, QTrap)
 
     def __init__(self, *args, title: str = 'Add Trap', **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -62,7 +62,7 @@ class QTrapMenu(QtWidgets.QMenu):
             action.triggered.connect(
                 functools.partial(self._onTrapSelected, trapname))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onTrapSelected(self, trapname: str) -> None:
         '''Construct the chosen trap and emit ``trapRequested``.
 
@@ -83,7 +83,7 @@ class QTrapMenu(QtWidgets.QMenu):
 def main() -> None:  # pragma: no cover
     import pyqtgraph as pg
 
-    @QtCore.pyqtSlot(QtCore.QPointF, QTrap)
+    @QtCore.Slot(QtCore.QPointF, QTrap)
     def handler(pos: QtCore.QPointF, trap: QTrap) -> None:
         print(f'Adding trap {trap}')
 

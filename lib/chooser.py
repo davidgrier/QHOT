@@ -26,6 +26,7 @@ import logging
 from argparse import ArgumentParser
 from typing import NamedTuple
 
+import qtpy  # Required for Qt detection in QSLM
 from QHOT.lib.holograms import CGH
 from QHOT.lib.QSLM import QSLM
 

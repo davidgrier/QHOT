@@ -5,7 +5,7 @@ import weakref
 from functools import partial
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtGui
+from qtpy import QtCore, QtGui
 
 from QHOT.lib.types import Field, Hologram, Shape
 from QHOT.lib.traps import QTrap, QTrapGroup
@@ -76,9 +76,9 @@ class CGH(QtCore.QObject):
 
     Signals
     -------
-    hologramReady : QtCore.pyqtSignal(np.ndarray)
+    hologramReady : QtCore.Signal(np.ndarray)
         Emitted with the quantized phase array when a hologram is computed.
-    recalculate : QtCore.pyqtSignal()
+    recalculate : QtCore.Signal()
         Emitted when the geometry or transformation matrix is updated.
 
     References
@@ -89,9 +89,9 @@ class CGH(QtCore.QObject):
     '''
 
     #: Emitted with the quantized phase array when a hologram is computed.
-    hologramReady = QtCore.pyqtSignal(np.ndarray)
+    hologramReady = QtCore.Signal(np.ndarray)
     #: Emitted when the geometry or transformation matrix is updated.
-    recalculate = QtCore.pyqtSignal()
+    recalculate = QtCore.Signal()
 
     dtype = np.complex64
 
@@ -411,7 +411,7 @@ class CGH(QtCore.QObject):
 
     # Slots for threaded operation
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def start(self) -> 'CGH':
         '''Initialize the CGH pipeline and return self.
 
@@ -428,7 +428,7 @@ class CGH(QtCore.QObject):
         self.recalculate.emit()
         return self
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def stop(self) -> None:
         '''Shut down the CGH pipeline.'''
         logger.info('stopping CGH pipeline')
@@ -584,7 +584,7 @@ class CGH(QtCore.QObject):
                 self._structure_cache[trap] = 1.
         return self._field_cache[trap] * self._structure_cache[trap]
 
-    @QtCore.pyqtSlot(list)
+    @QtCore.Slot(list)
     def compute(self, traps: list[QTrap]) -> Hologram:
         '''Compute the phase hologram for a list of traps.
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from qtpy import QtCore
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.letterSymbol import letterSymbol
-from pyqtgraph.Qt import QtCore
 from typing import TYPE_CHECKING
 import numpy as np
 
@@ -32,7 +32,7 @@ class QVortex(QTrap):
     '''
 
     #: Emitted when the topological charge changes.
-    structureChanged = QtCore.pyqtSignal()
+    structureChanged = QtCore.Signal()
 
     def __init__(self, *args, ell: int = 10, **kwargs) -> None:
         self._ell = int(ell)

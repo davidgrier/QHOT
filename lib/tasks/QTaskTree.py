@@ -1,5 +1,6 @@
+from qtpy import QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
-from pyqtgraph.Qt import QtCore
+
 
 from QHOT.lib.tasks.QTask import QTask
 
@@ -56,7 +57,7 @@ class QTaskTree(ParameterTree):
         return Parameter.create(
             name=type(self._task).__name__, type='group', children=specs)
 
-    @QtCore.pyqtSlot(object, object)
+    @QtCore.Slot(object, object)
     def _sync(self, _param, changes) -> None:
         '''Write parameter changes back to the task instance.'''
         if self._ignoreSync:

@@ -4,8 +4,7 @@ Supports NVIDIA CUDA, AMD ROCm, and Apple Silicon MPS via a single
 implementation that selects the best available device at startup.
 '''
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtGui
-
+from qtpy import QtCore, QtGui
 from QHOT.lib.types import Field, Hologram
 from QHOT.lib.traps import QTrap, QTrapGroup
 from .CGH import CGH
@@ -137,7 +136,7 @@ class TorchCGH(CGH):
                 self._structure_cache[trap] = 1.
         return self._field_cache[trap] * self._structure_cache[trap]
 
-    @QtCore.pyqtSlot(list)
+    @QtCore.Slot(list)
     def compute(self, traps: list[QTrap]) -> Hologram:
         '''Compute the phase hologram on-device, then transfer to CPU.
 

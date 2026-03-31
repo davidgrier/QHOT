@@ -1,9 +1,7 @@
-import logging
-
+from qtpy import QtCore, QtGui
 import numpy as np
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
-from pyqtgraph.Qt import QtCore, QtGui
-
+import logging
 from QHOT.lib.types import Hologram, Shape
 
 
@@ -96,7 +94,7 @@ class QSLM(GraphicsLayoutWidget):
         '''
         return (self.height(), self.width())
 
-    @QtCore.pyqtSlot(np.ndarray)
+    @QtCore.Slot(np.ndarray)
     def setData(self, hologram: Hologram) -> None:
         '''Display a phase hologram on the SLM.
 

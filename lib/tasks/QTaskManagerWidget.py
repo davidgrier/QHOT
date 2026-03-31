@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -94,7 +94,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         suitable for display in a status bar.
     '''
 
-    status = QtCore.pyqtSignal(str)
+    status = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -232,17 +232,17 @@ class QTaskManagerWidget(QtWidgets.QWidget):
     # ------------------------------------------------------------------
     # Slots
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onPlayClicked(self) -> None:
         if self._manager is not None:
             self._manager.pause(not self._manager.paused)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onStopClicked(self) -> None:
         if self._manager is not None:
             self._manager.stop()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onClearClicked(self) -> None:
         if self._manager is not None:
             self._manager.clear()
@@ -253,7 +253,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             self._taskTree.setParent(None)
             self._taskTree = None
 
-    @QtCore.pyqtSlot(QtWidgets.QListWidgetItem)
+    @QtCore.Slot(QtWidgets.QListWidgetItem)
     def _onTaskItemClicked(self, item: QtWidgets.QListWidgetItem) -> None:
         '''Show the clicked task's parameters in a fresh QTaskTree.'''
         task = item.data(_ROLE)
@@ -264,7 +264,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             self._taskTree.setMinimumHeight(80)
             self._paramsLayout.addWidget(self._taskTree)
 
-    @QtCore.pyqtSlot(QtCore.QPoint)
+    @QtCore.Slot(QtCore.QPoint)
     def _onQueueContextMenu(self, pos: QtCore.QPoint) -> None:
         '''Show a context menu for the queue item at *pos*.'''
         if self._manager is None:
@@ -280,7 +280,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         if chosen is remove_action:
             self._manager.remove(task)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onDeletePressed(self) -> None:
         '''Remove the currently selected queue item (Delete / Backspace).'''
         if self._manager is None:
@@ -291,7 +291,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         task = items[0].data(_ROLE)
         self._manager.remove(task)
 
-    @QtCore.pyqtSlot(QtCore.QModelIndex, int, int, QtCore.QModelIndex, int)
+    @QtCore.Slot(QtCore.QModelIndex, int, int, QtCore.QModelIndex, int)
     def _onRowsMoved(self,
                      parent: QtCore.QModelIndex,
                      start: int, end: int,
@@ -304,7 +304,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
                  for i in range(self._queueList.count())]
         self._manager.reorder(tasks)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _refresh(self) -> None:
         '''Repopulate all display elements from the manager state.'''
         has_manager = self._manager is not None

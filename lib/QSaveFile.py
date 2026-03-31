@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 from pyqtgraph import ImageItem
 from pyqtgraph.exporters import ImageExporter
 import pyqtgraph as pg

@@ -1,5 +1,5 @@
+from qtpy import QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
-from pyqtgraph.Qt import QtCore
 from QHOT.lib.holograms.CGH import CGH
 from collections.abc import KeysView
 import logging
@@ -178,7 +178,7 @@ class QCGHTree(ParameterTree):
             for key, value in settings.items():
                 self.set(key, value)
 
-    @QtCore.pyqtSlot(object, object)
+    @QtCore.Slot(object, object)
     def updateCGH(self, tree: Parameter, changes: list) -> None:
         '''Slot called when any parameter value changes.
 

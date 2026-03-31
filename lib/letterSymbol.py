@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtGui
+from qtpy import QtGui
 
 
 def letterSymbol(letter: str) -> QtGui.QPainterPath:

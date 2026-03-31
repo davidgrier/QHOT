@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from .QLetterArray import QLetterArray
 
@@ -46,9 +46,9 @@ class QTextArray(QTrapGroup):
     '''
 
     #: Emitted when the text array begins to reshape.
-    reshaping = QtCore.pyqtSignal()
+    reshaping = QtCore.Signal()
     #: Emitted when the text array has finished reshaping.
-    reshaped = QtCore.pyqtSignal()
+    reshaped = QtCore.Signal()
 
     def __init__(self, *args,
                  text: str = 'NYU',

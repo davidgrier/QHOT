@@ -1,5 +1,5 @@
+from qtpy import QtCore
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
-from pyqtgraph.Qt import QtCore
 from QHOT.lib.QSLM import Hologram
 import numpy as np
 import logging
@@ -60,7 +60,7 @@ class QSLMWidget(GraphicsLayoutWidget):
         if self._hologram is not None:
             self.image.setImage(self._hologram, autoLevels=False)
 
-    @QtCore.pyqtSlot(np.ndarray)
+    @QtCore.Slot(np.ndarray)
     def setData(self, hologram: Hologram) -> None:
         '''Display a phase hologram in the preview.
 

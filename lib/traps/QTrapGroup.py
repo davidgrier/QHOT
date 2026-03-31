@@ -1,4 +1,4 @@
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.types import Displacement
 from collections.abc import Iterator
@@ -23,7 +23,6 @@ class QTrapGroup(QTrap):
     traps : list[QTrap]
         Direct children of this group (may include nested QTrapGroups).
     '''
-
 
     def __len__(self) -> int:
         return sum(1 for _ in self)

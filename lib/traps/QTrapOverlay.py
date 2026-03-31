@@ -1,6 +1,6 @@
+from qtpy import QtCore, QtWidgets, QtGui
 import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
-from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
 from pyqtgraph import mkBrush, mkPen
 from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
@@ -76,9 +76,9 @@ class QTrapOverlay(ScatterPlotItem):
     '''
 
     #: Emitted with the trap when a trap is added to the scene.
-    trapAdded = QtCore.pyqtSignal(QTrap)
+    trapAdded = QtCore.Signal(QTrap)
     #: Emitted with the trap when a trap is removed from the scene.
-    trapRemoved = QtCore.pyqtSignal(QTrap)
+    trapRemoved = QtCore.Signal(QTrap)
 
     class State(Enum):
         '''Visual state of a trap spot, controlling its fill color.'''
@@ -419,7 +419,7 @@ class QTrapOverlay(ScatterPlotItem):
         self._rebuildSpots()
         self.trapAdded.emit(group)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onTrapChanged(self) -> None:
         '''Slot called when a trap's position changes; updates its spot.'''
         trap: QTrap = self.sender()
@@ -428,7 +428,7 @@ class QTrapOverlay(ScatterPlotItem):
         spot._data['y'] = trap.y
         spot.updateItem()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onGroupChanged(self) -> None:
         '''Slot called when a group is translated; updates all leaf spots.'''
         group: QTrapGroup = self.sender()

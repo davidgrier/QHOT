@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 import numpy.typing as npt
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 from collections.abc import Iterator
 
 from QHOT.lib.types import Position
@@ -44,7 +44,7 @@ class QTrap(QtCore.QObject):
         QTrap._registry[cls.__name__] = cls
 
     #: Emitted when any trap property changes.
-    changed = QtCore.pyqtSignal()
+    changed = QtCore.Signal()
 
     def __init__(self,
                  r: npt.ArrayLike = (0., 0., 0.),
@@ -198,7 +198,7 @@ class QTrap(QtCore.QObject):
         self.properties[name] = {'decimals': decimals,
                                  'tooltip': tooltip}
 
-    @QtCore.pyqtSlot(str, float)
+    @QtCore.Slot(str, float)
     def setTrapProperty(self, name: str, value: float) -> None:
         if name in self.properties:
             setattr(self, name, value)

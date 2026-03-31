@@ -1,5 +1,5 @@
 import functools
-from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 import logging
@@ -27,7 +27,7 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     '''
 
     #: Emitted with (name, value) when a trap property is edited.
-    propertyChanged = QtCore.pyqtSignal(str, float)
+    propertyChanged = QtCore.Signal(str, float)
 
     _field_width: int | None = None
 
@@ -72,7 +72,7 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         '''Format a float with the configured decimal places.'''
         return f'{value:.{self.decimals}f}'
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def updateValue(self) -> None:
         '''Read the current text, update the stored value, and emit signal.
 
@@ -199,7 +199,7 @@ class QTrapWidget(QtWidgets.QFrame):
         widget.setLayout(layout)
         return widget
 
-    @QtCore.pyqtSlot(QTrap)
+    @QtCore.Slot(QTrap)
     def registerTrap(self, trap: QTrap) -> None:
         '''Add a property editor row for ``trap``.
 
@@ -221,7 +221,7 @@ class QTrapWidget(QtWidgets.QFrame):
                 self._trap_widgets[leaf] = leafWidget
                 self._inner_layout.addWidget(leafWidget)
 
-    @QtCore.pyqtSlot(QTrap)
+    @QtCore.Slot(QTrap)
     def unregisterTrap(self, trap: QTrap) -> None:
         '''Remove and destroy the property editor row for ``trap``.
 

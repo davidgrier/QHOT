@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
+from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtWidgets, QtGui, uic
 
 from QVideo.lib import choose_camera, QCameraTree
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
@@ -47,7 +47,7 @@ class QHOT(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QHOT', 'QHOT')
 
-    _computeRequested = QtCore.pyqtSignal(list)
+    _computeRequested = QtCore.Signal(list)
 
     def __init__(self, cameraTree: QCameraTree,
                  *args,
@@ -167,7 +167,7 @@ class QHOT(QtWidgets.QMainWindow):
         for f in 'QRGBFilter QBlurFilter QSampleHold QEdgeFilter'.split():
             self.screen.filter.registerByName(f)
 
-    @QtCore.pyqtSlot(QTrap)
+    @QtCore.Slot(QTrap)
     def _onTrapAdded(self, trap: QTrap) -> None:
         '''Connect each new trap's changed signals and schedule a compute.
 
@@ -184,7 +184,7 @@ class QHOT(QtWidgets.QMainWindow):
                 leaf.structureChanged.connect(self._scheduleCompute)
         self._scheduleCompute()
 
-    @QtCore.pyqtSlot(QTrap)
+    @QtCore.Slot(QTrap)
     def _onTrapRemoved(self, trap: QTrap) -> None:
         '''Disconnect compute signals and schedule a hologram recompute.
 
@@ -210,18 +210,18 @@ class QHOT(QtWidgets.QMainWindow):
                         leaf)
         self._scheduleCompute()
 
-    @QtCore.pyqtSlot(QtCore.QPointF, QTrap)
+    @QtCore.Slot(QtCore.QPointF, QTrap)
     def _onTrapRequested(self, pos: QtCore.QPointF, trap: QTrap) -> None:
         '''Add a trap from the menu at the requested position.'''
         trap.r = (pos.x(), pos.y(), 0.)
         self.screen.overlay.addTrap(trap)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _scheduleCompute(self) -> None:
         '''Mark traps as changed; the next frame will trigger recomputation.'''
         self._trapsChanged = True
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onFrame(self) -> None:
         '''On each video frame, dispatch a compute if traps have changed.'''
         if self._trapsChanged and not self._computePending:
@@ -229,12 +229,12 @@ class QHOT(QtWidgets.QMainWindow):
             self._computePending = True
             self._computeRequested.emit(list(self.screen.overlay._traps))
 
-    @QtCore.pyqtSlot(object)
+    @QtCore.Slot(object)
     def _onHologramReady(self, _phase) -> None:
         '''Clear the pending flag so the next frame may trigger a compute.'''
         self._computePending = False
 
-    @QtCore.pyqtSlot(bool)
+    @QtCore.Slot(bool)
     def dvrPlayback(self, playback: bool) -> None:
         '''Switch the screen source between live camera and DVR playback.'''
         if playback:
@@ -245,18 +245,18 @@ class QHOT(QtWidgets.QMainWindow):
             self.source.newFrame.connect(self.screen.setImage)
         self.cameraTree.setDisabled(playback)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def addTweezerAtCenter(self) -> None:
         '''Add a tweezer at the optical axis (CGH center).'''
         pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
         self.screen.overlay.addTrap(pos)
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def toggleOverlay(self) -> None:
         '''Toggle the visibility of the trap overlay.'''
         self.screen.overlaysVisible = not self.screen.overlaysVisible
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def openTraps(self) -> None:
         '''Prompt for a JSON file and load traps from it.'''
         filename = self.save.openTraps(self.screen.overlay)
@@ -266,14 +266,14 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Open traps canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveTraps(self) -> None:
         '''Save traps to the current file, or prompt if none is set.'''
         filename = self.save.traps(self.screen.overlay, self._trapFile)
         self._trapFile = filename
         self.setStatus(f'Saved traps to {filename}')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveTrapsAs(self) -> None:
         '''Prompt for a filename and save traps to it.'''
         filename = self.save.trapsAs(self.screen.overlay)
@@ -283,7 +283,7 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Save traps canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def openQueue(self) -> None:
         '''Prompt for a JSON queue file and append tasks from it.'''
         was_idle = (self.manager.active is None
@@ -297,14 +297,14 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Open queue canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveQueue(self) -> None:
         '''Save the pending queue to the current file, or prompt if none set.'''
         filename = self.save.queue(self.manager, self._queueFile)
         self._queueFile = filename
         self.setStatus(f'Saved queue to {filename}')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveQueueAs(self) -> None:
         '''Prompt for a filename and save the pending queue to it.'''
         filename = self.save.queueAs(self.manager)
@@ -314,13 +314,13 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Save queue canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveImage(self) -> None:
         '''Save the current camera frame to disk.'''
         filename = self.save.image(self.screen.image)
         self.setStatus(f'Saved image as {filename}')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveImageAs(self) -> None:
         '''Prompt for a filename and save the current camera frame.'''
         filename = self.save.imageAs(self.screen.image)
@@ -329,13 +329,13 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Save image canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveHologram(self) -> None:
         '''Save the current SLM phase pattern to disk.'''
         filename = self.save.image(self.slm.data, prefix='hologram')
         self.setStatus(f'Saved hologram as {filename}')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveHologramAs(self) -> None:
         '''Prompt for a filename and save the current SLM phase pattern.'''
         filename = self.save.imageAs(self.slm.data, prefix='hologram')
@@ -344,7 +344,7 @@ class QHOT(QtWidgets.QMainWindow):
         else:
             self.setStatus('Save hologram canceled')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def saveSettings(self) -> None:
         '''Save window geometry and CGH calibration settings.'''
         settings = QtCore.QSettings(*self.SETTINGS)
@@ -352,7 +352,7 @@ class QHOT(QtWidgets.QMainWindow):
         filename = self.save.toToml(self.cghTree)
         self.setStatus(f'Configuration saved to {filename}')
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def restoreSettings(self) -> None:
         '''Restore window geometry and CGH calibration settings.'''
         geometry = QtCore.QSettings(*self.SETTINGS).value('geometry')
@@ -429,7 +429,7 @@ class QHOT(QtWidgets.QMainWindow):
         if self.height() != desired_h:
             self.resize(self.width(), desired_h)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def setStatus(self, message: str) -> None:
         '''Display a transient status message in the status bar.'''
         self.statusBar().showMessage(message, 5000)

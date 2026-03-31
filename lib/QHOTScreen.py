@@ -1,6 +1,6 @@
+from qtpy import QtCore, QtGui, QtWidgets
 from QVideo.lib import QVideoScreen
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 import numpy as np
 import logging
 
@@ -39,9 +39,9 @@ class QHOTScreen(QVideoScreen):
     '''
 
     #: Emitted with a status message string for display in the UI.
-    status = QtCore.pyqtSignal(str)
+    status = QtCore.Signal(str)
     #: Emitted after each video frame is rendered to the screen.
-    rendered = QtCore.pyqtSignal()
+    rendered = QtCore.Signal()
 
     def _setupUi(self) -> None:
         '''Add the trap overlay to the inherited video view.'''
@@ -71,7 +71,7 @@ class QHOTScreen(QVideoScreen):
               else event.pos())
         return self.overlay.mapFromScene(self.mapToScene(pt))
 
-    @QtCore.pyqtSlot(np.ndarray)
+    @QtCore.Slot(np.ndarray)
     def setImage(self, image: np.ndarray) -> None:
         '''Render a frame and emit ``rendered`` if the display rate
         allows it.'''
@@ -80,7 +80,7 @@ class QHOTScreen(QVideoScreen):
         if was_ready:
             self.rendered.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def clearTraps(self) -> None:
         '''Remove all traps from the overlay and emit a status message.'''
         self.overlay.clearTraps()

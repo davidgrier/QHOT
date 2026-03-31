@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 
-from pyqtgraph.Qt import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -48,8 +48,8 @@ class QueueMenu(QtWidgets.QMenu):
         self.setTitle(title)
         self._manager: QTaskManager | None = None
         self._overlay = None
-        self._cgh     = None
-        self._dvr     = None
+        self._cgh = None
+        self._dvr = None
         self._populateMenu()
 
     # ------------------------------------------------------------------
@@ -107,7 +107,7 @@ class QueueMenu(QtWidgets.QMenu):
             action.triggered.connect(
                 functools.partial(self._onTaskSelected, name))
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onTaskSelected(self, name: str) -> None:
         '''Instantiate the chosen task and register it with the manager.
 

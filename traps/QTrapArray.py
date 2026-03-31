@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.types import Shape
@@ -61,9 +61,9 @@ class QTrapArray(QTrapGroup):
     '''
 
     #: Emitted when the array begins to reshape.
-    reshaping = QtCore.pyqtSignal()
+    reshaping = QtCore.Signal()
     #: Emitted when the array has finished reshaping.
-    reshaped = QtCore.pyqtSignal()
+    reshaped = QtCore.Signal()
 
     def __init__(self, *args,
                  shape: Shape = (4, 4),

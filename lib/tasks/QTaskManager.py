@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import deque
 
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 
 from QVideo.dvr import QDVRWidget
 from QHOT.lib.QHOTScreen import QHOTScreen
@@ -69,7 +69,7 @@ class QTaskManager(QtCore.QObject):
     #: Emitted whenever the active task, queue, background list, or
     #: pause state changes.  Connect widgets to this signal and call
     #: their refresh method to stay up to date.
-    changed = QtCore.pyqtSignal()
+    changed = QtCore.Signal()
 
     def __init__(self,
                  screen: QHOTScreen,
@@ -81,15 +81,15 @@ class QTaskManager(QtCore.QObject):
                  parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self.overlay = overlay
-        self.cgh     = cgh
-        self.dvr     = dvr
-        self.save    = save
-        self._schedule:        list[QTask]  = []
+        self.cgh = cgh
+        self.dvr = dvr
+        self.save = save
+        self._schedule:        list[QTask] = []
         self._queue:           deque[QTask] = deque()
-        self._background:      list[QTask]  = []
+        self._background:      list[QTask] = []
         self._current:         QTask | None = None
-        self._current_stepped: bool         = False
-        self._paused:          bool         = False
+        self._current_stepped: bool = False
+        self._paused:          bool = False
         screen.rendered.connect(self._onFrame)
 
     # ------------------------------------------------------------------
@@ -230,9 +230,9 @@ class QTaskManager(QtCore.QObject):
         for d in task_dicts:
             task = QTask.from_dict(d)
             task.overlay = self.overlay
-            task.cgh     = self.cgh
-            task.dvr     = self.dvr
-            task.save    = self.save
+            task.cgh = self.cgh
+            task.dvr = self.dvr
+            task.save = self.save
             self.register(task)
 
     def stop(self) -> None:
@@ -342,9 +342,9 @@ class QTaskManager(QtCore.QObject):
         '''
         for task in tasks:
             task.overlay = self.overlay
-            task.cgh     = self.cgh
-            task.dvr     = self.dvr
-            task.save    = self.save
+            task.cgh = self.cgh
+            task.dvr = self.dvr
+            task.save = self.save
             task.manager = self
             task.finished.connect(self._onBlockingFinished)
             task.failed.connect(self._onBlockingFailed)
@@ -353,7 +353,7 @@ class QTaskManager(QtCore.QObject):
     # ------------------------------------------------------------------
     # Private slots
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onFrame(self) -> None:
         if self._paused:
             return
@@ -365,14 +365,14 @@ class QTaskManager(QtCore.QObject):
         for task in list(self._background):
             task._step()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onBlockingFinished(self) -> None:
         task = self.sender()
         if self._current is task:
             logger.debug(f'Blocking task {type(task).__name__} finished')
             self._activateNext(previous=task)
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def _onBlockingFailed(self, reason: str) -> None:
         task = self.sender()
         logger.error(f'Blocking task {type(task).__name__} '
@@ -383,7 +383,7 @@ class QTaskManager(QtCore.QObject):
             self._current_stepped = False
         self.changed.emit()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _onBackgroundFinished(self) -> None:
         task = self.sender()
         logger.debug(f'Background task {type(task).__name__} finished')
@@ -391,7 +391,7 @@ class QTaskManager(QtCore.QObject):
             self._background.remove(task)
         self.changed.emit()
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.Slot(str)
     def _onBackgroundFailed(self, reason: str) -> None:
         task = self.sender()
         logger.error(f'Background task {type(task).__name__} '

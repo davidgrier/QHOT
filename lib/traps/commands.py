@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pyqtgraph.Qt import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 
 # Qt 6: QUndoCommand/QUndoStack live in QtGui.
 # Qt 5: they live in QtWidgets.

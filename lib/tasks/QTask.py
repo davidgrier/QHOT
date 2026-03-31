@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from enum import Enum, auto
 
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 
 from QVideo.dvr import QDVRWidget
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
@@ -92,11 +92,11 @@ class QTask(QtCore.QObject):
         FAILED = auto()  #: ended by error or abort
 
     #: Emitted immediately after ``initialize()`` returns.
-    started = QtCore.pyqtSignal()
+    started = QtCore.Signal()
     #: Emitted after ``complete()`` returns successfully.
-    finished = QtCore.pyqtSignal()
+    finished = QtCore.Signal()
     #: Emitted with an error description when the task cannot complete.
-    failed = QtCore.pyqtSignal(str)
+    failed = QtCore.Signal(str)
 
     #: Registry mapping class name → class, populated by
     #: ``__init_subclass__``.
@@ -206,10 +206,10 @@ class QTask(QtCore.QObject):
         effect on a task that is currently ``RUNNING``.
         '''
         if self._state is not self.State.RUNNING:
-            self._state    = self.State.PENDING
-            self._frame    = 0
-            self._skip     = 0
-            self.previous  = None
+            self._state = self.State.PENDING
+            self._frame = 0
+            self._skip = 0
+            self.previous = None
 
     # ------------------------------------------------------------------
     # Serialisation
@@ -276,7 +276,7 @@ class QTask(QtCore.QObject):
         self.previous = previous
         self._state = self.State.RUNNING
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def _step(self) -> None:
         '''Advance the task by one frame.  Called by QTaskManager.'''
         if self._state is not self.State.RUNNING:

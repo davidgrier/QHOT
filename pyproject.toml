@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "QHOT"
-version = "1.4.1"
+version = "1.4.2"
 description = "Holographic optical trapping instrument control"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -45,12 +45,12 @@ torch = ["torch>=2.0"]
 [project.scripts]
 qhot = "QHOT.qhot:main"
 
-[tool.setuptools.packages.find]
-where = [".."]
-include = ["QHOT*"]
+[tool.setuptools]
+package-dir = {"QHOT" = "."}
+packages = ["QHOT"]
 
 [tool.setuptools.package-data]
-QHOT = ["QHOT.ui", "help/**/*"]
+"QHOT" = ["*.ui", "help/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

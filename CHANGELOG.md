@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.2] — 2026-04-15
+
+### Fixed
+- `pyproject.toml`: replaced `packages.find` with `where = [".."]` (which
+  registered the package at the parent directory and polluted `sys.path` with
+  all sibling projects) with the explicit `package-dir = {"QHOT" = "."}` /
+  `packages = ["QHOT"]` form used by QInstrument.  Corrected `package-data`
+  glob from the literal `"QHOT.ui"` to `"*.ui"`.
+
 ## [1.4.0] — 2026-03-22
 
 ### Added

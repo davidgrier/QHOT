@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/davidgrier/QHOT.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19254265.svg)](https://doi.org/10.5281/zenodo.19254265)
 
-![QHOT screenshot](docs/_static/screenshot.png)
+![QHOT screenshot](https://raw.githubusercontent.com/davidgrier/QHOT/main/docs/_static/screenshot.png)
 
 **QHOT** is a Python framework for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps
@@ -19,9 +19,9 @@ in real time using a live camera feed.
 - Interactive trap manipulation via camera overlay
 - Modular trap types: single tweezers, vortex beams, ring traps, arrays, and
   dot-matrix text patterns
-- Extensible display filter pipeline (blur, edge detection, RGB selection, sample-hold)
+- Interactive display filter pipeline (smoothing, edge detection, RGB selection, sample-hold)
 - Configuration save/restore via TOML
-- Full unit-test suite (~700+ tests)
+- Full unit-test suite (1400+ tests)
 
 ## Requirements
 

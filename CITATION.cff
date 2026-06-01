@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: 'If you use this software, please cite it using the metadata below.'
 title: QHOT
-version: "1.4.3"
+version: "1.4.4"
 date-released: "2026-06-01"
 abstract: >-
   A Python framework for holographic optical trapping — controlling

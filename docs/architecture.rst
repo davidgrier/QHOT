@@ -282,6 +282,16 @@ overlay without removing any traps.
 * **Clear Traps** (Ctrl+Backspace / Cmd+Backspace) — removes all traps
   and clears the undo stack.
 
+**Video tab.**  The video tab contains the camera tree and a
+:class:`~QVideo.lib.QFilterRack.QFilterRack` widget (``screen.filter``).
+``_addFilters()`` populates the rack at startup with four filters in
+pipeline order: *Color Channel*, *Smoothing*, *Sample and Hold*, and
+*Canny*.  Because ``QFilterRack`` is editable by default, users can add
+further filters from the full QVideo catalogue via the **Add filter…**
+button, remove any filter with its × button, and drag filters to reorder
+the pipeline.  The **Export…** button saves the current enabled pipeline
+as a standalone Python module.
+
 **Keyboard shortcuts** are assigned by ``_setupShortcuts()`` on the
 existing File and Tasks actions:
 

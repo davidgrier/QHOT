@@ -4,7 +4,7 @@ from pathlib import Path
 from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
 
-from QVideo.lib import choose_camera, QCameraTree
+from QVideo.lib import choose_camera, QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
@@ -88,8 +88,9 @@ class QHOT(QtWidgets.QMainWindow):
         '''Load the UI file and configure child widgets.'''
         uic.loadUi(self.UIFILE, self)
         self.videoTab.layout().addWidget(self.cameraTree)
+        self.screen.filter.deleteLater()
+        self.screen.filter = QFilterRack()
         self.videoTab.layout().addWidget(self.screen.filter)
-        self.screen.filter.setVisible(True)
         self.screen.framerate = 30
         self.screen.source = self.source
         self.dvr.source = self.source
@@ -164,8 +165,8 @@ class QHOT(QtWidgets.QMainWindow):
 
     def _addFilters(self) -> None:
         '''Register display filters with the video screen.'''
-        for f in 'QRGBFilter QBlurFilter QSampleHold QEdgeFilter'.split():
-            self.screen.filter.registerByName(f)
+        for f in ('Color Channel', 'Smoothing', 'Sample and Hold', 'Canny'):
+            self.screen.filter.addByName(f)
 
     @QtCore.Slot(QTrap)
     def _onTrapAdded(self, trap: QTrap) -> None:

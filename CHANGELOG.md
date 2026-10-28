@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0] — 2026-10-27
+
+### Changed
+- Require QVideo >= 4.9.0.  The filter rack now owns a pipeline that the
+  screen displays, and DVR playback switches the rack's source.
+- Require Python >= 3.11 (a QVideo 4.9 requirement); Python 3.10 is no
+  longer supported.
+
+### Fixed
+- `QHOTScreen.setImage` accepts the `FrameInfo` passed by `QVideoScreen`,
+  fixing a `TypeError` when a throttled frame was displayed.
+
 ## [1.4.2] — 2026-04-15
 
 ### Fixed

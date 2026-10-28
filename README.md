@@ -25,13 +25,13 @@ in real time using a live camera feed.
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - PyQt5 ≥ 5.15
 - pyqtgraph ≥ 0.13
 - numpy ≥ 1.24
 - scipy ≥ 1.10
 - tomlkit ≥ 0.11
-- QVideo ≥ 3.2.3
+- QVideo ≥ 4.9.0
 
 ## Installation
 

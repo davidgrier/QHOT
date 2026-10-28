@@ -72,11 +72,16 @@ class QHOTScreen(QVideoScreen):
         return self.overlay.mapFromScene(self.mapToScene(pt))
 
     @QtCore.Slot(np.ndarray)
-    def setImage(self, image: np.ndarray) -> None:
+    @QtCore.Slot(np.ndarray, object)
+    def setImage(self, image: np.ndarray, info=None) -> None:
         '''Render a frame and emit ``rendered`` if the display rate
-        allows it.'''
+        allows it.
+
+        ``info`` is the ``FrameInfo`` of the frame, passed on to
+        ``QVideoScreen``.  The base class calls this method with both
+        arguments when it displays a throttled frame.'''
         was_ready = self._ready
-        super().setImage(image)
+        super().setImage(image, info)
         if was_ready:
             self.rendered.emit()
 

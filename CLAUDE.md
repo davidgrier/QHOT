@@ -76,7 +76,7 @@ qhot.py (QHOTWindow)
 - Tests live in `tests/` and mirror the `lib/` and `traps/` structure
 - Qt widgets require a `QApplication` instance; tests use `QApplication.instance() or QApplication(sys.argv)`
 - Qt signals are tested with `QtTest.QSignalSpy`
-- CI runs headless with `QT_QPA_PLATFORM=offscreen` across Python 3.10–3.12
+- CI runs headless with `QT_QPA_PLATFORM=offscreen` across Python 3.11–3.12
 - Coverage config in `pyproject.toml` under `[tool.coverage.*]`
 - Use `# pragma: no cover` for example/main blocks and GPU-only code paths
 - `QVideo` (camera library) is an external dependency installed from GitHub, not pip

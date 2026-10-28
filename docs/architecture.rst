@@ -283,7 +283,8 @@ overlay without removing any traps.
   and clears the undo stack.
 
 **Video tab.**  The video tab contains the camera tree and a
-:class:`~QVideo.lib.QFilterRack.QFilterRack` widget (``screen.filter``).
+:class:`~QVideo.lib.QFilterRack.QFilterRack` widget (``QHOT.filter``), whose
+``pipeline`` is the source of the screen.
 ``_addFilters()`` populates the rack at startup with four filters in
 pipeline order: *Color Channel*, *Smoothing*, *Sample and Hold*, and
 *Canny*.  Because ``QFilterRack`` is editable by default, users can add

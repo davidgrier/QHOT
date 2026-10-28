@@ -225,6 +225,19 @@ class TestSetImageRendered(unittest.TestCase):
         self.screen.setImage(self.image)
         self.assertEqual(len(spy), 1)
 
+    def test_set_image_accepts_frame_info(self):
+        spy = QtTest.QSignalSpy(self.screen.rendered)
+        self.screen._ready = True
+        self.screen.setImage(self.image, None)
+        self.assertEqual(len(spy), 1)
+
+    def test_throttled_frame_is_displayed_when_timer_expires(self):
+        self.screen._ready = False
+        self.screen.setImage(self.image, None)
+        spy = QtTest.QSignalSpy(self.screen.rendered)
+        self.screen._setready()
+        self.assertEqual(len(spy), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

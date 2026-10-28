@@ -88,11 +88,10 @@ class QHOT(QtWidgets.QMainWindow):
         '''Load the UI file and configure child widgets.'''
         uic.loadUi(self.UIFILE, self)
         self.videoTab.layout().addWidget(self.cameraTree)
-        self.screen.filter.deleteLater()
-        self.screen.filter = QFilterRack()
-        self.videoTab.layout().addWidget(self.screen.filter)
+        self.filter = QFilterRack(source=self.source)
+        self.videoTab.layout().addWidget(self.filter)
         self.screen.framerate = 30
-        self.screen.source = self.source
+        self.screen.source = self.filter.pipeline
         self.dvr.source = self.source
         self.cghTree.cgh = self.cgh
         self.menuAddTrap.pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
@@ -164,9 +163,9 @@ class QHOT(QtWidgets.QMainWindow):
         self.menuAddTrap.trapRequested.connect(self._onTrapRequested)
 
     def _addFilters(self) -> None:
-        '''Register display filters with the video screen.'''
+        '''Register display filters with the filter rack.'''
         for f in ('Color Channel', 'Smoothing', 'Sample and Hold', 'Canny'):
-            self.screen.filter.addByName(f)
+            self.filter.addByName(f)
 
     @QtCore.Slot(QTrap)
     def _onTrapAdded(self, trap: QTrap) -> None:
@@ -239,11 +238,9 @@ class QHOT(QtWidgets.QMainWindow):
     def dvrPlayback(self, playback: bool) -> None:
         '''Switch the screen source between live camera and DVR playback.'''
         if playback:
-            self.source.newFrame.disconnect(self.screen.setImage)
-            self.dvr.newFrame.connect(self.screen.setImage)
+            self.filter.source = self.dvr.playback.source
         else:
-            self.dvr.newFrame.disconnect(self.screen.setImage)
-            self.source.newFrame.connect(self.screen.setImage)
+            self.filter.source = self.source
         self.cameraTree.setDisabled(playback)
 
     @QtCore.Slot()

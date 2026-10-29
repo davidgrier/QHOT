@@ -8,7 +8,7 @@ from QVideo.cameras.chooser import choose_camera
 from QVideo.lib import QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
-from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
+from QHOT.lib.holograms import CGH, QCGHTree, QTrapSync  # noqa: F401
 from QHOT.lib.tasks import QTaskManager
 from QHOT.lib.traps import QTrap, QTrapGroup, QTrapMenu  # noqa: F401
 
@@ -48,6 +48,9 @@ class QHOT(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QHOT', 'QHOT')
 
+    #: Shortest time between requests for a hologram [ms].
+    COMPUTE_INTERVAL = 15
+
     _computeRequested = QtCore.Signal(list)
 
     def __init__(self, cameraTree: QCameraTree,
@@ -62,6 +65,7 @@ class QHOT(QtWidgets.QMainWindow):
         self.cgh = cgh or CGH(shape=self.slm.shape)
         self._cghThread = QtCore.QThread(self)
         self.cgh.moveToThread(self._cghThread)
+        self.sync = QTrapSync(self.cgh, self)
         self._trapsChanged: bool = False
         self._computePending: bool = False
         self._setupUi()
@@ -84,6 +88,7 @@ class QHOT(QtWidgets.QMainWindow):
         self._queueFile: str | None = None
         self.restoreSettings()
         self._cghThread.start()
+        self._computeTimer.start(self.COMPUTE_INTERVAL)
 
     def _setupUi(self) -> None:
         '''Load the UI file and configure child widgets.'''
@@ -143,19 +148,27 @@ class QHOT(QtWidgets.QMainWindow):
         '''Wire signals and slots between subsystems.
 
         PyQt6 uic only handles no-argument connections from .ui files;
-        typed signals (str, bool) must be connected here.  The
-        no-argument ``screen.rendered → _onFrame`` connection is
-        declared in QHOT.ui.
+        typed signals (str, bool) must be connected here.
+
+        The hologram is requested by a timer of its own, not by the
+        video, so that it keeps up with the traps however slowly the
+        camera delivers frames.  The CGH engine never reads the traps:
+        ``self.sync`` describes them to it in messages.
         '''
         self.dvr.playing.connect(self.dvrPlayback)
         self.dvr.recording.connect(self.cameraTree.setDisabled)
         self.cgh.hologramReady.connect(self.slm.setData)
         self.cgh.hologramReady.connect(self.slmView.setData)
         self.cgh.hologramReady.connect(self._onHologramReady)
-        self._computeRequested.connect(self.cgh.compute)
+        self.cgh.computeFailed.connect(self._onComputeFailed)
+        self._computeRequested.connect(self.cgh.computeKeys)
+        self._computeTimer = QtCore.QTimer(self)
+        self._computeTimer.timeout.connect(self._onComputeTimer)
         self.screen.status.connect(self.setStatus)
         self.taskManagerWidget.status.connect(self.setStatus)
         overlay = self.screen.overlay
+        overlay.trapAdded.connect(self.sync.addTrap)
+        overlay.trapRemoved.connect(self.sync.removeTrap)
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
         overlay.trapAdded.connect(self._onTrapAdded)
@@ -223,12 +236,25 @@ class QHOT(QtWidgets.QMainWindow):
         self._trapsChanged = True
 
     @QtCore.Slot()
-    def _onFrame(self) -> None:
-        '''On each video frame, dispatch a compute if traps have changed.'''
+    def _onComputeTimer(self) -> None:
+        '''Request a hologram if traps have changed and none is pending.
+
+        At most one request is outstanding.  Changes that arrive while
+        the engine computes are all in its replicas when it next
+        computes, so the newest state is always the one displayed.
+        '''
         if self._trapsChanged and not self._computePending:
             self._trapsChanged = False
             self._computePending = True
-            self._computeRequested.emit(list(self.screen.overlay._traps))
+            keys = self.sync.keysOf(self.screen.overlay._traps)
+            self._computeRequested.emit(keys)
+
+    @QtCore.Slot(str)
+    def _onComputeFailed(self, reason: str) -> None:
+        '''Allow the next request after a hologram failed.'''
+        self._computePending = False
+        self._trapsChanged = True
+        self.setStatus(f'Hologram computation failed: {reason}')
 
     @QtCore.Slot(object)
     def _onHologramReady(self, _phase) -> None:
@@ -436,6 +462,7 @@ class QHOT(QtWidgets.QMainWindow):
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         '''Save settings, shut down CGH thread, and close the SLM on exit.'''
         self.saveSettings()
+        self._computeTimer.stop()
         self._cghThread.quit()
         self._cghThread.wait()
         self.slm.close()

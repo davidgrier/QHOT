@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- The CGH engine no longer reads the traps of the GUI.  It computes from
+  private replicas of the traps, which the new `QTrapSync` keeps up to date
+  with ordered messages of plain data (`lib/holograms/QTrapSync.py`,
+  `lib/holograms/replicas.py`).  Before, the engine thread read live traps
+  and its caches were invalidated from the GUI thread, a data race
+  whenever a trap changed during a computation (no failure was
+  observed).  New slots of `CGH`: `addReplica`,
+  `removeReplica`, `updateReplica`, `updateReplicaStructure` and
+  `computeKeys`; the signal `computeFailed` reports an exception.
+- Holograms are requested by a timer of their own
+  (`QHOT.COMPUTE_INTERVAL`, 15 ms), not by the video.  A trap now takes
+  effect at once however slowly the camera delivers frames, and with the
+  video stopped.  `QHOTScreen.rendered` still drives the tasks.
+- Assigning a calibration attribute of `CGH` from another thread waits for
+  a hologram in progress, so the geometry never changes under it.
+- A hologram that cannot be computed no longer stops all later holograms:
+  `QHOT` allows the next request and shows the reason in the status bar.
+
+### Fixed
+- Detaching a trap from a group left the cached structure of the group
+  stale, so that the hologram was wrong over nearly all of the SLM.
+- Moving a group and then changing one of its members (or a nested
+  group) recomputed the structure of the group from cached fields of the
+  other members at their old places, giving phase errors of tens of
+  levels.  A group still moves with one outer product.
+- The above two are fixed in the new replica path.  A `CGH` used directly
+  on live traps (`CGH.compute(traps)`, as the tests and scripts do) keeps
+  the old behavior.
+
 ## [1.5.0] — 2026-10-27
 
 ### Changed

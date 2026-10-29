@@ -656,22 +656,6 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>screen</sender>
-   <signal>rendered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>_onFrame()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>325</x>
-     <y>262</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>510</x>
-     <y>257</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
  <slots>
   <slot>setStatus(str)</slot>
@@ -684,7 +668,6 @@
   <slot>saveHologramAs()</slot>
   <slot>saveSettings()</slot>
   <slot>restoreSettings()</slot>
-  <slot>_onFrame()</slot>
   <slot>dvrPlayback(bool)</slot>
   <slot>openQueue()</slot>
   <slot>saveQueue()</slot>

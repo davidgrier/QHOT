@@ -69,10 +69,10 @@ frame-coupled compute and the thread-safety model.
 
 ### Phase 0: foundations (QHOT)
 
-1. Make CGH thread-safe.  `compute()` takes an immutable snapshot (position,
+1. **Done (2026-10-29).** Make CGH thread-safe.  `compute()` takes an immutable snapshot (position,
    amplitude, phase and structure parameters per leaf) built on the main
    thread; the worker owns the cache.
-2. Decouple compute from display: a coalescing, latest-wins compute loop with
+2. **Done (2026-10-29).** Decouple compute from display: a coalescing, latest-wins compute loop with
    its own rate limit.  `rendered` stays for tasks.
 3. Tasks drive `dvr.recorder` and `dvr.playback` instead of clicking buttons.
 

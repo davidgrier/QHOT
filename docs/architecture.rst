@@ -332,12 +332,27 @@ existing File and Tasks actions:
 
 1. ``QTrapOverlay`` emits ``trapAdded`` / ``trapRemoved`` → the group's
    ``changed`` signal and each leaf's ``changed`` signal are connected to
-   ``_scheduleCompute``.
-2. Each video frame triggers ``_onFrame``, which emits
-   ``_computeRequested`` if traps have changed and no compute is pending.
-3. ``CGH.compute`` runs in a ``QThread`` and emits ``hologramReady``.
-4. ``hologramReady`` updates ``QSLM``, the ``QSLMWidget`` preview, and
-   clears the pending flag so the next frame may trigger another compute.
+   ``_scheduleCompute``, and
+   :class:`~QHOT.lib.holograms.QTrapSync.QTrapSync` describes the trap
+   to the CGH engine and follows its changes.
+2. ``QTrapSync`` sends the engine a message for every change, with plain
+   data only.  The engine, which runs in a ``QThread``, keeps private
+   replicas of the traps and never reads the traps of the GUI.  Qt
+   delivers the messages in order, so the engine is always up to date
+   when it is asked for a hologram.
+3. A timer (``COMPUTE_INTERVAL``, 15 ms) emits ``_computeRequested``
+   with the keys of the traps if traps have changed and no compute is
+   pending.  The timer is independent of the video, so the hologram
+   keeps up with the traps however slowly the camera delivers frames.
+4. ``CGH.computeKeys`` computes from the replicas and emits
+   ``hologramReady`` (or ``computeFailed``).
+5. ``hologramReady`` updates ``QSLM``, the ``QSLMWidget`` preview, and
+   clears the pending flag so that the next change may trigger another
+   compute.  Changes that arrive meanwhile are not lost: they are all in
+   the replicas when the next compute runs.
+
+Tasks are still driven by the video: ``QTaskManager`` advances once for
+each ``QHOTScreen.rendered``.
 
 Concrete trap types
 -------------------

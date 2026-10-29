@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import weakref
 from functools import partial
 
@@ -9,6 +10,7 @@ from qtpy import QtCore, QtGui
 
 from QHOT.lib.types import Field, Hologram, Shape
 from QHOT.lib.traps import QTrap, QTrapGroup
+from QHOT.lib.holograms import replicas
 
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,22 @@ class CGH(QtCore.QObject):
         Emitted with the quantized phase array when a hologram is computed.
     recalculate : QtCore.Signal()
         Emitted when the geometry or transformation matrix is updated.
+    computeFailed : QtCore.Signal(str)
+        Emitted with the reason when :meth:`computeKeys` cannot compute
+        a hologram.
+
+    Notes
+    -----
+    A CGH engine can run in a thread of its own.  Then it must not read
+    the traps of the GUI, which change at any moment.  A
+    :class:`~QHOT.lib.holograms.QTrapSync.QTrapSync` describes the traps
+    to the engine in messages that the slots :meth:`addReplica`,
+    :meth:`removeReplica`, :meth:`updateReplica` and
+    :meth:`updateReplicaStructure` receive in the thread of the engine,
+    and :meth:`computeKeys` computes from the replicas that result.
+    A calibration attribute that is assigned from another thread waits
+    for a hologram in progress, so that the geometry never changes
+    under it.
 
     References
     ----------
@@ -92,6 +110,8 @@ class CGH(QtCore.QObject):
     hologramReady = QtCore.Signal(np.ndarray)
     #: Emitted when the geometry or transformation matrix is updated.
     recalculate = QtCore.Signal()
+    #: Emitted with the reason when a requested hologram cannot be computed.
+    computeFailed = QtCore.Signal(str)
 
     dtype = np.complex64
 
@@ -165,6 +185,8 @@ class CGH(QtCore.QObject):
                            weakref.WeakKeyDictionary())
         object.__setattr__(self, '_connected_traps',
                            weakref.WeakSet())
+        object.__setattr__(self, '_replicas', {})
+        object.__setattr__(self, '_lock', threading.RLock())
         for attr, val in (('shape', shape),
                           ('wavelength', wavelength),
                           ('n_m', n_m),
@@ -193,9 +215,11 @@ class CGH(QtCore.QObject):
                 return
         super().__setattr__(key, value)
         if key in self._matrix_attrs:
-            self.updateTransformationMatrix()
+            with self._lock:
+                self.updateTransformationMatrix()
         elif key in self._geometry_attrs:
-            self.updateGeometry()
+            with self._lock:
+                self.updateGeometry()
 
     def updateTransformationMatrix(self) -> None:
         '''Rebuild the camera-to-SLM transformation matrix.
@@ -347,10 +371,11 @@ class CGH(QtCore.QObject):
                         needs_matrix = True
             else:
                 logger.warning(f'Unsupported property: {key}')
-        if needs_matrix:
-            self.updateTransformationMatrix()
-        if needs_geometry:
-            self.updateGeometry()
+        with self._lock:
+            if needs_matrix:
+                self.updateTransformationMatrix()
+            if needs_geometry:
+                self.updateGeometry()
 
     @property
     def height(self) -> int:
@@ -422,8 +447,9 @@ class CGH(QtCore.QObject):
         '''
         logger.info('starting CGH pipeline')
         self.blockSignals(True)
-        self.updateGeometry()
-        self.updateTransformationMatrix()
+        with self._lock:
+            self.updateGeometry()
+            self.updateTransformationMatrix()
         self.blockSignals(False)
         self.recalculate.emit()
         return self
@@ -432,6 +458,102 @@ class CGH(QtCore.QObject):
     def stop(self) -> None:
         '''Shut down the CGH pipeline.'''
         logger.info('stopping CGH pipeline')
+
+    # Slots for the replicas of the traps in an overlay
+
+    @QtCore.Slot(object, object)
+    def addReplica(self, node: dict, parentKey: int | None = None) -> None:
+        '''Add the replica of a trap or group and of all that it contains.
+
+        Parameters
+        ----------
+        node : dict
+            Description of the trap, as ``QTrapSync`` sends it.
+        parentKey : int or None
+            Key of the group that contains the trap, or ``None`` for a
+            top-level trap.
+        '''
+        replica = replicas.build(node, self._replicas)
+        parent = self._replicas.get(parentKey)
+        if isinstance(parent, QTrapGroup):
+            parent.addTrap(replica)
+            self._invalidateStructureChain(parent)
+
+    @QtCore.Slot(int)
+    def removeReplica(self, key: int) -> None:
+        '''Remove a replica and all that it contains.'''
+        trap = self._replicas.get(key)
+        if trap is None:
+            return
+        for member in replicas.walk(trap):
+            self._replicas.pop(member._syncKey, None)
+        parent = trap.parent()
+        trap.setParent(None)
+        if isinstance(parent, QTrapGroup):
+            self._invalidateStructureChain(parent)
+
+    @QtCore.Slot(int, object)
+    def updateReplica(self, key: int, state: dict) -> None:
+        '''Apply a change of position or of a property to a replica.
+
+        A group moves all that it contains without a signal from each, so
+        its state is the ``positions`` of them all; the state of a trap
+        is its ``settings``.  The replica emits ``changed`` afterwards,
+        which discards what was cached for it.
+
+        The fields that were cached for the members of a moved group are
+        discarded too.  The group keeps its cached structure, so the move
+        itself costs one outer product, but if a later change makes the
+        engine recompute that structure it must not build it from fields
+        of the members at the places that they have left.
+        '''
+        trap = self._replicas.get(key)
+        if trap is None:
+            return
+        if 'positions' in state:
+            for member, r in state['positions'].items():
+                if member in self._replicas:
+                    moved = self._replicas[member]
+                    moved._r[:] = r
+                    if moved is not trap:
+                        self._field_cache.pop(moved, None)
+        else:
+            replicas.apply(trap, state['settings'])
+        trap.changed.emit()
+
+    @QtCore.Slot(int, object)
+    def updateReplicaStructure(self, key: int, state: dict) -> None:
+        '''Apply a change of structure to a replica.
+
+        The replica emits ``structureChanged`` afterwards, which discards
+        the structure that was cached for it.
+        '''
+        trap = self._replicas.get(key)
+        if trap is None:
+            return
+        replicas.apply(trap, state['settings'])
+        trap.structureChanged.emit()
+
+    @QtCore.Slot(list)
+    def computeKeys(self, keys: list[int]) -> None:
+        '''Compute the hologram for the replicas with the given keys.
+
+        Emits ``hologramReady`` with the result, or ``computeFailed`` if
+        the computation raises an exception.
+
+        Parameters
+        ----------
+        keys : list[int]
+            Keys of the traps, as ``QTrapSync.keysOf`` gives them.
+        '''
+        traps = [self._replicas[key] for key in keys
+                 if key in self._replicas]
+        try:
+            with self._lock:
+                self.compute(traps)
+        except Exception as ex:
+            logger.error(f'hologram computation failed: {ex}')
+            self.computeFailed.emit(str(ex))
 
     # Methods for computing holograms
 

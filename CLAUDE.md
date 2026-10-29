@@ -58,7 +58,9 @@ qhot.py (QHOTWindow)
   └── QSaveFile       — TOML config and image file I/O
 ```
 
-**Signal flow:** trap changes → `QTrapOverlay` emits → `CGH.computeHologram()` in worker thread → `CGH.hologramReady` → `QSLM.setData()` updates SLM display.
+**Signal flow:** trap changes → `QTrapOverlay` emits → `QTrapSync` sends the CGH engine a message → a timer (`QHOT.COMPUTE_INTERVAL`, independent of the video) emits `_computeRequested` → `CGH.computeKeys()` computes in the worker thread → `CGH.hologramReady` → `QSLM.setData()` updates SLM display.
+
+**Threading rule:** the CGH engine lives in its own thread and must never read live traps. It computes from private replicas (`lib/holograms/replicas.py`) that `QTrapSync` keeps current with ordered messages of plain data. Anything that changes a trap's state in a way the engine must see needs a signal that `QTrapSync` forwards (`changed`, `structureChanged`). Assigning a CGH calibration attribute from another thread is safe: it waits for a hologram in progress.
 
 **Trap hierarchy:**
 - `lib/traps/QTrap.py` — base class; all traps have a 3D position and phase profile

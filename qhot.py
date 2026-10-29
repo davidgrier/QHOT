@@ -4,7 +4,8 @@ from pathlib import Path
 from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
 
-from QVideo.lib import choose_camera, QCameraTree, QFilterRack
+from QVideo.cameras.chooser import choose_camera
+from QVideo.lib import QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401

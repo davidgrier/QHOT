@@ -15,7 +15,7 @@ Standalone::
 Shared parser with titled groups::
 
     from QHOT.lib.chooser import build_parser, choose_cgh
-    from QVideo.lib import choose_camera
+    from QVideo.cameras.chooser import choose_camera
 
     parser = build_parser()
     cgh = choose_cgh(parser, shape=slm.shape)
@@ -115,11 +115,13 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
             CGH backend:
                 -t  PyTorch  -u  CuPy
     '''
-    from QVideo.lib.chooser import _CAMERAS
+    from QVideo.cameras.chooser import BACKENDS
     parser = ArgumentParser(description=description)
     cam_group = parser.add_argument_group('camera backend')
     cam_mutex = cam_group.add_mutually_exclusive_group()
-    for dest, entry in _CAMERAS.items():
+    for dest, entry in BACKENDS.items():
+        if not entry.flag:
+            continue
         cam_mutex.add_argument(entry.flag, dest=dest, help=entry.help,
                                action='store_true')
     parser.add_argument('cameraID', nargs='?', type=int, default=0,

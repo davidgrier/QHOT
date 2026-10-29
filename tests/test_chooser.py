@@ -49,7 +49,7 @@ class TestCghParser(unittest.TestCase):
         self.assertIn('CGH backend', group_titles)
 
     def test_compatible_with_camera_parser(self):
-        from QVideo.lib.chooser import camera_parser
+        from QVideo.cameras.chooser import camera_parser
         parser = ArgumentParser()
         camera_parser(parser)
         cgh_parser(parser)
@@ -249,7 +249,7 @@ class TestBuildParser(unittest.TestCase):
         self.assertTrue(args.fake_slm)
 
     def test_choose_camera_sees_registered_flags(self):
-        from QVideo.lib import choose_camera
+        from QVideo.cameras.chooser import choose_camera
         # choose_camera should work with the pre-built parser without
         # raising or duplicating flags.
         try:

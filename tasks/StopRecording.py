@@ -5,7 +5,10 @@ class StopRecording(QTask):
 
     '''Stop recording video from the camera.
 
-    Calls ``dvr.stop()`` in ``initialize()``.
+    Stops the recorder of ``dvr`` in ``initialize()``, without a click on
+    the stop button of the DVR widget.  The recorder writes the frames that
+    were captured before it returns.  Does nothing if no recording is
+    running.  Playback of a video is not affected.
 
     Typically registered as a blocking task that returns immediately.
 
@@ -16,7 +19,7 @@ class StopRecording(QTask):
     Parameters
     ----------
     dvr : QDVRWidget
-        The video recorder.  Required.
+        The video recorder.  Required to run the task.
     **kwargs
         Forwarded to ``QTask`` (e.g. ``delay``).
     '''
@@ -28,4 +31,4 @@ class StopRecording(QTask):
         self.duration = 0
 
     def initialize(self) -> None:
-        self.dvr.stopButton.animateClick()
+        self.dvr.recorder.stop()

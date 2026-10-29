@@ -21,7 +21,25 @@
 - A hologram that cannot be computed no longer stops all later holograms:
   `QHOT` allows the next request and shows the reason in the status bar.
 
+- `Record`, `StartRecording` and `StopRecording` drive the recorder of the
+  DVR widget (`dvr.recorder`) instead of clicking its buttons.  A click
+  takes effect a moment later, does nothing when the button is disabled,
+  and could open a dialog that stopped an unattended run.  Now a
+  recording that cannot start fails the task, and with it the queue, with
+  the reason in the status bar: there is no camera, a video is playing, a
+  recording is already running, the extension of the file cannot be
+  written, or the file exists.  The new parameter `overwrite` (default
+  `False`) allows replacing a file; before, the widget asked.
+- The tasks keep `filename`, `nframes` and `nskip` themselves; they no
+  longer write them into the DVR widget, which only shows the name of the
+  file being recorded.  A saved queue therefore keeps a blank file name
+  as blank, meaning the name that the widget shows when the task runs.
+- A `Record` task that is aborted, for example by stopping the queue,
+  stops its recording.
+
 ### Fixed
+- A saved queue that contains a `StartRecording` task could not be
+  loaded: the task wrote into the DVR widget before the queue gave it one.
 - Detaching a trap from a group left the cached structure of the group
   stale, so that the hologram was wrong over nearly all of the SLM.
 - Moving a group and then changing one of its members (or a nested

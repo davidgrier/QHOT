@@ -243,11 +243,14 @@ uses this for ``load()``, ``restart()``, and loop injection.
    * - :class:`~QHOT.tasks.Snapshot.Snapshot`
      - Capture a single camera frame to a file.
    * - :class:`~QHOT.tasks.Record.Record`
-     - Record a fixed number of frames as a background task.
+     - Record for a fixed number of frames as a background task, on the
+       recorder of the DVR.
    * - :class:`~QHOT.tasks.StartRecording.StartRecording`
-     - Start the DVR as a blocking task; pairs with ``StopRecording``.
+     - Start the recorder of the DVR as a blocking task; pairs with
+       ``StopRecording``.
    * - :class:`~QHOT.tasks.StopRecording.StopRecording`
-     - Stop the DVR; ends recording started by ``StartRecording``.
+     - Stop the recorder of the DVR; ends a recording started by
+       ``StartRecording``.
 
 Application layer — ``QHOT.qhot``
 ----------------------------------

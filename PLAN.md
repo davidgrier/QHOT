@@ -74,7 +74,7 @@ frame-coupled compute and the thread-safety model.
    thread; the worker owns the cache.
 2. **Done (2026-10-29).** Decouple compute from display: a coalescing, latest-wins compute loop with
    its own rate limit.  `rendered` stays for tasks.
-3. Tasks drive `dvr.recorder` and `dvr.playback` instead of clicking buttons.
+3. **Done (2026-10-29).** Tasks drive `dvr.recorder` and `dvr.playback` instead of clicking buttons.
 
 ### Phase 1: parity with pyfab's core
 

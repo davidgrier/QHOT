@@ -26,25 +26,29 @@ in real time using a live camera feed.
 ## Requirements
 
 - Python 3.11+
-- PyQt5 ≥ 5.15
+- A Qt binding supported by qtpy: PyQt6, PyQt5 ≥ 5.15 or PySide6
+- qtpy ≥ 2.0
 - pyqtgraph ≥ 0.13
 - numpy ≥ 1.24
 - scipy ≥ 1.10
 - tomlkit ≥ 0.11
-- QVideo ≥ 4.9.0
+- QVideo ≥ 4.11.0
 
 ## Installation
 
 ```bash
-pip install QHOT
+pip install "QHOT[pyqt6]"   # or QHOT[pyqt5], QHOT[pyside6]
 ```
+
+QHOT does not install a Qt binding by default: choose one with an extra, or
+install one yourself.
 
 Or for development:
 
 ```bash
 git clone https://github.com/davidgrier/QHOT.git
 cd QHOT
-pip install -e .
+pip install -e ".[pyqt6]"
 ```
 
 ## Usage

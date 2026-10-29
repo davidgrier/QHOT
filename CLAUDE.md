@@ -23,7 +23,7 @@ sphinx-build -b html docs docs/_build/html
 
 **Install for development:**
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,pyqt6]"  # or pyqt5, pyside6
 pip install -e ".[docs]"  # for documentation builds
 ```
 

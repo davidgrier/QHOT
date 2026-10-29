@@ -27,8 +27,8 @@ dependencies = [
     "scipy>=1.10",
     "pyqtgraph>=0.13",
     "tomlkit>=0.11",
-    "PyQt5>=5.15",
-    "QVideo[dvr]>=4.9.0",
+    "qtpy>=2.0",
+    "QVideo[dvr]>=4.11.0",
 ]
 
 [project.urls]
@@ -37,6 +37,9 @@ Repository = "https://github.com/davidgrier/QHOT"
 Issues = "https://github.com/davidgrier/QHOT/issues"
 
 [project.optional-dependencies]
+pyqt5 = ["PyQt5>=5.15"]
+pyqt6 = ["PyQt6"]
+pyside6 = ["PySide6>=6.7"]
 dev = ["pytest", "pytest-cov"]
 docs = ["pydata-sphinx-theme", "sphinx", "sphinx-autodoc-typehints"]
 torch = ["torch>=2.0"]

@@ -84,7 +84,7 @@ frame-coupled compute and the thread-safety model.
    correction).
 6. Port high-value tasks: Circle, Lattice, Overlap, SwitchPlaces, Assemble,
    Sedimentation.
-7. Histogram tab using QVideo's `QHistogramWidget`.
+7. Histogram tab using QVideo's `QVideo.widgets.QHistogramWidget`.
 
 ### Phase 2: hardware through QInstrument
 

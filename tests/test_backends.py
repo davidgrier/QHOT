@@ -112,7 +112,7 @@ class TestBackend(unittest.TestCase):
         self.assertEqual(h.shape, SHAPE)
 
     def test_repeatable(self):
-        pattern = specs([tweezer(20, 20), QVortex(r=(30, 20, 0), ell=3)])
+        pattern = specs([tweezer(20, 20), QVortex(r=(30, 20, 0), ell=3, phase=0.2)])
         self.assertTrue(np.array_equal(
             self.backend.hologram(pattern, self.o),
             self.backend.hologram(pattern, self.o)))
@@ -152,7 +152,7 @@ class TestBackend(unittest.TestCase):
 
     def test_the_weight_of_a_composite_reaches_its_members(self):
         c = Composite(r=(32., 24., 0.), amplitude=3., phase=0.8)
-        c.addTrap([tweezer(20, 20), QVortex(r=(40, 28, 0), ell=2)])
+        c.addTrap([tweezer(20, 20), QVortex(r=(40, 28, 0), ell=2, phase=0.2)])
         other = tweezer(10, 40)
         for pattern in ([c, other], [group(c, other)]):
             with self.subTest(depth=len(pattern)):
@@ -161,7 +161,7 @@ class TestBackend(unittest.TestCase):
                     ref.hologram(specs(pattern), self.o))
 
     def test_follows_a_change_of_calibration(self):
-        pattern = specs([tweezer(20, 20), QVortex(r=(30, 20, 0), ell=3)])
+        pattern = specs([tweezer(20, 20), QVortex(r=(30, 20, 0), ell=3, phase=0.2)])
         for calibration in (dict(), dict(thetac=20.), dict(phis=15.),
                             dict()):
             o = optics(**calibration)
@@ -169,7 +169,7 @@ class TestBackend(unittest.TestCase):
                               ref.hologram(pattern, o))
 
     def test_the_input_is_not_changed(self):
-        pattern = specs([group(tweezer(20, 20), QVortex(r=(30, 20, 0)))])
+        pattern = specs([group(tweezer(20, 20), QVortex(r=(30, 20, 0), phase=0.2))])
         before = list(pattern)
         self.backend.hologram(pattern, self.o)
         self.assertEqual(pattern, before)
@@ -281,7 +281,7 @@ class TestPatternOfAnOverlay(unittest.TestCase):
 
     def test_computes_to_the_hologram_of_the_traps(self):
         overlay = QTrapOverlay()
-        overlay.addTrap([tweezer(10, 12), QVortex(r=(30, 20, 0), ell=2),
+        overlay.addTrap([tweezer(10, 12), QVortex(r=(30, 20, 0), ell=2, phase=0.2),
                          group(tweezer(20, 20), tweezer(30, 30))])
         o = optics()
         a = NumpyBackend().hologram(overlay.pattern(), o)

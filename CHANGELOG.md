@@ -45,6 +45,16 @@
   bars at any size of the window: the smallest window went from 646 x 651
   to 461 x 282 pixels.  The code that kept the window tall enough for the
   panels is gone.
+- The files of the File menu are objects of their own: `QDocument` for the
+  traps and the queue, `QImageFile` for the image and the hologram.  The
+  window makes them and connects the ten actions to them in `_setupFiles()`
+  (the connections are no longer in `QHOT.ui`), and its ten wrapper methods
+  and the file names that it kept are gone.  `QSaveFile` only names and
+  writes files, with `toJson()` and `fromJson()`; its methods for traps,
+  queues and Save As are gone.
+- A file that cannot be read or written is reported in the status bar, with
+  the reason, and logged, and the program goes on.  An error in a menu action
+  used to appear only in the terminal.
 - `Snapshot` no longer needs an `image`: it saves the live image that the
   manager provides.  It was offered in the Queue menu although it could not
   be queued.
@@ -56,6 +66,9 @@
   and stale `noqa` comments.
 
 ### Fixed
+- Two files saved in the same second, such as the frames of a `Snapshot` in a
+  `Repeat`, had the same name, and the later replaced the earlier.  A name
+  that is taken now has a counter.
 - Save Hologram and Save Hologram As wrote nothing: the conversion of the
   hologram to an image failed, and the error appeared nowhere but in the
   terminal.  An array of 8-bit pixels is now written as it is, and a file

@@ -113,10 +113,10 @@ class TestWhatTheTasksDoWithTheirResources(ContractCase):
     def test_traps_are_saved_from_the_overlay_with_the_file_helper(self):
         task = self.queue('SaveTraps')
         task.initialize()
-        self.manager.save.traps.assert_called_once()
+        self.manager.save.toJson.assert_called_once()
         self.assertIs(
-            self.manager.save.traps.call_args.args[0],
-            self.manager.overlay,
+            self.manager.save.toJson.call_args.args[0],
+            self.manager.overlay.toList.return_value,
         )
 
     def test_traps_are_cleared_on_the_overlay(self):

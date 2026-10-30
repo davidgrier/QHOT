@@ -97,6 +97,7 @@ QHOT/
 │   ├── QSLM.py
 │   ├── QHOTScreen.py
 │   ├── QSaveFile.py
+│   ├── QDocument.py, QImageFile.py
 │   ├── holograms/    — Hologram computation
 │   └── traps/        — Trap base classes and overlay
 ├── traps/            — Concrete trap implementations

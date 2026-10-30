@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class QSaveFile(QtCore.QObject):
 
-    '''Utility for saving images and TOML configuration files.
+    '''Utility for saving images, JSON files and TOML configuration files.
 
     Automatically creates a timestamped data directory (``~/data``) and
     a hidden configuration directory (``~/.{parent_classname}``) on
@@ -27,13 +27,6 @@ class QSaveFile(QtCore.QObject):
         The application main window.  Its class name is used to derive
         the configuration directory.
     '''
-
-    formats: str = ('PNG Image (*.png);;'
-                    'JPEG Image (*.jpg *.jpeg);;'
-                    'TIFF Image (*.tif *.tiff)')
-
-    trap_format: str = 'Trap Configuration (*.json)'
-    queue_format: str = 'Task Queue (*.json)'
 
     def __init__(self, parent: QtWidgets.QMainWindow) -> None:
         super().__init__(parent)
@@ -70,10 +63,19 @@ class QSaveFile(QtCore.QObject):
         -------
         str
             Absolute path string of the form
-            ``~/data/{prefix}_{timestamp}{suffix}``.
+            ``~/data/{prefix}_{timestamp}{suffix}``.  The timestamp has a
+            resolution of one second, so a name that is already taken has
+            a counter, ``{prefix}_{timestamp}_{n}{suffix}``, and a file
+            that is saved does not replace one that was saved a moment
+            before.
         '''
         prefix = prefix or self.classname
-        path = self.datadir / f'{prefix}_{self.timestamp()}{suffix}'
+        stem = f'{prefix}_{self.timestamp()}'
+        path = self.datadir / f'{stem}{suffix}'
+        n = 0
+        while path.exists():
+            n += 1
+            path = self.datadir / f'{stem}_{n}{suffix}'
         return str(path)
 
     def configname(self, qobj: QtCore.QObject) -> str:
@@ -154,168 +156,60 @@ class QSaveFile(QtCore.QObject):
         image = QtGui.QImage(array.data, width, height, array.strides[0], fmt)
         return image.copy()             # the copy owns its pixels
 
-    def imageAs(self,
-                data: ImageItem | npt.NDArray,
-                prefix: str = 'qhot') -> str:
-        '''Save image data to a user-chosen file via a Save As dialog.
+    def toJson(self,
+               data: object,
+               filename: str | None = None,
+               prefix: str = 'data') -> str:
+        '''Write data to a JSON file.
 
         Parameters
         ----------
-        data : ImageItem or numpy.ndarray
-            Image to save.
-        prefix : str
-            Prefix for the default filename suggestion.  Default: ``'qhot'``.
-
-        Returns
-        -------
-        str
-            Path of the file that was written, or empty string if canceled.
-        '''
-        default = self.filename(prefix=prefix, suffix='.png')
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.parent(), 'Save As', default, self.formats)
-        if filename:
-            return self.image(data, filename=filename)
-        return ''
-
-    def traps(self, overlay, filename: str | None = None) -> str:
-        '''Save a trap overlay to a JSON file.
-
-        Parameters
-        ----------
-        overlay : QTrapOverlay
-            Overlay whose traps will be saved.
+        data : object
+            What to write: lists, dicts, strings and numbers.
         filename : str or None
             Destination path.  If ``None``, a timestamped ``.json`` file
             is created in the data directory.
+        prefix : str
+            Prefix for the auto-generated filename.  Default: ``'data'``.
 
         Returns
         -------
         str
             Path of the file that was written.
+
+        Raises
+        ------
+        OSError
+            If the file cannot be written.
         '''
-        filename = filename or self.filename(prefix='traps', suffix='.json')
+        filename = filename or self.filename(prefix=prefix, suffix='.json')
         with open(filename, 'w') as f:
-            json.dump(overlay.toList(), f, indent=2)
+            json.dump(data, f, indent=2)
         return filename
 
-    def trapsAs(self, overlay) -> str:
-        '''Save a trap overlay to a user-chosen JSON file via a Save As dialog.
+    @staticmethod
+    def fromJson(filename: str) -> object:
+        '''Read the data in a JSON file.
 
         Parameters
         ----------
-        overlay : QTrapOverlay
-            Overlay whose traps will be saved.
+        filename : str
+            Path of the file.
 
         Returns
         -------
-        str
-            Path of the file that was written, or empty string if canceled.
+        object
+            What the file holds.
+
+        Raises
+        ------
+        OSError
+            If the file cannot be read.
+        ValueError
+            If the file is not JSON.
         '''
-        default = self.filename(prefix='traps', suffix='.json')
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.parent(), 'Save Traps As', default, self.trap_format)
-        if filename:
-            return self.traps(overlay, filename)
-        return ''
-
-    def openTraps(self, overlay) -> str:
-        '''Load traps from a user-chosen JSON file via an Open dialog.
-
-        Parameters
-        ----------
-        overlay : QTrapOverlay
-            Overlay to populate with the loaded traps.
-
-        Returns
-        -------
-        str
-            Path of the file that was read, or empty string if canceled.
-        '''
-        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.parent(), 'Open Traps', str(self.datadir), self.trap_format)
-        if filename:
-            with open(filename) as f:
-                overlay.fromList(json.load(f))
-            return filename
-        return ''
-
-    def queue(self, manager, filename: str | None = None) -> str:
-        '''Save the pending task queue to a JSON file.
-
-        Only tasks that are waiting to run (``manager.queued``) are
-        saved; the active task and background tasks are excluded.
-
-        Parameters
-        ----------
-        manager : QTaskManager
-            The task manager whose pending queue will be saved.
-        filename : str or None
-            Destination path.  If ``None``, a timestamped ``.json``
-            file is created in the data directory.
-
-        Returns
-        -------
-        str
-            Path of the file that was written.
-        '''
-        filename = filename or self.filename(prefix='queue', suffix='.json')
-        task_list = [task.toDict() for task in manager.queued]
-        with open(filename, 'w') as f:
-            json.dump(task_list, f, indent=2)
-        return filename
-
-    def queueAs(self, manager) -> str:
-        '''Save the pending task queue to a user-chosen JSON file.
-
-        Parameters
-        ----------
-        manager : QTaskManager
-            The task manager whose pending queue will be saved.
-
-        Returns
-        -------
-        str
-            Path of the file that was written, or empty string if
-            canceled.
-        '''
-        default = self.filename(prefix='queue', suffix='.json')
-        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.parent(), 'Save Queue As', default, self.queue_format)
-        if filename:
-            return self.queue(manager, filename)
-        return ''
-
-    def openQueue(self, manager) -> str:
-        '''Load a task queue from a user-chosen JSON file.
-
-        Reconstructed tasks are appended to the manager's existing
-        queue.  Dependencies (overlay, cgh, dvr) are injected by
-        ``manager.load()``.
-
-        Parameters
-        ----------
-        manager : QTaskManager
-            The task manager to receive the loaded tasks.
-
-        Returns
-        -------
-        str
-            Path of the file that was read, or empty string if
-            canceled.
-        '''
-        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.parent(),
-            'Open Queue',
-            str(self.datadir),
-            self.queue_format,
-        )
-        if filename:
-            with open(filename) as f:
-                task_list = json.load(f)
-            manager.load(task_list)
-            return filename
-        return ''
+        with open(filename) as f:
+            return json.load(f)
 
     def toToml(self, qobj: QtCore.QObject) -> str:
         '''Save the settings of a QObject to a TOML configuration file.

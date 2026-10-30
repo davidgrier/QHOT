@@ -5,8 +5,8 @@ class SaveTraps(QTask):
 
     '''Save the current trap overlay to a JSON file.
 
-    Calls ``save.traps()`` in ``initialize()``.
-    Completes immediately in a single frame.
+    Writes the traps of the overlay with ``save.toJson()`` in
+    ``initialize()``.  Completes immediately in a single frame.
 
     Parameters
     ----------
@@ -36,4 +36,4 @@ class SaveTraps(QTask):
 
     def initialize(self) -> None:
         filename = self.filename or None
-        self.save.traps(self.overlay, filename=filename)
+        self.save.toJson(self.overlay.toList(), filename, prefix='traps')

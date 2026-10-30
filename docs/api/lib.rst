@@ -42,3 +42,15 @@ QSaveFile
 
 .. automodule:: QHOT.lib.QSaveFile
    :members:
+
+Files that the menu opens and saves
+-----------------------------------
+
+.. automodule:: QHOT.lib.QFileAction
+   :members:
+
+.. automodule:: QHOT.lib.QDocument
+   :members:
+
+.. automodule:: QHOT.lib.QImageFile
+   :members:

@@ -55,7 +55,9 @@ qhot.py (QHOTWindow)
   ├── QSLM            — SLM display window (secondary screen, shows phase pattern)
   ├── CGH             — calibration and hologram pipeline (computes in a QThread)
   ├── QCGHTree        — Qt parameter tree for CGH calibration
-  └── QSaveFile       — TOML config and image file I/O
+  ├── QSaveFile       — names and writes the files: images, JSON, TOML config
+  ├── QDocument       — traps and queue files: open, save, save as, with messages
+  └── QImageFile      — image and hologram files: save, save as
 ```
 
 **Signal flow:** a trap, or a group of traps, changes (`changed`, which a change of structure also emits) or the traps are added or removed → `QTrapOverlay.patternChanged`; or the calibration changes → `CGH.recalculate`. `CGH.follow(overlay)` notes that the hologram is stale, and a timer of the CGH (`CGH.INTERVAL`, independent of the video) calls `CGH.compute(overlay.pattern())` → the worker thread computes with a `Backend` → `CGH.hologramReady` → `QSLM.setData()` updates SLM display. `QHOT` only makes the connections.

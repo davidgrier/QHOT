@@ -11,6 +11,8 @@ from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
 from QHOT.lib.QCameraOpener import QCameraOpener
+from QHOT.lib.QDocument import QDocument
+from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
 from QHOT.lib.traps import QTrap, QTrapMenu  # noqa: F401
@@ -75,8 +77,7 @@ class QHOT(QtWidgets.QMainWindow):
         self.screen.rendered.connect(self.manager.step)
         self.taskManagerWidget.manager = self.manager
         self.menuQueue.manager = self.manager
-        self._trapFile:  str | None = None
-        self._queueFile: str | None = None
+        self._setupFiles()
         self.restoreSettings()
         self.cgh.start()
 
@@ -95,6 +96,53 @@ class QHOT(QtWidgets.QMainWindow):
         self.helpBrowser.setSource(QtCore.QUrl('index.html'))
         self._setupEditMenu()
         self._setupShortcuts()
+
+    def _setupFiles(self) -> None:
+        '''Make the files that the File menu opens and saves, and wire it.'''
+        overlay = self.screen.overlay
+        self.trapFile = QDocument(
+            'traps',
+            'Trap Configuration',
+            dump=overlay.toList,
+            load=overlay.fromList,
+            files=self.save,
+            parent=self,
+        )
+        self.queueFile = QDocument(
+            'queue',
+            'Task Queue',
+            dump=self.manager.toList,
+            load=self.manager.load,
+            files=self.save,
+            parent=self,
+        )
+        self.imageFile = QImageFile(
+            'image',
+            prefix='qhot',
+            source=lambda: self.screen.image,
+            files=self.save,
+            parent=self,
+        )
+        self.hologramFile = QImageFile(
+            'hologram',
+            prefix='hologram',
+            source=lambda: self.slm.data,
+            files=self.save,
+            parent=self,
+        )
+        self.actionOpenTraps.triggered.connect(self.trapFile.open)
+        self.actionSaveTraps.triggered.connect(self.trapFile.save)
+        self.actionSaveTrapsAs.triggered.connect(self.trapFile.saveAs)
+        self.actionOpenQueue.triggered.connect(self.queueFile.open)
+        self.actionSaveQueue.triggered.connect(self.queueFile.save)
+        self.actionSaveQueueAs.triggered.connect(self.queueFile.saveAs)
+        self.actionSaveImage.triggered.connect(self.imageFile.save)
+        self.actionSaveImageAs.triggered.connect(self.imageFile.saveAs)
+        self.actionSaveHologram.triggered.connect(self.hologramFile.save)
+        self.actionSaveHologramAs.triggered.connect(self.hologramFile.saveAs)
+        for file in (self.trapFile, self.queueFile,
+                     self.imageFile, self.hologramFile):
+            file.status.connect(self.setStatus)
 
     def _setupEditMenu(self) -> None:
         '''Insert an Edit menu with Undo/Redo/Toggle Overlay between
@@ -196,94 +244,6 @@ class QHOT(QtWidgets.QMainWindow):
     def toggleOverlay(self) -> None:
         '''Toggle the visibility of the trap overlay.'''
         self.screen.overlaysVisible = not self.screen.overlaysVisible
-
-    @QtCore.Slot()
-    def openTraps(self) -> None:
-        '''Prompt for a JSON file and load traps from it.'''
-        filename = self.save.openTraps(self.screen.overlay)
-        if filename:
-            self._trapFile = filename
-            self.setStatus(f'Opened traps from {filename}')
-        else:
-            self.setStatus('Open traps canceled')
-
-    @QtCore.Slot()
-    def saveTraps(self) -> None:
-        '''Save traps to the current file, or prompt if none is set.'''
-        filename = self.save.traps(self.screen.overlay, self._trapFile)
-        self._trapFile = filename
-        self.setStatus(f'Saved traps to {filename}')
-
-    @QtCore.Slot()
-    def saveTrapsAs(self) -> None:
-        '''Prompt for a filename and save traps to it.'''
-        filename = self.save.trapsAs(self.screen.overlay)
-        if filename:
-            self._trapFile = filename
-            self.setStatus(f'Saved traps to {filename}')
-        else:
-            self.setStatus('Save traps canceled')
-
-    @QtCore.Slot()
-    def openQueue(self) -> None:
-        '''Prompt for a JSON queue file and append tasks from it.'''
-        was_idle = (self.manager.active is None
-                    and not self.manager.background)
-        filename = self.save.openQueue(self.manager)
-        if filename:
-            if was_idle:
-                self.manager.pause(True)
-            self._queueFile = filename
-            self.setStatus(f'Loaded queue from {filename}')
-        else:
-            self.setStatus('Open queue canceled')
-
-    @QtCore.Slot()
-    def saveQueue(self) -> None:
-        '''Save the pending queue to the current file, or prompt for one.'''
-        filename = self.save.queue(self.manager, self._queueFile)
-        self._queueFile = filename
-        self.setStatus(f'Saved queue to {filename}')
-
-    @QtCore.Slot()
-    def saveQueueAs(self) -> None:
-        '''Prompt for a filename and save the pending queue to it.'''
-        filename = self.save.queueAs(self.manager)
-        if filename:
-            self._queueFile = filename
-            self.setStatus(f'Saved queue to {filename}')
-        else:
-            self.setStatus('Save queue canceled')
-
-    @QtCore.Slot()
-    def saveImage(self) -> None:
-        '''Save the current camera frame to disk.'''
-        filename = self.save.image(self.screen.image)
-        self.setStatus(f'Saved image as {filename}')
-
-    @QtCore.Slot()
-    def saveImageAs(self) -> None:
-        '''Prompt for a filename and save the current camera frame.'''
-        filename = self.save.imageAs(self.screen.image)
-        if filename:
-            self.setStatus(f'Saved image as {filename}')
-        else:
-            self.setStatus('Save image canceled')
-
-    @QtCore.Slot()
-    def saveHologram(self) -> None:
-        '''Save the current SLM phase pattern to disk.'''
-        filename = self.save.image(self.slm.data, prefix='hologram')
-        self.setStatus(f'Saved hologram as {filename}')
-
-    @QtCore.Slot()
-    def saveHologramAs(self) -> None:
-        '''Prompt for a filename and save the current SLM phase pattern.'''
-        filename = self.save.imageAs(self.slm.data, prefix='hologram')
-        if filename:
-            self.setStatus(f'Saved hologram as {filename}')
-        else:
-            self.setStatus('Save hologram canceled')
 
     @QtCore.Slot()
     def saveSettings(self) -> None:

@@ -300,6 +300,32 @@ class TestTheFileMenu(WindowCase):
         self.assertTrue(self.window.manager.paused)  # look before it runs
         self.window.manager.clear()
 
+    def test_a_save_that_fails_says_so_in_the_status_bar(self):
+        for action, helper in (('actionSaveTraps', 'toJson'),
+                               ('actionSaveHologram', 'image')):
+            with self.subTest(action):
+                self.window.setStatus('before')
+                fails = patch.object(
+                    self.window.save,
+                    helper,
+                    side_effect=OSError('disk full'),
+                )
+                with fails, self.assertLogs('QHOT.lib.QFileAction', 'ERROR'):
+                    getattr(self.window, action).trigger()
+                message = self.window.statusBar().currentMessage()
+                self.assertIn('Could not save', message)
+                self.assertIn('disk full', message)
+
+    def test_a_queue_file_that_is_not_a_queue_says_so(self):
+        bad = self.data / 'bad.json'
+        bad.write_text('[{"type": "NoSuchTask"}]')
+        self.window.manager.clear()
+        with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
+            self.trigger('actionOpenQueue', 'getOpenFileName', 'bad.json')
+        self.assertIn('Could not open queue',
+                      self.window.statusBar().currentMessage())
+        self.assertEqual(self.window.manager.scheduled, [])
+
     def test_save_the_image(self):
         (path,) = self.trigger('actionSaveImage')
         self.assertEqual(path.suffix, '.png')

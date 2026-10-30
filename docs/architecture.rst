@@ -289,11 +289,17 @@ together via Qt signals.
 
 **File menu.**  The File menu is organized into three groups:
 
-* **Open / Save / Save As** — trap configuration (``.json``).  ``saveTraps()``
-  saves to the previously used path if one exists; otherwise it behaves like
-  ``saveTrapsAs()``.  File I/O is delegated to
-  :class:`~QHOT.lib.QSaveFile.QSaveFile`.
-* **Export** submenu — camera images and SLM hologram patterns.
+* **Open / Save / Save As** — the traps and the task queue (``.json``), each a
+  :class:`~QHOT.lib.QDocument.QDocument`.  Save writes to the file that the
+  document was opened from or last saved to, or to a new file with a
+  timestamped name if there is none; Save As asks for a file.  The window
+  connects each action to its document, and shows what the document says
+  in the status bar, including why a file could not be read or written.
+* **Export** submenu — the camera image and the SLM hologram, each a
+  :class:`~QHOT.lib.QImageFile.QImageFile`.  The files are named and
+  written by :class:`~QHOT.lib.QSaveFile.QSaveFile`, which knows nothing
+  of dialogs: a name that is taken gets a counter, so a save never replaces
+  an earlier one.
 * **Preferences** submenu — CGH calibration settings (saved to
   ``~/.qhot/QCGHTree.toml``).
 

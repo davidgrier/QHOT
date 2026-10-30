@@ -140,8 +140,8 @@ class TestQueueMenuSelection(unittest.TestCase):
         self.menu._onTaskSelected('SaveTraps')
         task = manager.scheduled[-1]
         task.initialize()
-        save.traps.assert_called_once()
-        self.assertIs(save.traps.call_args.args[0], overlay)
+        save.toJson.assert_called_once()
+        self.assertIs(save.toJson.call_args.args[0], overlay.toList.return_value)
 
 
 if __name__ == '__main__':

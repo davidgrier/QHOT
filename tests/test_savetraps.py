@@ -46,12 +46,12 @@ class TestSaveTrapsExecution(unittest.TestCase):
         self.overlay = MagicMock()
         self.save    = MagicMock()
 
-    def test_save_traps_called_with_overlay(self):
+    def test_the_traps_of_the_overlay_are_written(self):
         task = attached(SaveTraps(), overlay=self.overlay, save=self.save)
         _run(task)
-        self.save.traps.assert_called_once()
-        args, _ = self.save.traps.call_args
-        self.assertIs(args[0], self.overlay)
+        self.save.toJson.assert_called_once()
+        args, _ = self.save.toJson.call_args
+        self.assertIs(args[0], self.overlay.toList.return_value)
 
     def test_explicit_filename_passed(self):
         task = attached(
@@ -60,8 +60,8 @@ class TestSaveTrapsExecution(unittest.TestCase):
             save=self.save,
         )
         _run(task)
-        _, kwargs = self.save.traps.call_args
-        self.assertEqual(kwargs['filename'], '/tmp/traps.json')
+        args, _ = self.save.toJson.call_args
+        self.assertEqual(args[1], '/tmp/traps.json')
 
     def test_empty_filename_passes_none(self):
         task = attached(
@@ -70,8 +70,8 @@ class TestSaveTrapsExecution(unittest.TestCase):
             save=self.save,
         )
         _run(task)
-        _, kwargs = self.save.traps.call_args
-        self.assertIsNone(kwargs['filename'])
+        args, _ = self.save.toJson.call_args
+        self.assertIsNone(args[1])
 
     def test_completes_after_one_step(self):
         task = attached(SaveTraps(), overlay=self.overlay, save=self.save)

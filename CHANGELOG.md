@@ -19,6 +19,13 @@
 - `ruff` also enforces single quotes, class attributes, quoted annotations
   and stale `noqa` comments.
 
+### Fixed
+- A `CGH` that was running when the program ended without an event loop
+  (a script or notebook that did not call `stop()`) could abort the
+  process while Python shut down, in about one run in fifty.  The thread
+  of a pipeline is now stopped when the pipeline is dropped or the
+  interpreter exits.
+
 ## [2.0.0] — 2026-10-29
 
 **Every wheel published from 1.4.2 to 1.5.0 is missing most of the package**

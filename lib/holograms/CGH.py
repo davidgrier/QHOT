@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import weakref
 from collections.abc import Iterable
 
 import numpy as np
@@ -14,6 +15,12 @@ from .QHologramWorker import QHologramWorker
 
 
 logger = logging.getLogger(__name__)
+
+
+def _stopThread(thread: QtCore.QThread) -> None:
+    '''Stop the thread of a pipeline that has not been stopped.'''
+    thread.quit()
+    thread.wait()
 
 
 class CGH(QtCore.QObject):
@@ -140,6 +147,7 @@ class CGH(QtCore.QObject):
         self._thread: QtCore.QThread | None = None
         self._worker: QHologramWorker | None = None
         self._quitConnected = False
+        self._finalizer: weakref.finalize | None = None
 
     def __setattr__(self, key: str, value: object) -> None:
         if key in self._fields:
@@ -276,6 +284,10 @@ class CGH(QtCore.QObject):
         self._worker.done.connect(self._onDone)
         self._worker.failed.connect(self._onFailed)
         self._thread.start()
+        # A pipeline that is dropped, or left running when the program
+        # ends without an event loop, must not leave its thread running
+        # while Python shuts down.
+        self._finalizer = weakref.finalize(self, _stopThread, self._thread)
         app = QtCore.QCoreApplication.instance()
         if app is not None and not self._quitConnected:
             app.aboutToQuit.connect(self.stop)
@@ -295,6 +307,7 @@ class CGH(QtCore.QObject):
         logger.info('stopping CGH pipeline')
         self._thread.quit()
         self._thread.wait()
+        self._finalizer.detach()
         # The worker is gone, and Qt has dropped its connections.
         self._thread = None
         self._worker = None

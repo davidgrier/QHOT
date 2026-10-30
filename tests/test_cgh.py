@@ -1,4 +1,5 @@
 '''Unit tests for CGH: the calibration and the pipeline.'''
+import gc
 import threading
 import time
 import unittest
@@ -488,6 +489,48 @@ class TestSnapshots(PipelineCase):
         self.assertGreater(levels(a, b).max(), 1)
         self.assertLessEqual(
             levels(b, ref.hologram(pattern, cgh.optics)).max(), 1)
+
+
+class TestShutdown(unittest.TestCase):
+
+    '''A pipeline must not leave its thread running when it is gone.
+
+    A thread that is still running while Python shuts down made the
+    process abort now and then, so a program that forgets ``stop()`` must
+    still end cleanly.
+    '''
+
+    def started(self):
+        return CGH(shape=SHAPE, xc=32., yc=24.).start()
+
+    def test_the_finalizer_stops_the_thread(self):
+        cgh = self.started()
+        thread = cgh._thread
+        self.assertTrue(thread.isRunning())
+        cgh._finalizer()    # what runs when Python exits
+        self.assertFalse(thread.isRunning())
+
+    def test_a_dropped_pipeline_stops_its_thread(self):
+        cgh = self.started()
+        thread = cgh._thread
+        del cgh
+        gc.collect()
+        self.assertFalse(thread.isRunning())
+
+    def test_stopping_it_retires_the_finalizer(self):
+        cgh = self.started()
+        finalizer = cgh._finalizer
+        cgh.stop()
+        self.assertFalse(finalizer.alive)
+
+    def test_a_restarted_pipeline_is_finalized_too(self):
+        cgh = self.started()
+        cgh.stop()
+        cgh.start()
+        thread = cgh._thread
+        self.assertTrue(cgh._finalizer.alive)
+        cgh._finalizer()
+        self.assertFalse(thread.isRunning())
 
 
 class TestFailure(PipelineCase):

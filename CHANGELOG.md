@@ -40,6 +40,11 @@
   Queue menu and `load()` use it: the window used to repeat that rule for
   opening a queue file, in a slightly different form.  `toList()` is the
   queue that `load()` reads, as the overlay's is for traps.
+- The panels of controls scroll (each tab of `QHOT.ui` is a scroll area), so
+  they no longer set a minimum height for the window, and the image has no
+  bars at any size of the window: the smallest window went from 646 x 651
+  to 461 x 282 pixels.  The code that kept the window tall enough for the
+  panels is gone.
 - `Snapshot` no longer needs an `image`: it saves the live image that the
   manager provides.  It was offered in the Queue menu although it could not
   be queued.

@@ -325,5 +325,64 @@ class TestTheFileMenu(WindowCase):
                                       self.window.slm.data)
 
 
+class TestTheWindowFollowsTheCamera(unittest.TestCase):
+
+    '''The screen has the shape of the image, so the image has no bars.
+
+    The panels of controls scroll, so that they never ask for more height
+    than the image has.
+    '''
+
+    @classmethod
+    def setUpClass(cls):
+        cls.window = Window.window
+        cls.window.show()
+        QtTest.QTest.qWait(100)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.window.hide()
+
+    def camera(self):
+        size = self.window.screen.sizeHint()
+        return size.width(), size.height()
+
+    def test_the_screen_has_the_shape_of_the_camera_at_any_width(self):
+        width, height = self.camera()
+        for w in (560, 620, 680, 740, 800):
+            with self.subTest(width=w):
+                self.window.resize(w, 700)
+                QtTest.QTest.qWait(150)
+                screen = self.window.screen
+                self.assertAlmostEqual(
+                    screen.height(),
+                    screen.width() * height // width,
+                    delta=2,
+                    msg='the image has bars',
+                )
+
+    def test_the_panels_scroll(self):
+        tabs = self.window.tabWidget
+        self.assertEqual(tabs.count(), 6)
+        for n in range(tabs.count()):
+            with self.subTest(tabs.tabText(n)):
+                page = tabs.widget(n)
+                self.assertIsInstance(page, QtWidgets.QScrollArea)
+                self.assertTrue(page.widgetResizable())
+
+    def test_the_panels_do_not_ask_for_more_height_than_the_image_has(self):
+        _, height = self.camera()
+        self.assertLess(self.window.tabWidget.minimumSizeHint().height(),
+                        height)
+        self.assertLess(self.window.minimumSizeHint().height(), height)
+
+    def test_the_contents_of_a_panel_are_where_the_program_puts_them(self):
+        # the pages are still named, and the widgets are in them
+        self.assertIs(self.window.cameraTree.parent(), self.window.videoTab)
+        self.assertIsNotNone(self.window.videoTab.layout())
+        viewport = self.window.videoTab.parent()
+        self.assertIs(viewport.parent(), self.window.videoScroll)
+
+
 if __name__ == '__main__':
     unittest.main()

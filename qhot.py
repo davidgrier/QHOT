@@ -321,22 +321,21 @@ class QHOT(QtWidgets.QMainWindow):
         '''Size the window so the screen shows the camera frame with no bars.
 
         Sets the splitter so the screen gets exactly the camera's native
-        width, then resizes the window height to the larger of the camera
-        height and the panel's preferred height, plus chrome.  The result
-        is clamped to the available display geometry.  Only called on
-        first launch when no saved geometry exists.
+        width, then resizes the window to the height of the camera frame
+        plus chrome.  The panels of controls scroll, so they do not
+        decide the height.  The result is clamped to the available
+        display geometry.  Only called on first launch when no saved
+        geometry exists.
         '''
         cam = self.screen.sizeHint()
         if not cam.isValid():
             return
         panel_w = self.tabWidget.sizeHint().width()
-        panel_h = self.tabWidget.sizeHint().height()
         self.splitter.setSizes([cam.width(), panel_w])
         available = QtWidgets.QApplication.primaryScreen().availableGeometry()
         total_w = min(cam.width() + panel_w + self.splitter.handleWidth(),
                       available.width())
-        total_h = min(max(cam.height(), panel_h) + self._chromeHeight,
-                      available.height())
+        total_h = min(cam.height() + self._chromeHeight, available.height())
         self.resize(total_w, total_h)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
@@ -350,10 +349,10 @@ class QHOT(QtWidgets.QMainWindow):
 
         Reads the screen widget's actual width after the layout has
         settled, computes the ideal height, and resizes the window if
-        they differ.  The height is floored at the panel's minimum size
-        hint so that the controls are never squished when the window is
-        narrow.  The correction is a no-op when the height is already
-        correct, so the resulting second resize event terminates the loop.
+        they differ.  The panels of controls scroll, so they ask for no
+        height of their own and the image never has bars.  The correction
+        is a no-op when the height is already correct, so the resulting
+        second resize event terminates the loop.
         '''
         cam = self.screen.sizeHint()
         if not cam.isValid() or cam.width() == 0:
@@ -362,11 +361,9 @@ class QHOT(QtWidgets.QMainWindow):
         if screen_w <= 0:
             return
         ideal_h = screen_w * cam.height() // cam.width()
-        min_panel_h = self.tabWidget.minimumSizeHint().height()
         available_h = (QtWidgets.QApplication.primaryScreen()
                        .availableGeometry().height())
-        desired_h = min(max(ideal_h, min_panel_h) + self._chromeHeight,
-                        available_h)
+        desired_h = min(ideal_h + self._chromeHeight, available_h)
         if self.height() != desired_h:
             self.resize(self.width(), desired_h)
 

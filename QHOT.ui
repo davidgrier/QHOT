@@ -37,127 +37,175 @@
        <property name="currentIndex">
         <number>0</number>
        </property>
-       <widget class="QWidget" name="videoTab">
+       <widget class="QScrollArea" name="videoScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>Video</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
-         <item>
-          <widget class="QDVRWidget" name="dvr">
-           <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
-           </property>
-          </widget>
-         </item>
-        </layout>
+               <widget class="QWidget" name="videoTab">
+                <layout class="QVBoxLayout" name="verticalLayout_2">
+                 <item>
+                  <widget class="QDVRWidget" name="dvr">
+                   <property name="frameShape">
+                    <enum>QFrame::StyledPanel</enum>
+                   </property>
+                   <property name="frameShadow">
+                    <enum>QFrame::Raised</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
        </widget>
-       <widget class="QWidget" name="trapTab">
+       <widget class="QScrollArea" name="trapScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>Traps</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_3">
-         <item>
-          <widget class="QTrapWidget" name="traps">
-           <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Raised</enum>
-           </property>
-          </widget>
-         </item>
-        </layout>
+               <widget class="QWidget" name="trapTab">
+                <layout class="QVBoxLayout" name="verticalLayout_3">
+                 <item>
+                  <widget class="QTrapWidget" name="traps">
+                   <property name="frameShape">
+                    <enum>QFrame::StyledPanel</enum>
+                   </property>
+                   <property name="frameShadow">
+                    <enum>QFrame::Raised</enum>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
        </widget>
-       <widget class="QWidget" name="tasksTab">
+       <widget class="QScrollArea" name="tasksScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>Tasks</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_7">
-         <item>
-          <widget class="QTaskManagerWidget" name="taskManagerWidget"/>
-         </item>
-        </layout>
+               <widget class="QWidget" name="tasksTab">
+                <layout class="QVBoxLayout" name="verticalLayout_7">
+                 <item>
+                  <widget class="QTaskManagerWidget" name="taskManagerWidget"/>
+                 </item>
+                </layout>
+               </widget>
        </widget>
-       <widget class="QWidget" name="cghTab">
+       <widget class="QScrollArea" name="cghScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>CGH</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_4">
-         <item>
-          <widget class="QCGHTree" name="cghTree">
-           <attribute name="headerVisible">
-            <bool>false</bool>
-           </attribute>
-           <column>
-            <property name="text">
-             <string notr="true">1</string>
-            </property>
-           </column>
-          </widget>
-         </item>
-        </layout>
+               <widget class="QWidget" name="cghTab">
+                <layout class="QVBoxLayout" name="verticalLayout_4">
+                 <item>
+                  <widget class="QCGHTree" name="cghTree">
+                   <attribute name="headerVisible">
+                    <bool>false</bool>
+                   </attribute>
+                   <column>
+                    <property name="text">
+                     <string notr="true">1</string>
+                    </property>
+                   </column>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
        </widget>
-       <widget class="QWidget" name="slmTab">
+       <widget class="QScrollArea" name="slmScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>SLM</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_6">
-         <item>
-          <widget class="QSLMWidget" name="slmView"/>
-         </item>
-        </layout>
+               <widget class="QWidget" name="slmTab">
+                <layout class="QVBoxLayout" name="verticalLayout_6">
+                 <item>
+                  <widget class="QSLMWidget" name="slmView"/>
+                 </item>
+                </layout>
+               </widget>
        </widget>
-       <widget class="QWidget" name="helpTab">
+       <widget class="QScrollArea" name="helpScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
         <attribute name="title">
          <string>Help</string>
         </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QWidget" name="helpButtons" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QPushButton" name="helpBack">
-              <property name="text">
-               <string>Back</string>
-              </property>
-              <property name="icon">
-               <iconset theme="QIcon::ThemeIcon::GoPrevious"/>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="helpHome">
-              <property name="text">
-               <string>Home</string>
-              </property>
-              <property name="icon">
-               <iconset theme="QIcon::ThemeIcon::GoHome"/>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="helpForward">
-              <property name="layoutDirection">
-               <enum>Qt::RightToLeft</enum>
-              </property>
-              <property name="text">
-               <string>Forward</string>
-              </property>
-              <property name="icon">
-               <iconset theme="QIcon::ThemeIcon::GoNext"/>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item>
-          <widget class="QTextBrowser" name="helpBrowser"/>
-         </item>
-        </layout>
+               <widget class="QWidget" name="helpTab">
+                <layout class="QVBoxLayout" name="verticalLayout">
+                 <item>
+                  <widget class="QWidget" name="helpButtons" native="true">
+                   <layout class="QHBoxLayout" name="horizontalLayout">
+                    <item>
+                     <widget class="QPushButton" name="helpBack">
+                      <property name="text">
+                       <string>Back</string>
+                      </property>
+                      <property name="icon">
+                       <iconset theme="QIcon::ThemeIcon::GoPrevious"/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="helpHome">
+                      <property name="text">
+                       <string>Home</string>
+                      </property>
+                      <property name="icon">
+                       <iconset theme="QIcon::ThemeIcon::GoHome"/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="helpForward">
+                      <property name="layoutDirection">
+                       <enum>Qt::RightToLeft</enum>
+                      </property>
+                      <property name="text">
+                       <string>Forward</string>
+                      </property>
+                      <property name="icon">
+                       <iconset theme="QIcon::ThemeIcon::GoNext"/>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QTextBrowser" name="helpBrowser"/>
+                 </item>
+                </layout>
+               </widget>
        </widget>
       </widget>
      </widget>

@@ -1,6 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [2.0.0] — 2026-10-29
+
+**Every wheel published from 1.4.2 to 1.5.0 is missing most of the package**
+(`lib`, `traps` and `tasks`), so `pip install QHOT` gave a program that
+could not be imported.  2.0.0 is the first release that installs and runs
+from PyPI; do not use 1.4.2 to 1.5.0.
+
+This release changes the hologram pipeline and the names of modules.
+`TorchCGH`, `cupyCGH` and `QTrapSync` are removed, `CGH.compute` takes a
+pattern, and QHOT needs QVideo 4.11 or later and Python 3.11 or later.
+The CuPy backend is experimental: it has not yet been run on a CUDA machine.
 
 ### Added
 - `reference.hologram(pattern, optics)` (`lib/holograms/reference.py`):

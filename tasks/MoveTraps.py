@@ -45,10 +45,8 @@ class MoveTraps(QTask):
         dict(name='dx',           type='float', value=0., default=0.),
         dict(name='dy',           type='float', value=0., default=0.),
         dict(name='dz',           type='float', value=0., default=0.),
-        dict(name='step',         type='float', value=1., default=1.,
-             min=0.01),
-        dict(name='selected_only', type='bool', value=False,
-             default=False),
+        dict(name='step', type='float', value=1., default=1., min=0.01),
+        dict(name='selected_only', type='bool', value=False, default=False),
     ]
 
     def __init__(self,

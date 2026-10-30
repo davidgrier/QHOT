@@ -139,10 +139,13 @@ class QLetterArray(QTrapArray):
         Dot spacing [pixels].  Registered property.
     '''
 
-    def __init__(self, *args,
-                 char: str = 'A',
-                 separation: float = 40.,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        char: str = 'A',
+        separation: float = 40.,
+        **kwargs,
+    ) -> None:
         self._char = str(char)
         super().__init__(*args,
                          shape=(5, 7),

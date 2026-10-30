@@ -48,11 +48,14 @@ class Record(QTask):
         dict(name='overwrite', type='bool', value=False, default=False),
     ]
 
-    def __init__(self, *args,
-                 filename: str = '',
-                 nframes: int = 0,
-                 overwrite: bool = False,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        filename: str = '',
+        nframes: int = 0,
+        overwrite: bool = False,
+        **kwargs,
+    ) -> None:
         duration = nframes if nframes > 0 else None
         super().__init__(*args, duration=duration, **kwargs)
         self.filename = filename
@@ -71,8 +74,12 @@ class Record(QTask):
         self.duration = self._nframes if self._nframes > 0 else None
 
     def initialize(self) -> None:
-        startRecording(self.dvr, self.filename, self.dvr.nframes.value(),
-                       overwrite=self.overwrite)
+        startRecording(
+            self.dvr,
+            self.filename,
+            self.dvr.nframes.value(),
+            overwrite=self.overwrite,
+        )
         self._recording = True
 
     def complete(self) -> None:

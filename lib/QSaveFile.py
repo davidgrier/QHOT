@@ -277,8 +277,11 @@ class QSaveFile(QtCore.QObject):
             canceled.
         '''
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.parent(), 'Open Queue', str(self.datadir),
-            self.queue_format)
+            self.parent(),
+            'Open Queue',
+            str(self.datadir),
+            self.queue_format,
+        )
         if filename:
             with open(filename) as f:
                 task_list = json.load(f)

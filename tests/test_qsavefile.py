@@ -234,8 +234,11 @@ class TestImageAs(_Base):
 
     def test_confirmed_delegates_to_image(self):
         with self._patch_dialog('chosen.png'):
-            with patch.object(self.save, 'image',
-                               return_value='chosen.png') as mock_image:
+            with patch.object(
+                self.save,
+                'image',
+                return_value='chosen.png',
+            ) as mock_image:
                 self.save.imageAs(self.array)
         mock_image.assert_called_once_with(self.array, filename='chosen.png')
 
@@ -252,8 +255,11 @@ class TestImageAs(_Base):
             captured['default'] = default
             return ('', '')
 
-        with patch.object(_qsavefile_mod.QtWidgets.QFileDialog,
-                          'getSaveFileName', side_effect=fake_dialog):
+        with patch.object(
+            _qsavefile_mod.QtWidgets.QFileDialog,
+            'getSaveFileName',
+            side_effect=fake_dialog,
+        ):
             self.save.imageAs(self.array, prefix='hologram')
         self.assertIn('hologram', Path(captured['default']).name)
 
@@ -411,8 +417,11 @@ class TestQueueAs(_Base):
     def test_confirmed_delegates_to_queue(self):
         mgr = self._make_manager()
         with self._patch_dialog('chosen.json'):
-            with patch.object(self.save, 'queue',
-                               return_value='chosen.json') as mock_q:
+            with patch.object(
+                self.save,
+                'queue',
+                return_value='chosen.json',
+            ) as mock_q:
                 self.save.queueAs(mgr)
         mock_q.assert_called_once_with(mgr, 'chosen.json')
 

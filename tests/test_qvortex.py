@@ -81,8 +81,14 @@ class TestEllProperty(unittest.TestCase):
 class TestStructuringField(unittest.TestCase):
 
     def setUp(self):
-        self.geometry = Optics(shape=(32, 32), xc=0., yc=0., zc=0.,
-                               thetac=0., splay=0.).geometry
+        self.geometry = Optics(
+            shape=(32, 32),
+            xc=0.,
+            yc=0.,
+            zc=0.,
+            thetac=0.,
+            splay=0.,
+        ).geometry
 
     def test_returns_ndarray(self):
         trap = QVortex(ell=1, phase=0.)

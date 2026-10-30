@@ -245,8 +245,7 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
 
     def test_selected_only_false_moves_all_traps(self):
         overlay = FakeOverlay(self.t1, self.t2)
-        task = MoveTraps(overlay=overlay, dx=5., step=5.,
-                         selected_only=False)
+        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=False)
         self._run(task)
         np.testing.assert_array_almost_equal(self.t1._r, [5., 0., 0.])
         np.testing.assert_array_almost_equal(self.t2._r, [15., 10., 0.])
@@ -254,8 +253,7 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
     def test_selected_only_true_moves_only_marked_traps(self):
         overlay = FakeOverlay(self.t1, self.t2)
         overlay.marked = [self.t1]     # only t1 is marked
-        task = MoveTraps(overlay=overlay, dx=5., step=5.,
-                         selected_only=True)
+        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=True)
         self._run(task)
         np.testing.assert_array_almost_equal(self.t1._r, [5., 0., 0.])
         np.testing.assert_array_almost_equal(self.t2._r, [10., 10., 0.])
@@ -263,8 +261,7 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
     def test_selected_only_true_empty_marked_moves_nothing(self):
         overlay = FakeOverlay(self.t1, self.t2)
         overlay.marked = []
-        task = MoveTraps(overlay=overlay, dx=5., step=5.,
-                         selected_only=True)
+        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=True)
         self._run(task)
         np.testing.assert_array_equal(self.t1._r, [0., 0., 0.])
         np.testing.assert_array_equal(self.t2._r, [10., 10., 0.])

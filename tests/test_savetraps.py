@@ -49,8 +49,11 @@ class TestSaveTrapsExecution(unittest.TestCase):
         self.assertIs(args[0], self.overlay)
 
     def test_explicit_filename_passed(self):
-        task = SaveTraps(overlay=self.overlay, save=self.save,
-                         filename='/tmp/traps.json')
+        task = SaveTraps(
+            overlay=self.overlay,
+            save=self.save,
+            filename='/tmp/traps.json',
+        )
         _run(task)
         _, kwargs = self.save.traps.call_args
         self.assertEqual(kwargs['filename'], '/tmp/traps.json')

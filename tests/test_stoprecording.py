@@ -88,8 +88,7 @@ class TestStopRecordingSerialization(unittest.TestCase):
 class TestStopRecordingWithARealRecorder(RealDVRCase):
 
     def test_stops_a_recording_and_keeps_the_frames(self):
-        start = StartRecording(dvr=self.dvr, filename=self.path(),
-                               nframes=100)
+        start = StartRecording(dvr=self.dvr, filename=self.path(), nframes=100)
         run(start)
         self.source.emit(7)
         self.assertTrue(self.dvr.recorder.isRecording())

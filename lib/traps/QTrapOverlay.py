@@ -121,11 +121,14 @@ class QTrapOverlay(ScatterPlotItem):
                              (('left', 'ctrl'), 'toggleMark'),
                              (('left', 'alt'), 'startRotation'))
 
-    def __init__(self, *args,
-                 size: int = 16,
-                 parent: QtCore.QObject | None = None,
-                 descriptions: Descriptions = default,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        size: int = 16,
+        parent: QtCore.QObject | None = None,
+        descriptions: Descriptions = default,
+        **kwargs,
+    ) -> None:
         '''Initialize the overlay.
 
         Parameters
@@ -190,8 +193,12 @@ class QTrapOverlay(ScatterPlotItem):
         Rubberband selection is hidden until used.
         '''
         self._selection = QtWidgets.QGraphicsRectItem(self)
-        self._selection.setPen(mkPen('b', width=1, cosmetic=True,
-                                     style=QtCore.Qt.PenStyle.DashLine))
+        self._selection.setPen(mkPen(
+            'b',
+            width=1,
+            cosmetic=True,
+            style=QtCore.Qt.PenStyle.DashLine,
+        ))
         self._selection.setBrush(mkBrush(100, 100, 255, 30))
         self._selection.hide()
 
@@ -801,8 +808,11 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Event handlers (called by QHOTScreen)
 
-    def mousePress(self, event: QtGui.QMouseEvent,
-                   pos: QtCore.QPointF) -> bool:
+    def mousePress(
+        self,
+        event: QtGui.QMouseEvent,
+        pos: QtCore.QPointF,
+    ) -> bool:
         '''Handle a press event forwarded by QHOTScreen.
 
         Dispatches to the registered handler for the event's button/modifier
@@ -829,8 +839,7 @@ class QTrapOverlay(ScatterPlotItem):
             self._drag_last = pos
         return True
 
-    def mouseMove(self, event: QtGui.QMouseEvent,
-                  pos: QtCore.QPointF) -> bool:
+    def mouseMove(self, event: QtGui.QMouseEvent, pos: QtCore.QPointF) -> bool:
         '''Handle a move event forwarded by QHOTScreen.
 
         Drags the selected group when the left button is held, or grows the
@@ -908,8 +917,7 @@ class QTrapOverlay(ScatterPlotItem):
         self._drag_last = None
         return True
 
-    def wheel(self, event: QtGui.QWheelEvent,
-              pos: QtCore.QPointF) -> bool:
+    def wheel(self, event: QtGui.QWheelEvent, pos: QtCore.QPointF) -> bool:
         '''Handle a wheel event forwarded by QHOTScreen.
 
         Adjusts the z-coordinate of the nearest trap group by one step

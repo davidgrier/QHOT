@@ -33,8 +33,13 @@ class TestStartRecordingInit(unittest.TestCase):
         self.assertFalse(task.overwrite)
 
     def test_values_stored(self):
-        task = StartRecording(dvr=make_dvr(), filename='clip.mkv',
-                              nframes=500, nskip=3, overwrite=True)
+        task = StartRecording(
+            dvr=make_dvr(),
+            filename='clip.mkv',
+            nframes=500,
+            nskip=3,
+            overwrite=True,
+        )
         self.assertEqual(task.filename, 'clip.mkv')
         self.assertEqual(task.nframes, 500)
         self.assertEqual(task.nskip, 3)
@@ -63,15 +68,18 @@ class TestStartRecordingExecution(unittest.TestCase):
         self.dvr = make_dvr(filename='widget.mkv')
 
     def test_starts_the_recorder(self):
-        task = StartRecording(dvr=self.dvr, filename='clip.mkv',
-                              nframes=500, nskip=3)
+        task = StartRecording(
+            dvr=self.dvr,
+            filename='clip.mkv',
+            nframes=500,
+            nskip=3,
+        )
         run(task)
         self.dvr.recorder.start.assert_called_once_with(
             'clip.mkv', 500, 3, overwrite=False)
 
     def test_overwrite_is_passed_on(self):
-        run(StartRecording(dvr=self.dvr, filename='clip.mkv',
-                           overwrite=True))
+        run(StartRecording(dvr=self.dvr, filename='clip.mkv', overwrite=True))
         self.assertTrue(
             self.dvr.recorder.start.call_args.kwargs['overwrite'])
 
@@ -138,8 +146,12 @@ class TestStartRecordingExecution(unittest.TestCase):
 class TestStartRecordingSerialization(unittest.TestCase):
 
     def test_to_dict(self):
-        task = StartRecording(filename='out.mkv', nframes=300, nskip=2,
-                              overwrite=True)
+        task = StartRecording(
+            filename='out.mkv',
+            nframes=300,
+            nskip=2,
+            overwrite=True,
+        )
         d = task.to_dict()
         self.assertEqual(d['type'], 'StartRecording')
         self.assertEqual(d['filename'], 'out.mkv')
@@ -153,8 +165,12 @@ class TestStartRecordingSerialization(unittest.TestCase):
         self.assertEqual(task.to_dict()['filename'], '')
 
     def test_round_trip(self):
-        task = StartRecording(filename='clip.mkv', nframes=100, nskip=2,
-                              overwrite=True)
+        task = StartRecording(
+            filename='clip.mkv',
+            nframes=100,
+            nskip=2,
+            overwrite=True,
+        )
         task2 = QTask.from_dict(task.to_dict())
         self.assertIsInstance(task2, StartRecording)
         self.assertEqual(task2.filename, 'clip.mkv')
@@ -172,8 +188,7 @@ class TestStartRecordingSerialization(unittest.TestCase):
 class TestStartRecordingWithARealRecorder(RealDVRCase):
 
     def start(self, path, **kwargs):
-        task = StartRecording(dvr=self.dvr, filename=path, nframes=5,
-                              **kwargs)
+        task = StartRecording(dvr=self.dvr, filename=path, nframes=5, **kwargs)
         spy = QtTest.QSignalSpy(task.failed)
         run(task)
         return task, spy

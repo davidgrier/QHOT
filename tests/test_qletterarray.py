@@ -98,8 +98,11 @@ class TestMask(unittest.TestCase):
     def test_mask_dot_count_matches_leaves(self):
         for char in 'NYU nyu 0':
             la = QLetterArray(char=char)
-            self.assertEqual(la.mask.sum(), len(list(la.leaves())),
-                             msg=f'char={char!r}')
+            self.assertEqual(
+                la.mask.sum(),
+                len(list(la.leaves())),
+                msg=f'char={char!r}',
+            )
 
 
 class TestRegisteredProperties(unittest.TestCase):

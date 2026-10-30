@@ -125,8 +125,11 @@ class TestChooseCghAutoDetect(unittest.TestCase):
 
     def test_choose_cgh_uses_the_chosen_backend(self):
         fake_backend = MagicMock(spec=Backend)
-        with patch.object(_chooser_mod, 'choose_backend',
-                          return_value=fake_backend):
+        with patch.object(
+            _chooser_mod,
+            'choose_backend',
+            return_value=fake_backend,
+        ):
             result = choose_cgh()
         self.assertIs(result.backend, fake_backend)
 
@@ -305,9 +308,11 @@ class TestChooseSlm(unittest.TestCase):
         '''Return a minimal parser whose parse_known_args is mocked.'''
         from argparse import Namespace
         parser = ArgumentParser()
-        patch.object(parser, 'parse_known_args',
-                     return_value=(Namespace(fake_slm=fake_slm), [])
-                     ).start()
+        patch.object(
+            parser,
+            'parse_known_args',
+            return_value=(Namespace(fake_slm=fake_slm), []),
+        ).start()
         self.addCleanup(patch.stopall)
         return parser
 
@@ -333,8 +338,12 @@ class TestChooseSlm(unittest.TestCase):
     def test_idempotent_flag_registration(self):
         # Parser that already has -s; choose_slm must not try to add it again.
         parser = self._patched_parser()
-        parser.add_argument('-s', '--fake-slm', dest='fake_slm',
-                            action='store_true')
+        parser.add_argument(
+            '-s',
+            '--fake-slm',
+            dest='fake_slm',
+            action='store_true',
+        )
         with patch.object(_chooser_mod, 'QSLM') as MockSLM:
             MockSLM.return_value = MagicMock(spec=QSLM)
             choose_slm(parser)  # should not raise

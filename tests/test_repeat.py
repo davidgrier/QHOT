@@ -163,8 +163,11 @@ class TestRepeatBracketed(TestRepeatSetup):
             self.setUp()   # fresh manager each iteration
             self._schedule_block(n=n)
             count = self._pump()
-            self.assertEqual(count, 2 * n + 1,
-                             msg=f'n={n}: expected {2*n+1}, got {count}')
+            self.assertEqual(
+                count,
+                2 * n + 1,
+                msg=f'n={n}: expected {2*n+1}, got {count}',
+            )
 
     def test_schedule_unchanged_after_block(self):
         '''Injected tasks must not appear in the persistent schedule.'''

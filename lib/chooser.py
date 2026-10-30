@@ -45,16 +45,27 @@ class _CGHEntry(NamedTuple):
 
 
 _CGH_BACKENDS: dict[str, _CGHEntry] = {
-    'torch': _CGHEntry('-t', 'QHOT.lib.holograms.TorchBackend',
-                       'TorchBackend', 'PyTorch',
-                       'PyTorch backend '
-                       '(auto-selects MPS, CUDA/ROCm, or CPU)'),
-    'numpy': _CGHEntry('-n', 'QHOT.lib.holograms.NumpyBackend',
-                       'NumpyBackend', 'NumPy',
-                       'NumPy backend (CPU)'),
-    'cupy':  _CGHEntry('-u', 'QHOT.lib.holograms.CupyBackend',
-                       'CupyBackend', 'CuPy',
-                       'CuPy CUDA backend (NVIDIA only; not yet written)'),
+    'torch': _CGHEntry(
+        '-t',
+        'QHOT.lib.holograms.TorchBackend',
+        'TorchBackend',
+        'PyTorch',
+        'PyTorch backend (auto-selects MPS, CUDA/ROCm, or CPU)',
+    ),
+    'numpy': _CGHEntry(
+        '-n',
+        'QHOT.lib.holograms.NumpyBackend',
+        'NumpyBackend',
+        'NumPy',
+        'NumPy backend (CPU)',
+    ),
+    'cupy':  _CGHEntry(
+        '-u',
+        'QHOT.lib.holograms.CupyBackend',
+        'CupyBackend',
+        'CuPy',
+        'CuPy CUDA backend (NVIDIA only; not yet written)',
+    ),
 }
 
 _AUTO_DETECT_ORDER = ('torch', 'numpy')
@@ -91,8 +102,12 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
         group = parser.add_argument_group('CGH backend')
         mutex = group.add_mutually_exclusive_group()
         for dest, entry in _CGH_BACKENDS.items():
-            mutex.add_argument(entry.flag, dest=dest, help=entry.help,
-                               action='store_true')
+            mutex.add_argument(
+                entry.flag,
+                dest=dest,
+                help=entry.help,
+                action='store_true',
+            )
     return parser
 
 
@@ -127,14 +142,29 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
     for dest, entry in BACKENDS.items():
         if not entry.flag:
             continue
-        cam_mutex.add_argument(entry.flag, dest=dest, help=entry.help,
-                               action='store_true')
-    parser.add_argument('cameraID', nargs='?', type=int, default=0,
-                        help='camera ID number (default: %(default)d)')
-    parser.add_argument('-s', '--fake-slm', dest='fake_slm',
-                        action='store_true',
-                        help='open SLM on the primary screen even when '
-                             'a secondary screen is present')
+        cam_mutex.add_argument(
+            entry.flag,
+            dest=dest,
+            help=entry.help,
+            action='store_true',
+        )
+    parser.add_argument(
+        'cameraID',
+        nargs='?',
+        type=int,
+        default=0,
+        help='camera ID number (default: %(default)d)',
+    )
+    parser.add_argument(
+        '-s',
+        '--fake-slm',
+        dest='fake_slm',
+        action='store_true',
+        help=(
+            'open SLM on the primary screen even when '
+            'a secondary screen is present'
+        ),
+    )
     return cgh_parser(parser)
 
 
@@ -235,10 +265,16 @@ def choose_slm(parser: ArgumentParser | None = None) -> QSLM:
     '''
     parser = parser or ArgumentParser()
     if '-s' not in parser._option_string_actions:
-        parser.add_argument('-s', '--fake-slm', dest='fake_slm',
-                            action='store_true',
-                            help='open SLM on the primary screen even '
-                                 'when a secondary screen is present')
+        parser.add_argument(
+            '-s',
+            '--fake-slm',
+            dest='fake_slm',
+            action='store_true',
+            help=(
+                'open SLM on the primary screen even '
+                'when a secondary screen is present'
+            ),
+        )
     args, _ = parser.parse_known_args()
     fake = getattr(args, 'fake_slm', False)
     if fake:

@@ -15,8 +15,16 @@ CALIBRATIONS = {
     'offset': dict(xc=20., yc=30., xs=3., ys=-2.),
     'tilted': dict(phis=20.),
     'deep': dict(zc=3., splay=0.02),
-    'everything': dict(thetac=-10., zc=2., splay=0.03, phis=12.,
-                       xs=2., ys=1., xc=28., yc=26.),
+    'everything': dict(
+        thetac=-10.,
+        zc=2.,
+        splay=0.03,
+        phis=12.,
+        xs=2.,
+        ys=1.,
+        xc=28.,
+        yc=26.,
+    ),
 }
 
 
@@ -55,20 +63,33 @@ def patterns():
                        tweezer(40, 30, phase=2., amplitude=0.4)]
     yield 'vortex', [QVortex(r=(30, 24, 0), ell=4, phase=0.3)]
     yield 'ring', [QRingTrap(r=(30, 24, 0), radius=8., ell=3, phase=0.4)]
-    yield 'vortices', [QVortex(r=(10 + 9 * n, 12 + 5 * n, n), ell=2 + n % 3,
-                               phase=0.3 * n, amplitude=1. + 0.2 * n)
-                       for n in range(6)]
-    yield 'group', [group(tweezer(20, 20), tweezer(40, 28, 2.),
-                          QVortex(r=(30, 15, 1), ell=3, phase=0.2))]
-    yield 'nested', [group(group(tweezer(10, 10), tweezer(14, 12, 1.)),
-                           QRingTrap(r=(40, 30, 0), radius=5., ell=2,
-                                     phase=0.5),
-                           r=(30., 20., 0.)),
-                     tweezer(50, 40, 2., 1.2)]
+    yield 'vortices', [
+        QVortex(
+            r=(10 + 9 * n, 12 + 5 * n, n),
+            ell=2 + n % 3,
+            phase=0.3 * n,
+            amplitude=1. + 0.2 * n,
+        )
+        for n in range(6)
+    ]
+    yield 'group', [group(
+        tweezer(20, 20),
+        tweezer(40, 28, 2.),
+        QVortex(r=(30, 15, 1), ell=3, phase=0.2),
+    )]
+    nested = group(
+        group(tweezer(10, 10), tweezer(14, 12, 1.)),
+        QRingTrap(r=(40, 30, 0), radius=5., ell=2, phase=0.5),
+        r=(30., 20., 0.),
+    )
+    yield 'nested', [nested, tweezer(50, 40, 2., 1.2)]
     composite = Composite(r=(32., 24., 0.), amplitude=2.5, phase=0.9)
-    composite.addTrap([tweezer(20, 20), QVortex(r=(40, 28, 0), ell=2,
-                                                phase=1.1)])
+    composite.addTrap([
+        tweezer(20, 20),
+        QVortex(r=(40, 28, 0), ell=2, phase=1.1),
+    ])
     yield 'composite', [composite, tweezer(10, 40, phase=0.2)]
     yield 'composite in group', [group(
         Composite(r=(20., 20., 0.), amplitude=0.5, phase=2.),
-        tweezer(45, 35))]
+        tweezer(45, 35),
+    )]

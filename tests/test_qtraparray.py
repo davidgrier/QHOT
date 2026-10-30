@@ -336,8 +336,11 @@ class TestFuzz(unittest.TestCase):
         xs = sep * (np.arange(3) - 1.)
         ys = sep * (np.arange(3) - 1.)
         grid = np.array([(x, y) for x in xs for y in ys])
-        np.testing.assert_array_almost_equal(np.sort(positions, axis=0),
-                                             np.sort(grid, axis=0), decimal=10)
+        np.testing.assert_array_almost_equal(
+            np.sort(positions, axis=0),
+            np.sort(grid, axis=0),
+            decimal=10,
+        )
 
     def test_fuzz_nonzero_displaces_traps(self):
         # With 25 traps and fuzz=10, all landing exactly on grid is impossible.

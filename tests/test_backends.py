@@ -84,17 +84,25 @@ class TestBackend(unittest.TestCase):
 
     def test_many_traps(self):
         rng = np.random.default_rng(3)
-        traps = [tweezer(rng.uniform(0, 64), rng.uniform(0, 48),
-                         rng.uniform(-3, 3), rng.uniform(0, 6.28))
-                 for _ in range(300)]
+        traps = [
+            tweezer(
+                rng.uniform(0, 64),
+                rng.uniform(0, 48),
+                rng.uniform(-3, 3),
+                rng.uniform(0, 6.28),
+            )
+            for _ in range(300)
+        ]
         self.assertAgrees(self.backend.hologram(specs(traps), self.o),
                           ref.hologram(specs(traps), self.o))
 
     def test_traps_that_share_a_structure_and_those_that_do_not(self):
         same = [QVortex(r=(8 + 7 * n, 10 + 4 * n, 0), ell=3, phase=0.2 * n)
                 for n in range(7)]
-        different = [QVortex(r=(8 + 7 * n, 10 + 4 * n, 0), ell=1 + n,
-                             phase=0.2 * n) for n in range(7)]
+        different = [
+            QVortex(r=(8 + 7 * n, 10 + 4 * n, 0), ell=1 + n, phase=0.2 * n)
+            for n in range(7)
+        ]
         for traps in (same, different):
             self.assertAgrees(self.backend.hologram(specs(traps), self.o),
                               ref.hologram(specs(traps), self.o))
@@ -140,8 +148,11 @@ class TestStructuresAreKeptByValue(unittest.TestCase):
 
     def calls(self, traps, o=None):
         '''Count how often a vortex is asked for its structuring field.'''
-        with patch.object(QVortex, 'structuringField',
-                          wraps=QVortex.structuringField) as made:
+        with patch.object(
+            QVortex,
+            'structuringField',
+            wraps=QVortex.structuringField,
+        ) as made:
             self.backend.hologram(specs(traps), o or self.o)
         return made.call_count
 

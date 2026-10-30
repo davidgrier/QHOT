@@ -46,8 +46,11 @@ class TestFont(unittest.TestCase):
     def test_each_row_fits_in_5_bits(self):
         for ch, rows in _FONT.items():
             for row in rows:
-                self.assertLessEqual(row, 0x1F,
-                                     msg=f'{ch!r} row {row:#04x} > 5 bits')
+                self.assertLessEqual(
+                    row,
+                    0x1F,
+                    msg=f'{ch!r} row {row:#04x} > 5 bits',
+                )
                 self.assertGreaterEqual(row, 0)
 
     def test_space_all_zeros(self):

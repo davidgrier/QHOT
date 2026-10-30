@@ -32,20 +32,30 @@ def describe(trap) -> TrapSpec:
     if isinstance(trap, QTrapGroup):
         weight = (dict(amplitude=trap.amplitude, phase=trap.phase)
                   if trap.composite else {})
-        return TrapSpec(kind=type(trap).__name__,
-                        r=(trap.x, trap.y, trap.z),
-                        children=tuple(describe(c) for c in trap),
-                        isGroup=True, **weight)
-    return TrapSpec(kind=type(trap).__name__, r=(trap.x, trap.y, trap.z),
-                    amplitude=trap.amplitude, phase=trap.phase,
-                    params=params)
+        return TrapSpec(
+            kind=type(trap).__name__,
+            r=(trap.x, trap.y, trap.z),
+            children=tuple(describe(c) for c in trap),
+            isGroup=True,
+            **weight,
+        )
+    return TrapSpec(
+        kind=type(trap).__name__,
+        r=(trap.x, trap.y, trap.z),
+        amplitude=trap.amplitude,
+        phase=trap.phase,
+        params=params,
+    )
 
 
 def make_group():
-    return group(tweezer(20, 20), tweezer(40, 20),
-                 QVortex(r=(30, 30, 0), ell=3, phase=0.7),
-                 QRingTrap(r=(30, 15, 0), radius=5., ell=2, phase=0.2),
-                 r=(30., 24., 0.))
+    return group(
+        tweezer(20, 20),
+        tweezer(40, 20),
+        QVortex(r=(30, 30, 0), ell=3, phase=0.7),
+        QRingTrap(r=(30, 15, 0), radius=5., ell=2, phase=0.2),
+        r=(30., 24., 0.),
+    )
 
 
 class PatternCase(unittest.TestCase):
@@ -214,8 +224,12 @@ class TestGroups(PatternCase):
     def test_break_a_subgroup_out_of_a_nested_group(self):
         self.overlay.removeTrap(self.group)
         inner = group(tweezer(8, 36), tweezer(12, 38), r=(10., 37., 0.))
-        outer = group(inner, tweezer(55, 20, 0., 1.4),
-                      tweezer(58, 24, 0., 0.9), r=(50., 30., 0.))
+        outer = group(
+            inner,
+            tweezer(55, 20, 0., 1.4),
+            tweezer(58, 24, 0., 0.9),
+            r=(50., 30., 0.),
+        )
         self.overlay.addTrap(outer)
         self.check()
         self.assertTrue(self.breakAt(inner.traps[0]))

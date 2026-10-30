@@ -66,8 +66,12 @@ class TestRecordExecution(unittest.TestCase):
         self.dvr.stop.assert_not_called()
 
     def test_recorder_arguments(self):
-        task = Record(dvr=self.dvr, filename='test.mkv', nframes=5,
-                      overwrite=True)
+        task = Record(
+            dvr=self.dvr,
+            filename='test.mkv',
+            nframes=5,
+            overwrite=True,
+        )
         task._start()
         task._step()
         self.dvr.recorder.start.assert_called_once_with(
@@ -191,8 +195,12 @@ class TestRecordSerialization(unittest.TestCase):
         self.assertEqual(Record().to_dict()['type'], 'Record')
 
     def test_to_dict_values(self):
-        d = Record(filename='out.mkv', nframes=60, overwrite=True,
-                   delay=5).to_dict()
+        d = Record(
+            filename='out.mkv',
+            nframes=60,
+            overwrite=True,
+            delay=5,
+        ).to_dict()
         self.assertEqual(d['filename'], 'out.mkv')
         self.assertEqual(d['nframes'], 60)
         self.assertTrue(d['overwrite'])

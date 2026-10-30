@@ -17,28 +17,46 @@ def make_screen():
     return QHOTScreen()
 
 
-def make_press_event(pos, button=QtCore.Qt.MouseButton.LeftButton,
-                     modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
+def make_press_event(
+    pos,
+    button=QtCore.Qt.MouseButton.LeftButton,
+    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseButtonPress,
         QtCore.QPointF(pos),
-        button, button, modifiers)
+        button,
+        button,
+        modifiers,
+    )
 
 
-def make_move_event(pos, button=QtCore.Qt.MouseButton.LeftButton,
-                    modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
+def make_move_event(
+    pos,
+    button=QtCore.Qt.MouseButton.LeftButton,
+    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseMove,
         QtCore.QPointF(pos),
-        QtCore.Qt.MouseButton.NoButton, button, modifiers)
+        QtCore.Qt.MouseButton.NoButton,
+        button,
+        modifiers,
+    )
 
 
-def make_release_event(pos, button=QtCore.Qt.MouseButton.LeftButton,
-                       modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
+def make_release_event(
+    pos,
+    button=QtCore.Qt.MouseButton.LeftButton,
+    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
+):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseButtonRelease,
         QtCore.QPointF(pos),
-        button, QtCore.Qt.MouseButton.NoButton, modifiers)
+        button,
+        QtCore.Qt.MouseButton.NoButton,
+        modifiers,
+    )
 
 
 def make_wheel_event(pos, delta=120):
@@ -89,22 +107,31 @@ class TestMousePressEvent(unittest.TestCase):
 
     def test_delegates_to_overlay(self):
         event = make_press_event(self.pos)
-        with patch.object(self.screen.overlay, 'mousePress',
-                          return_value=True) as mock:
+        with patch.object(
+            self.screen.overlay,
+            'mousePress',
+            return_value=True,
+        ) as mock:
             self.screen.mousePressEvent(event)
             self.assertTrue(mock.called)
 
     def test_accepts_event_when_overlay_handles(self):
         event = make_press_event(self.pos)
-        with patch.object(self.screen.overlay, 'mousePress',
-                          return_value=True):
+        with patch.object(
+            self.screen.overlay,
+            'mousePress',
+            return_value=True,
+        ):
             self.screen.mousePressEvent(event)
             self.assertTrue(event.isAccepted())
 
     def test_propagates_when_overlay_ignores(self):
         event = make_press_event(self.pos)
-        with patch.object(self.screen.overlay, 'mousePress',
-                          return_value=False):
+        with patch.object(
+            self.screen.overlay,
+            'mousePress',
+            return_value=False,
+        ):
             with patch.object(QVideoScreen, 'mousePressEvent') as mock_super:
                 self.screen.mousePressEvent(event)
                 self.assertTrue(mock_super.called)
@@ -118,22 +145,27 @@ class TestMouseMoveEvent(unittest.TestCase):
 
     def test_delegates_to_overlay(self):
         event = make_move_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseMove',
-                          return_value=True) as mock:
+        with patch.object(
+            self.screen.overlay,
+            'mouseMove',
+            return_value=True,
+        ) as mock:
             self.screen.mouseMoveEvent(event)
             self.assertTrue(mock.called)
 
     def test_accepts_event_when_overlay_handles(self):
         event = make_move_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseMove',
-                          return_value=True):
+        with patch.object(self.screen.overlay, 'mouseMove', return_value=True):
             self.screen.mouseMoveEvent(event)
             self.assertTrue(event.isAccepted())
 
     def test_propagates_when_overlay_ignores(self):
         event = make_move_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseMove',
-                          return_value=False):
+        with patch.object(
+            self.screen.overlay,
+            'mouseMove',
+            return_value=False,
+        ):
             with patch.object(QVideoScreen, 'mouseMoveEvent') as mock_super:
                 self.screen.mouseMoveEvent(event)
                 self.assertTrue(mock_super.called)
@@ -147,22 +179,31 @@ class TestMouseReleaseEvent(unittest.TestCase):
 
     def test_delegates_to_overlay(self):
         event = make_release_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseRelease',
-                          return_value=True) as mock:
+        with patch.object(
+            self.screen.overlay,
+            'mouseRelease',
+            return_value=True,
+        ) as mock:
             self.screen.mouseReleaseEvent(event)
             self.assertTrue(mock.called)
 
     def test_accepts_event_when_overlay_handles(self):
         event = make_release_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseRelease',
-                          return_value=True):
+        with patch.object(
+            self.screen.overlay,
+            'mouseRelease',
+            return_value=True,
+        ):
             self.screen.mouseReleaseEvent(event)
             self.assertTrue(event.isAccepted())
 
     def test_propagates_when_overlay_ignores(self):
         event = make_release_event(self.pos)
-        with patch.object(self.screen.overlay, 'mouseRelease',
-                          return_value=False):
+        with patch.object(
+            self.screen.overlay,
+            'mouseRelease',
+            return_value=False,
+        ):
             with patch.object(QVideoScreen, 'mouseReleaseEvent') as mock_super:
                 self.screen.mouseReleaseEvent(event)
                 self.assertTrue(mock_super.called)
@@ -176,22 +217,23 @@ class TestWheelEvent(unittest.TestCase):
 
     def test_delegates_to_overlay(self):
         event = make_wheel_event(self.pos)
-        with patch.object(self.screen.overlay, 'wheel',
-                          return_value=True) as mock:
+        with patch.object(
+            self.screen.overlay,
+            'wheel',
+            return_value=True,
+        ) as mock:
             self.screen.wheelEvent(event)
             self.assertTrue(mock.called)
 
     def test_accepts_event_when_overlay_handles(self):
         event = make_wheel_event(self.pos)
-        with patch.object(self.screen.overlay, 'wheel',
-                          return_value=True):
+        with patch.object(self.screen.overlay, 'wheel', return_value=True):
             self.screen.wheelEvent(event)
             self.assertTrue(event.isAccepted())
 
     def test_propagates_when_overlay_ignores(self):
         event = make_wheel_event(self.pos)
-        with patch.object(self.screen.overlay, 'wheel',
-                          return_value=False):
+        with patch.object(self.screen.overlay, 'wheel', return_value=False):
             with patch.object(QVideoScreen, 'wheelEvent') as mock_super:
                 self.screen.wheelEvent(event)
                 self.assertTrue(mock_super.called)

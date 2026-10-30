@@ -71,6 +71,10 @@
   equations in `.. math::` blocks, and the documentation builds without
   warnings.
 
+- Arguments of definitions and calls are laid out either all on one line or
+  one to a line, with a trailing comma, throughout the code, and a test
+  (`tests/test_style.py`) keeps them so.
+
 ### Removed
 - `TorchCGH` and `cupyCGH` (replaced by `TorchBackend`; a CuPy backend
   will follow), `QTrapSync` and the replicas, the per-trap caches and

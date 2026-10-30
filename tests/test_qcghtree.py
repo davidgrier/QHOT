@@ -157,8 +157,8 @@ class TestUpdateCGH(unittest.TestCase):
 
     def test_non_value_change_ignored(self):
         original = self.cgh.wavelength
-        self.widget.updateCGH(None, [self._make_change('wavelength', 0.532,
-                                                        change='childAdded')])
+        change = self._make_change('wavelength', 0.532, change='childAdded')
+        self.widget.updateCGH(None, [change])
         self.assertEqual(self.cgh.wavelength, original)
 
     def test_unknown_field_logs_warning(self):

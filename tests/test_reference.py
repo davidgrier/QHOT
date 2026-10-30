@@ -145,8 +145,7 @@ class TestTrapSpec(unittest.TestCase):
         b = QVortex(r=(1, 2, 3), ell=4, phase=0.5).spec()
         self.assertEqual(a, b)
         self.assertEqual(hash(a), hash(b))
-        self.assertNotEqual(a, QVortex(r=(1, 2, 3), ell=5,
-                                       phase=0.5).spec())
+        self.assertNotEqual(a, QVortex(r=(1, 2, 3), ell=5, phase=0.5).spec())
 
     def test_group_equality_includes_members(self):
         a = group(tweezer(1, 1)).spec()
@@ -214,8 +213,7 @@ class TestSuperposition(unittest.TestCase):
         self.o = optics(splay=0.03, zc=1.)
         self.members = [tweezer(20, 20, 0.), tweezer(40, 28, 2., phase=1.),
                         QVortex(r=(30, 15, -1.), ell=3, phase=0.2),
-                        QRingTrap(r=(15, 30, 1.), radius=5., ell=2,
-                                  phase=0.9)]
+                        QRingTrap(r=(15, 30, 1.), radius=5., ell=2, phase=0.9)]
 
     def total(self, pattern):
         return sum(ref.field(s, self.o) for s in pattern)

@@ -57,8 +57,11 @@ class TestSnapshotExecution(unittest.TestCase):
         self.assertIs(args[0], self.image)
 
     def test_explicit_filename_passed_to_save(self):
-        task = Snapshot(image=self.image, save=self.save,
-                        filename='/tmp/snap.png')
+        task = Snapshot(
+            image=self.image,
+            save=self.save,
+            filename='/tmp/snap.png',
+        )
         _run(task)
         _, kwargs = self.save.image.call_args
         self.assertEqual(kwargs['filename'], '/tmp/snap.png')

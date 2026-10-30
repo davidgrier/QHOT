@@ -39,18 +39,20 @@ class StartRecording(QTask):
 
     parameters = [
         dict(name='filename', type='str', value='', default=''),
-        dict(name='nframes', type='int', value=10_000,
-             default=10_000, min=10),
+        dict(name='nframes', type='int', value=10_000, default=10_000, min=10),
         dict(name='nskip', type='int', value=1, default=1, min=1),
         dict(name='overwrite', type='bool', value=False, default=False),
     ]
 
-    def __init__(self, *args,
-                 filename: str = '',
-                 nframes: int = 10_000,
-                 nskip: int = 1,
-                 overwrite: bool = False,
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        filename: str = '',
+        nframes: int = 10_000,
+        nskip: int = 1,
+        overwrite: bool = False,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.duration = 0
         self.filename = str(filename)
@@ -59,5 +61,10 @@ class StartRecording(QTask):
         self.overwrite = bool(overwrite)
 
     def initialize(self) -> None:
-        startRecording(self.dvr, self.filename, self.nframes, self.nskip,
-                       self.overwrite)
+        startRecording(
+            self.dvr,
+            self.filename,
+            self.nframes,
+            self.nskip,
+            self.overwrite,
+        )

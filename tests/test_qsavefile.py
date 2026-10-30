@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 from pyqtgraph import ImageItem
-from pyqtgraph.Qt import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
 import importlib as _importlib
 from QHOT.lib.QSaveFile import QSaveFile
@@ -180,46 +180,90 @@ class TestImageWithImageItem(_Base):
 
 class TestImageWithArray(_Base):
 
+    '''An array is saved as it is: the file is read back, not mocked.'''
+
     def setUp(self):
         super().setUp()
-        self.array = np.zeros((10, 10), dtype=np.uint8)
+        self.path = str(self.home / 'out.png')
 
-    def test_calls_make_qimage(self):
-        with patch.object(_qsavefile_mod, 'pg') as mock_pg:
-            self.save.image(self.array, filename='out.png')
-        mock_pg.makeQImage.assert_called_once()
+    def read(self, channels: int) -> np.ndarray:
+        '''Read the file back, a pixel at a time.'''
+        image = QtGui.QImage(self.path)
+        out = np.zeros((image.height(), image.width(), 4), dtype=np.uint8)
+        for y in range(image.height()):
+            for x in range(image.width()):
+                c = image.pixelColor(x, y)
+                out[y, x] = (c.red(), c.green(), c.blue(), c.alpha())
+        return out[..., 0] if channels == 1 else out[..., :channels]
 
-    def test_passes_array_to_make_qimage(self):
-        with patch.object(_qsavefile_mod, 'pg') as mock_pg:
-            self.save.image(self.array, filename='out.png')
-        arg = mock_pg.makeQImage.call_args[0][0]
-        np.testing.assert_array_equal(arg, self.array)
+    def test_a_hologram_is_saved_pixel_for_pixel(self):
+        # the shape and the values of a hologram, not symmetric
+        hologram = (np.arange(48 * 64) % 251).astype(np.uint8).reshape(48, 64)
+        self.save.image(hologram, filename=self.path)
+        back = self.read(1)
+        np.testing.assert_array_equal(back, hologram)
 
-    def test_calls_save_with_filename(self):
-        with patch.object(_qsavefile_mod, 'pg') as mock_pg:
-            self.save.image(self.array, filename='out.png')
-        mock_pg.makeQImage.return_value.save.assert_called_once_with('out.png')
+    def test_the_rows_are_rows_and_the_columns_are_columns(self):
+        hologram = np.zeros((6, 10), dtype=np.uint8)
+        hologram[2, 7] = 200
+        self.save.image(hologram, filename=self.path)
+        back = self.read(1)
+        self.assertEqual(back.shape, (6, 10))
+        self.assertEqual(back[2, 7], 200)
 
-    def test_returns_provided_filename(self):
-        with patch.object(_qsavefile_mod, 'pg'):
-            result = self.save.image(self.array, filename='out.png')
-        self.assertEqual(result, 'out.png')
+    def test_an_rgb_image(self):
+        rgb = np.random.default_rng(1).integers(
+            0, 256, (12, 9, 3), dtype=np.uint8)
+        self.save.image(rgb, filename=self.path)
+        np.testing.assert_array_equal(
+            self.read(3), rgb)
+
+    def test_an_rgba_image(self):
+        rgba = np.random.default_rng(2).integers(
+            0, 256, (12, 9, 4), dtype=np.uint8)
+        self.save.image(rgba, filename=self.path)
+        np.testing.assert_array_equal(
+            self.read(4), rgba)
+
+    def test_an_array_that_is_not_contiguous(self):
+        hologram = np.arange(40 * 40, dtype=np.uint8).reshape(40, 40)[::2, ::3]
+        self.save.image(hologram, filename=self.path)
+        back = self.read(1)
+        np.testing.assert_array_equal(back, hologram)
+
+    def test_pixels_that_are_not_8_bit_are_refused(self):
+        with self.assertRaises(ValueError):
+            self.save.image(np.zeros((4, 4), dtype=np.float64),
+                            filename=self.path)
+
+    def test_a_shape_that_is_not_an_image_is_refused(self):
+        for shape in ((4,), (4, 4, 2), (2, 2, 2, 3)):
+            with self.subTest(shape), self.assertRaises(ValueError):
+                self.save.image(np.zeros(shape, dtype=np.uint8),
+                                filename=self.path)
+
+    def test_a_file_that_cannot_be_written_is_an_error(self):
+        missing = str(self.home / 'no' / 'such' / 'directory' / 'out.png')
+        with self.assertRaises(OSError):
+            self.save.image(np.zeros((4, 4), dtype=np.uint8),
+                            filename=missing)
+
+    def test_returns_the_filename(self):
+        result = self.save.image(np.zeros((4, 4), dtype=np.uint8),
+                                 filename=self.path)
+        self.assertEqual(result, self.path)
 
     def test_auto_generates_filename_when_none(self):
-        with patch.object(_qsavefile_mod, 'pg'):
-            result = self.save.image(self.array)
+        result = self.save.image(np.zeros((4, 4), dtype=np.uint8))
         self.assertTrue(result.endswith('.png'))
         self.assertIn(str(self.save.datadir), result)
+        self.assertTrue(Path(result).exists())
 
     def test_custom_prefix_in_auto_filename(self):
-        with patch.object(_qsavefile_mod, 'pg'):
-            result = self.save.image(self.array, prefix='hologram')
+        result = self.save.image(np.zeros((4, 4), dtype=np.uint8),
+                                 prefix='hologram')
         self.assertIn('hologram', Path(result).name)
 
-
-# ---------------------------------------------------------------------------
-# imageAs()
-# ---------------------------------------------------------------------------
 
 class TestImageAs(_Base):
 

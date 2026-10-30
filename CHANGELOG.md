@@ -47,6 +47,11 @@
   and stale `noqa` comments.
 
 ### Fixed
+- Save Hologram and Save Hologram As wrote nothing: the conversion of the
+  hologram to an image failed, and the error appeared nowhere but in the
+  terminal.  An array of 8-bit pixels is now written as it is, and a file
+  that cannot be written is an `OSError`.  Tests save through every item of
+  the File menu and read the files back.
 - A task that was queued from the Queue menu was not given the file helper,
   so `SaveTraps` had nothing to save with.  The manager now gives every
   task that it takes (`register`, `load` and `inject`) the resources that

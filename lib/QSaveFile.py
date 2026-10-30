@@ -1,7 +1,6 @@
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph import ImageItem
 from pyqtgraph.exporters import ImageExporter
-import pyqtgraph as pg
 from pathlib import Path
 from datetime import datetime
 import numpy as np
@@ -101,8 +100,10 @@ class QSaveFile(QtCore.QObject):
         '''Save image data to a file.
 
         Accepts either a pyqtgraph ``ImageItem`` (exported via
-        ``ImageExporter``) or a raw numpy array (saved via
-        ``pg.makeQImage``).
+        ``ImageExporter``) or an array of 8-bit pixels in row-major
+        order, such as a hologram: ``(height, width)`` for gray,
+        ``(height, width, 3)`` for RGB or ``(height, width, 4)`` for
+        RGBA.
 
         Parameters
         ----------
@@ -118,13 +119,40 @@ class QSaveFile(QtCore.QObject):
         -------
         str
             Path of the file that was written.
+
+        Raises
+        ------
+        ValueError
+            If an array is not ``uint8`` of one of the shapes above.
+        OSError
+            If the file cannot be written.
         '''
         filename = filename or self.filename(prefix=prefix, suffix='.png')
         if isinstance(data, ImageItem):
             ImageExporter(data).export(filename)
-        else:
-            pg.makeQImage(np.asarray(data)).save(filename)
+        elif not self._qimage(data).save(filename):
+            raise OSError(f'could not write {filename}')
         return filename
+
+    @staticmethod
+    def _qimage(data: npt.NDArray) -> QtGui.QImage:
+        '''Return a ``QImage`` of an array of 8-bit pixels (row-major).'''
+        array = np.asarray(data)
+        formats = QtGui.QImage.Format
+        if array.dtype != np.uint8:
+            raise ValueError(f'an image has 8-bit pixels, not {array.dtype}')
+        if array.ndim == 2:
+            fmt = formats.Format_Grayscale8
+        elif array.ndim == 3 and array.shape[2] == 3:
+            fmt = formats.Format_RGB888
+        elif array.ndim == 3 and array.shape[2] == 4:
+            fmt = formats.Format_RGBA8888
+        else:
+            raise ValueError(f'an image cannot have the shape {array.shape}')
+        array = np.ascontiguousarray(array)
+        height, width = array.shape[:2]
+        image = QtGui.QImage(array.data, width, height, array.strides[0], fmt)
+        return image.copy()             # the copy owns its pixels
 
     def imageAs(self,
                 data: ImageItem | npt.NDArray,

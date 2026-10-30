@@ -5,6 +5,7 @@ the user does to the traps must show up in the hologram that is made for
 the SLM, which is compared here with the algorithm in ``reference``.
 '''
 import importlib
+import json
 import sys
 import tempfile
 import unittest
@@ -12,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtTest, QtWidgets
+from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
 from QVideo.cameras import chooser
 
 from QHOT.lib.holograms import reference as ref
@@ -37,6 +38,7 @@ class Window:
     '''A window that is built once, without touching the user's files.'''
 
     window = None
+    tree = None
     camera = None
     home = None
 
@@ -51,14 +53,16 @@ class Window:
                 patch.object(Path, 'home', return_value=Path(cls.home.name)), \
                 patch.object(sys, 'argv', ['qhot']):   # not pytest's flags
             key, cls.camera = chooser.open_camera()
-            tree = chooser.make_tree(key, cls.camera)
-            cls.window = qhot.QHOT(tree)       # its own SLM and CGH
+            cls.tree = chooser.make_tree(key, cls.camera).start()   # as main()
+            cls.window = qhot.QHOT(cls.tree)    # its own SLM and CGH
             cls.window.ready = QtTest.QSignalSpy(cls.window.cgh.hologramReady)
+        wait_for(lambda: cls.window.screen.image.image is not None)
 
     @classmethod
     def close(cls) -> None:
         with patch.object(qhot.QHOT, 'saveSettings'):
             cls.window.close()
+        cls.tree.stop()               # before the camera goes away
         cls.camera.close()
         cls.home.cleanup()
 
@@ -213,6 +217,109 @@ class TestTheWindow(WindowCase):
         self.assertIn(trap, traps._trapWidgets)
         self.overlay.removeTrap(trap)
         self.assertNotIn(trap, traps._trapWidgets)
+
+
+class TestTheFileMenu(WindowCase):
+
+    '''The actions of the File menu write and read the files that they name.'''
+
+    def setUp(self):
+        super().setUp()
+        self.data = Path(Window.home.name) / 'data'
+        for path in self.data.glob('*'):
+            path.unlink()
+        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(90., 70.)))
+
+    def files(self):
+        return sorted(self.data.glob('*'))
+
+    def trigger(self, action, dialog=None, name=None):
+        '''Trigger an action, answering the file dialog with ``name``.'''
+        before = set(self.files())
+        answer = (str(self.data / name), '') if name else ('', '')
+        dialog = dialog or 'getSaveFileName'
+        with patch.object(QtWidgets.QFileDialog, dialog, return_value=answer):
+            getattr(self.window, action).trigger()
+        QtTest.QTest.qWait(50)
+        return sorted(set(self.files()) - before)
+
+    def pixels(self, path) -> np.ndarray:
+        image = QtGui.QImage(str(path))
+        rows = range(image.height())
+        columns = range(image.width())
+        return np.array([[QtGui.qGray(image.pixel(x, y)) for x in columns]
+                         for y in rows])
+
+    def test_save_traps(self):
+        (path,) = self.trigger('actionSaveTraps')
+        self.assertEqual(path.suffix, '.json')
+        self.assertEqual(json.loads(path.read_text()), self.overlay.toList())
+        self.assertIn(path.name, self.window.statusBar().currentMessage())
+
+    def test_save_traps_again_goes_to_the_same_file(self):
+        (path,) = self.trigger('actionSaveTrapsAs', name='mine.json')
+        self.overlay.clearTraps()
+        self.assertEqual(self.trigger('actionSaveTraps'), [])    # no new file
+        self.assertEqual(json.loads(path.read_text()), [])
+
+    def test_save_traps_as(self):
+        (path,) = self.trigger('actionSaveTrapsAs', name='chosen.json')
+        self.assertEqual(path.name, 'chosen.json')
+        self.assertEqual(len(json.loads(path.read_text())), 2)
+
+    def test_open_traps(self):
+        (path,) = self.trigger('actionSaveTrapsAs', name='chosen.json')
+        saved = self.overlay.toList()
+        self.overlay.clearTraps()
+        self.assertEqual(self.overlay.pattern(), ())
+        self.trigger('actionOpenTraps', 'getOpenFileName', 'chosen.json')
+        self.assertEqual(self.overlay.toList(), saved)
+        self.assertIn('chosen.json', self.window.statusBar().currentMessage())
+
+    def test_a_canceled_dialog_changes_nothing(self):
+        self.assertEqual(self.trigger('actionSaveTrapsAs'), [])
+        self.assertIn('canceled', self.window.statusBar().currentMessage())
+        before = self.overlay.toList()
+        self.trigger('actionOpenTraps', 'getOpenFileName')
+        self.assertEqual(self.overlay.toList(), before)
+
+    def test_save_the_queue_and_open_it_again(self):
+        self.window.manager.clear()
+        self.window.menuQueue._onTaskSelected('Delay')
+        self.window.menuQueue._onTaskSelected('ClearTraps')
+        (path,) = self.trigger('actionSaveQueueAs', name='queue.json')
+        saved = json.loads(path.read_text())
+        self.assertEqual([d['type'] for d in saved], ['Delay', 'ClearTraps'])
+        self.window.manager.clear()
+        self.trigger('actionOpenQueue', 'getOpenFileName', 'queue.json')
+        self.assertEqual(self.window.manager.toList(), saved)
+        self.assertTrue(self.window.manager.paused)  # look before it runs
+        self.window.manager.clear()
+
+    def test_save_the_image(self):
+        (path,) = self.trigger('actionSaveImage')
+        self.assertEqual(path.suffix, '.png')
+        image = QtGui.QImage(str(path))
+        self.assertEqual((image.width(), image.height()),
+                         self.window.screen.image.image.shape[:2][::-1])
+
+    def test_save_the_image_as(self):
+        (path,) = self.trigger('actionSaveImageAs', name='frame.png')
+        self.assertEqual(path.name, 'frame.png')
+        self.assertFalse(QtGui.QImage(str(path)).isNull())
+
+    def test_save_the_hologram(self):
+        (path,) = self.trigger('actionSaveHologram')
+        self.assertIn('hologram', path.name)
+        np.testing.assert_array_equal(self.pixels(path),
+                                      self.window.slm.data)
+
+    def test_save_the_hologram_as(self):
+        (path,) = self.trigger('actionSaveHologramAs', name='holo.png')
+        self.assertEqual(path.name, 'holo.png')
+        np.testing.assert_array_equal(self.pixels(path),
+                                      self.window.slm.data)
 
 
 if __name__ == '__main__':

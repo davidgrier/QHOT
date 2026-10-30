@@ -204,12 +204,12 @@ class QHOT(QtWidgets.QMainWindow):
             try:
                 trap.changed.disconnect(self._scheduleCompute)
             except (TypeError, RuntimeError):
-                logger.debug('could not disconnect changed from %r', trap)
+                logger.debug(f'could not disconnect changed from {trap!r}')
         for leaf in trap.leaves():
             try:
                 leaf.changed.disconnect(self._scheduleCompute)
             except (TypeError, RuntimeError):
-                logger.debug('could not disconnect changed from %r', leaf)
+                logger.debug(f'could not disconnect changed from {leaf!r}')
             if hasattr(leaf, 'structureChanged'):
                 try:
                     leaf.structureChanged.disconnect(self._scheduleCompute)

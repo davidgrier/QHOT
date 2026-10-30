@@ -318,6 +318,6 @@ class QTask(QtCore.QObject):
         self.finished.emit()
 
     def _fail(self, reason: str) -> None:
-        logger.error(f'{type(self).__name__} failed: {reason}')
+        logger.exception(f'{type(self).__name__} failed: {reason}')
         self._state = self.State.FAILED
         self.failed.emit(reason)

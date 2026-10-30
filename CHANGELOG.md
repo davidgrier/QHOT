@@ -12,6 +12,8 @@
   immutable (a tuple) or annotated `ClassVar`.
 
 ### Changed
+- Failures of a task or of the hologram computation are logged with their
+  traceback.
 - `QTrapOverlay.undoStack` is public, and `Repeat` uses
   `QTaskManager.scheduled`, so neither reaches into private attributes.
 - `ruff` also enforces single quotes, class attributes, quoted annotations

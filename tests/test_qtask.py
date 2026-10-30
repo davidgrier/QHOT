@@ -324,6 +324,15 @@ class TestQTaskSignals(unittest.TestCase):
         self.assertEqual(len(spy), 1)
         self.assertIn('proc error', spy[0][0])
 
+    def test_the_traceback_of_a_failure_is_logged(self):
+        task = QTask()
+        task.process = MagicMock(side_effect=ValueError('proc error'))
+        task._start()
+        with self.assertLogs('QHOT.lib.tasks.QTask', level='ERROR') as logs:
+            task._step()   # initialize (ok), then process -> exception
+        self.assertIsNotNone(logs.records[0].exc_info)
+        self.assertIn('proc error', str(logs.records[0].exc_info[1]))
+
     def test_failed_emitted_on_complete_exception(self):
         task = QTask(duration=1)
         task.complete = MagicMock(

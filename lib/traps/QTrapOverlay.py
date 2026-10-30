@@ -314,7 +314,7 @@ class QTrapOverlay(ScatterPlotItem):
             try:
                 t.changed.disconnect(self._onTrapChanged)
             except (TypeError, RuntimeError):
-                logger.debug('could not disconnect changed from %r', t)
+                logger.debug(f'could not disconnect changed from {t!r}')
             if t in self._traps:
                 self._traps.remove(t)
             t._index = None

@@ -499,6 +499,15 @@ class TestFailure(PipelineCase):
         self.assertEqual(self.failed[0][0], 'no hologram today')
         self.assertEqual(len(self.ready), 0)
 
+    def test_the_traceback_of_a_failure_is_logged(self):
+        cgh = self.make(SlowBackend(delay=0.01, fail=1)).start()
+        with self.assertLogs('QHOT.lib.holograms.QHologramWorker',
+                             level='ERROR') as logs:
+            cgh.compute(self.pattern(10))
+            wait_for(self.failed, 1)
+        self.assertIsNotNone(logs.records[0].exc_info)
+        self.assertIn('no hologram today', str(logs.records[0].exc_info[1]))
+
     def test_a_failure_does_not_block_the_next_request(self):
         cgh = self.make(SlowBackend(delay=0.01, fail=1)).start()
         cgh.compute(self.pattern(10))

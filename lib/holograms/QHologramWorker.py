@@ -60,7 +60,7 @@ class QHologramWorker(QtCore.QObject):
         try:
             hologram = self.backend.hologram(pattern, optics)
         except Exception as ex:
-            logger.error(f'hologram computation failed: {ex}')
+            logger.exception('hologram computation failed')
             self.failed.emit(str(ex))
             return
         self.done.emit(hologram)

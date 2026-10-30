@@ -10,8 +10,6 @@ class ClearTraps(QTask):
 
     Parameters
     ----------
-    overlay : QTrapOverlay
-        The trap overlay to clear.  Required.
     **kwargs
         Forwarded to ``QTask``.
 

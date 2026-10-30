@@ -7,7 +7,9 @@ from typing import ClassVar
 
 from qtpy import QtCore
 
+from pyqtgraph import ImageItem
 from QVideo.dvr import QDVRWidget
+from QHOT.lib.QSaveFile import QSaveFile
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QHOT.lib.holograms.CGH import CGH
 
@@ -47,15 +49,25 @@ class QTask(QtCore.QObject):
         after ``initialize()`` when ``duration == 0``.  Use it to
         release resources or store results for the next task.
 
+    Attributes
+    ----------
+    overlay : QTrapOverlay
+        The trap overlay.
+    cgh : CGH
+        The hologram computation engine.
+    dvr : QDVRWidget
+        The video recorder.
+    save : QSaveFile
+        The file helper.
+    image : ImageItem
+        The live video image.
+
+    The resources that a task works with are given to it by the
+    :class:`~QHOT.lib.tasks.QTaskManager.QTaskManager` that takes it,
+    and do not exist before: a task works only as a part of the program.
+
     Parameters
     ----------
-    overlay, cgh, dvr, save, image
-        The resources that a task works with: the trap overlay, the
-        hologram engine, the video recorder, the file helper and the
-        live video image.  A task is given the ones that it lacks by
-        the :class:`~QHOT.lib.tasks.QTaskManager.QTaskManager` that
-        takes it, so a task need not be given any; one that is given
-        explicitly is kept.
     delay : int
         Number of rendered frames to skip before ``initialize()``
         is called.  Default: 0.
@@ -107,26 +119,22 @@ class QTask(QtCore.QObject):
     #: ``dict(name='filename', type='str', value='')``.
     parameters: ClassVar[Sequence[dict]] = ()
 
+    overlay: QTrapOverlay
+    cgh: CGH
+    dvr: QDVRWidget
+    save: QSaveFile
+    image: ImageItem
+
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
         QTask._registry[cls.__name__] = cls
 
     def __init__(self,
-                 overlay: QTrapOverlay | None = None,
                  *,
-                 cgh: CGH | None = None,
-                 dvr: QDVRWidget | None = None,
-                 save=None,
-                 image=None,
                  delay: int = 0,
                  duration: int | None = None,
                  parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
-        self.overlay = overlay
-        self.cgh = cgh
-        self.dvr = dvr
-        self.save = save
-        self.image = image
         self.delay = int(delay)
         self.duration = (int(duration)
                          if duration is not None else None)

@@ -32,11 +32,10 @@ class QHOT(QtWidgets.QMainWindow):
     ----------
     cameraTree : QCameraTree
         Configured camera tree providing the live video source.
-    slm : QSLM or None
-        SLM display window.  Created automatically if not provided.
-    cgh : CGH or None
-        Hologram computation engine.  If not provided, a default
-        ``CGH`` is created using ``slm.shape``.
+    slm : QSLM
+        The SLM display window.
+    cgh : CGH
+        The hologram computation engine, with the shape of the SLM.
     *args, **kwargs
         Forwarded to ``QMainWindow``.
 
@@ -54,14 +53,14 @@ class QHOT(QtWidgets.QMainWindow):
     def __init__(self,
                  cameraTree: QCameraTree,
                  *args,
-                 slm: QSLM | None = None,
-                 cgh: CGH | None = None,
+                 slm: QSLM,
+                 cgh: CGH,
                  **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.cameraTree = cameraTree
         self.source = self.cameraTree.source
-        self.slm = slm or QSLM()
-        self.cgh = cgh or CGH(shape=self.slm.shape)
+        self.slm = slm
+        self.cgh = cgh
         self._setupUi()
         self._connectSignals()
         self._addFilters()

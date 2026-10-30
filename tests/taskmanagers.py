@@ -15,6 +15,13 @@ class Screen(QtCore.QObject):
     rendered = QtCore.Signal()
 
 
+def attached(task, **resources):
+    '''Give a task resources, as the manager that takes it would.'''
+    for name, resource in resources.items():
+        setattr(task, name, resource)
+    return task
+
+
 def manager_for(screen, **resources) -> QTaskManager:
     '''Return a task manager that steps whenever ``screen`` has rendered.
 

@@ -21,9 +21,9 @@ class SaveTraps(QTask):
     --------
     Assemble a configuration, save it, then start recording::
 
-        manager.register(MoveTraps(overlay=overlay, dy=-50.))
+        manager.register(MoveTraps(dy=-50.))
         manager.register(SaveTraps())
-        manager.register(Record(dvr=dvr, nframes=300), blocking=False)
+        manager.register(Record(nframes=300), blocking=False)
     '''
 
     parameters = (

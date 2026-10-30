@@ -6,6 +6,11 @@ from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -15,24 +20,13 @@ class TestQTaskInit(unittest.TestCase):
         self.overlay = MagicMock()
 
     def test_initial_state_is_pending(self):
-        task = QTask(self.overlay)
+        task = QTask()
         self.assertEqual(task.state, QTask.State.PENDING)
 
-    def test_overlay_stored(self):
-        task = QTask(self.overlay)
-        self.assertIs(task.overlay, self.overlay)
-
-    def test_overlay_defaults_to_none(self):
+    def test_a_task_has_no_resources_until_a_manager_takes_it(self):
         task = QTask()
-        self.assertIsNone(task.overlay)
-
-    def test_cgh_default_none(self):
-        task = QTask()
-        self.assertIsNone(task.cgh)
-
-    def test_dvr_default_none(self):
-        task = QTask()
-        self.assertIsNone(task.dvr)
+        for name in ('overlay', 'cgh', 'dvr', 'save', 'image'):
+            self.assertFalse(hasattr(task, name), name)
 
     def test_delay_default_zero(self):
         task = QTask()
@@ -45,11 +39,6 @@ class TestQTaskInit(unittest.TestCase):
     def test_previous_default_none(self):
         task = QTask()
         self.assertIsNone(task.previous)
-
-    def test_cgh_stored(self):
-        cgh = MagicMock()
-        task = QTask(cgh=cgh)
-        self.assertIs(task.cgh, cgh)
 
     def test_delay_stored(self):
         task = QTask(delay=3)

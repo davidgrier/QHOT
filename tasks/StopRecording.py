@@ -12,14 +12,12 @@ class StopRecording(QTask):
 
     Typically registered as a blocking task that returns immediately.
 
-        manager.register(StartRecording(dvr=dvr, nframes=300))
+        manager.register(StartRecording(nframes=300))
         manager.register(Move(overlay, trap, target))
-        manager.register(StopRecording(dvr=dvr))
+        manager.register(StopRecording())
 
     Parameters
     ----------
-    dvr : QDVRWidget
-        The video recorder.  Required to run the task.
     **kwargs
         Forwarded to ``QTask`` (e.g. ``delay``).
     '''

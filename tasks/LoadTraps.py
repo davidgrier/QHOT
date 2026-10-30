@@ -26,7 +26,7 @@ class LoadTraps(QTask):
     Load a saved configuration and begin recording::
 
         manager.register(LoadTraps(filename='/data/traps_20260326.json'))
-        manager.register(Record(dvr=dvr, nframes=300), blocking=False)
+        manager.register(Record(nframes=300), blocking=False)
     '''
 
     parameters = (

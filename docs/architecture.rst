@@ -198,8 +198,8 @@ separate execution channels:
   in parallel with the blocking queue until they finish or are stopped.
   Register with ``blocking=False``::
 
-      manager.register(Record(dvr=dvr, nframes=300), blocking=False)
-      manager.register(Move(overlay, trap, target))
+      manager.register(Record(nframes=300), blocking=False)
+      manager.register(Move(x=320., y=240.))
 
 If a blocking task fails, the remaining pending tasks are cleared and
 logged.  Background tasks fail independently without affecting the
@@ -210,8 +210,8 @@ that repeat an arbitrary sub-sequence of the blocking queue a
 configurable number of times::
 
     manager.register(BeginRepeat())
-    manager.register(Move(overlay, trap, target))
-    manager.register(SaveTraps(overlay=overlay, path='frame.json'))
+    manager.register(Move(x=320., y=240.))
+    manager.register(SaveTraps(filename='frame.json'))
     manager.register(Repeat(n=10))
 
 When ``Repeat`` runs, it scans the schedule backwards to find its

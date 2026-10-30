@@ -8,6 +8,11 @@ from pyqtgraph.Qt import QtWidgets, QtTest
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.MoveTraps import MoveTraps
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -149,7 +154,7 @@ class TestMoveTrapsExecution(unittest.TestCase):
             task._step()
 
     def test_initialize_records_start_positions(self):
-        task = MoveTraps(overlay=self.overlay, dx=5.)
+        task = attached(MoveTraps(dx=5.), overlay=self.overlay)
         task._start()
         task._step()          # calls initialize then process(0)
         self.assertIn(self.trap, task._starts)
@@ -157,13 +162,16 @@ class TestMoveTrapsExecution(unittest.TestCase):
             task._starts[self.trap], [10., 20., 0.])
 
     def test_final_position_equals_r0_plus_displacement(self):
-        task = MoveTraps(overlay=self.overlay, dx=5., dy=-3., dz=2., step=1.)
+        task = attached(
+            MoveTraps(dx=5., dy=-3., dz=2., step=1.),
+            overlay=self.overlay,
+        )
         self._run(task)
         np.testing.assert_array_almost_equal(
             self.trap._r, [15., 17., 2.])
 
     def test_position_interpolates_linearly(self):
-        task = MoveTraps(overlay=self.overlay, dx=10., step=5.)
+        task = attached(MoveTraps(dx=10., step=5.), overlay=self.overlay)
         # duration = 2 frames; after frame 0 t=0.5, after frame 1 t=1.0
         task._start()
         task._step()          # initialize + process(0): t = 1/2
@@ -177,29 +185,29 @@ class TestMoveTrapsExecution(unittest.TestCase):
         t1 = FakeTrap(r=(0., 0., 0.))
         t2 = FakeTrap(r=(10., 10., 0.))
         overlay = FakeOverlay(t1, t2)
-        task = MoveTraps(overlay=overlay, dx=5., step=5.)
+        task = attached(MoveTraps(dx=5., step=5.), overlay=overlay)
         self._run(task)
         np.testing.assert_array_almost_equal(t1._r, [5., 0., 0.])
         np.testing.assert_array_almost_equal(t2._r, [15., 10., 0.])
 
     def test_empty_overlay_does_not_raise(self):
-        task = MoveTraps(overlay=FakeOverlay(), dx=5.)
+        task = attached(MoveTraps(dx=5.), overlay=FakeOverlay())
         self._run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
     def test_completes_after_duration_frames(self):
-        task = MoveTraps(overlay=self.overlay, dx=10., step=2.)
+        task = attached(MoveTraps(dx=10., step=2.), overlay=self.overlay)
         self._run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
     def test_zero_displacement_completes_without_moving(self):
-        task = MoveTraps(overlay=self.overlay, dx=0., dy=0., dz=0.)
+        task = attached(MoveTraps(dx=0., dy=0., dz=0.), overlay=self.overlay)
         r_before = self.trap._r.copy()
         self._run(task)
         np.testing.assert_array_equal(self.trap._r, r_before)
 
     def test_finished_signal_emitted(self):
-        task = MoveTraps(overlay=self.overlay, dx=5., step=5.)
+        task = attached(MoveTraps(dx=5., step=5.), overlay=self.overlay)
         spy = QtTest.QSignalSpy(task.finished)
         self._run(task)
         self.assertEqual(len(spy), 1)
@@ -245,7 +253,10 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
 
     def test_selected_only_false_moves_all_traps(self):
         overlay = FakeOverlay(self.t1, self.t2)
-        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=False)
+        task = attached(
+            MoveTraps(dx=5., step=5., selected_only=False),
+            overlay=overlay,
+        )
         self._run(task)
         np.testing.assert_array_almost_equal(self.t1._r, [5., 0., 0.])
         np.testing.assert_array_almost_equal(self.t2._r, [15., 10., 0.])
@@ -253,7 +264,10 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
     def test_selected_only_true_moves_only_marked_traps(self):
         overlay = FakeOverlay(self.t1, self.t2)
         overlay.marked = [self.t1]     # only t1 is marked
-        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=True)
+        task = attached(
+            MoveTraps(dx=5., step=5., selected_only=True),
+            overlay=overlay,
+        )
         self._run(task)
         np.testing.assert_array_almost_equal(self.t1._r, [5., 0., 0.])
         np.testing.assert_array_almost_equal(self.t2._r, [10., 10., 0.])
@@ -261,7 +275,10 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
     def test_selected_only_true_empty_marked_moves_nothing(self):
         overlay = FakeOverlay(self.t1, self.t2)
         overlay.marked = []
-        task = MoveTraps(overlay=overlay, dx=5., step=5., selected_only=True)
+        task = attached(
+            MoveTraps(dx=5., step=5., selected_only=True),
+            overlay=overlay,
+        )
         self._run(task)
         np.testing.assert_array_equal(self.t1._r, [0., 0., 0.])
         np.testing.assert_array_equal(self.t2._r, [10., 10., 0.])

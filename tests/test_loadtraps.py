@@ -9,6 +9,11 @@ from pyqtgraph.Qt import QtWidgets
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.LoadTraps import LoadTraps
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -48,22 +53,28 @@ class TestLoadTrapsExecution(unittest.TestCase):
         self.tmp.close()
 
     def test_from_list_called_with_file_contents(self):
-        task = LoadTraps(overlay=self.overlay, filename=self.tmp.name)
+        task = attached(
+            LoadTraps(filename=self.tmp.name),
+            overlay=self.overlay,
+        )
         _run(task)
         self.overlay.fromList.assert_called_once_with(self.trap_data)
 
     def test_empty_filename_does_not_call_from_list(self):
-        task = LoadTraps(overlay=self.overlay, filename='')
+        task = attached(LoadTraps(filename=''), overlay=self.overlay)
         _run(task)
         self.overlay.fromList.assert_not_called()
 
     def test_empty_filename_still_completes(self):
-        task = LoadTraps(overlay=self.overlay, filename='')
+        task = attached(LoadTraps(filename=''), overlay=self.overlay)
         _run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
     def test_completes_after_one_step(self):
-        task = LoadTraps(overlay=self.overlay, filename=self.tmp.name)
+        task = attached(
+            LoadTraps(filename=self.tmp.name),
+            overlay=self.overlay,
+        )
         _run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 

@@ -24,8 +24,6 @@ class AddTweezer(QTask):
         Horizontal position [pixels].  Defaults to ``cgh.xc``.
     y : float or None
         Vertical position [pixels].  Defaults to ``cgh.yc``.
-    overlay : QTrapOverlay
-        The trap overlay.  Required.
     **kwargs
         Forwarded to ``QTask``.
 
@@ -33,9 +31,9 @@ class AddTweezer(QTask):
     --------
     Clear all traps, wait 60 frames, then add a tweezer at center::
 
-        manager.register(ClearTraps(overlay=overlay))
+        manager.register(ClearTraps())
         manager.register(Delay(60))
-        manager.register(AddTweezer(overlay=overlay, cgh=cgh))
+        manager.register(AddTweezer())
     '''
 
     parameters = (

@@ -19,9 +19,9 @@ class Delay(QTask):
     --------
     Record for 60 frames, wait 30 frames, then record again::
 
-        manager.register(Record(dvr=dvr, nframes=60))
+        manager.register(Record(nframes=60))
         manager.register(Delay(30))
-        manager.register(Record(dvr=dvr, nframes=60))
+        manager.register(Record(nframes=60))
     '''
 
     parameters = (

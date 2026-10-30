@@ -16,7 +16,7 @@ from QVideo.dvr import QDVRWidget
 __all__ = ['startRecording']
 
 
-def startRecording(dvr: QDVRWidget | None,
+def startRecording(dvr: QDVRWidget,
                    filename: str,
                    nframes: int,
                    nskip: int = 1,
@@ -25,7 +25,7 @@ def startRecording(dvr: QDVRWidget | None,
 
     Parameters
     ----------
-    dvr : QDVRWidget or None
+    dvr : QDVRWidget
         The video recorder.
     filename : str
         The file to write.  If empty, the file name that the DVR widget
@@ -41,15 +41,13 @@ def startRecording(dvr: QDVRWidget | None,
     Raises
     ------
     RuntimeError
-        If there is no recorder, no source to record, a video is playing,
+        If there is no source to record, a video is playing,
         or a recording is already running.
     ValueError
         If the extension of the file is not one that can be written.
     FileExistsError
         If the file exists and *overwrite* is ``False``.
     '''
-    if dvr is None:
-        raise RuntimeError('there is no video recorder')
     if dvr.isPlaying():
         raise RuntimeError('cannot record while a video is playing')
     path = filename or dvr.filename

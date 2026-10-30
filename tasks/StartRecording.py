@@ -18,13 +18,11 @@ class StartRecording(QTask):
 
     Typically registered as a blocking task that returns immediately.
 
-        manager.register(StartRecording(dvr=dvr, nframes=300))
+        manager.register(StartRecording(nframes=300))
         manager.register(Move(overlay, trap, target))
 
     Parameters
     ----------
-    dvr : QDVRWidget
-        The video recorder.  Required to run the task.
     filename : str
         File to record to.  If empty (default), the file name that the DVR
         widget shows is used.

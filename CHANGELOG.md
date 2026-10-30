@@ -16,6 +16,10 @@
   slot `step()`, and the window connects `screen.rendered` to it.
 - `QueueMenu` no longer has `overlay`, `cgh` and `dvr`: it needs only the
   manager.
+- A task no longer takes `overlay`, `cgh`, `dvr`, `save` or `image` when it
+  is made: it has them when the manager takes it, and not before.
+  `QHOT` takes its `slm` and `cgh`, both required, as `main()` gives them,
+  and `startRecording` no longer checks for a missing recorder.
 - The `parameters` of a task, and the tables of a trap overlay, are
   immutable (a tuple) or annotated `ClassVar`.
 

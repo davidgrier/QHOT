@@ -8,9 +8,9 @@ from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 
 try:
-    from taskmanagers import RESOURCES, Screen, manager_for
+    from taskmanagers import RESOURCES, Screen, manager_for, attached
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import RESOURCES, Screen, manager_for
+    from tests.taskmanagers import RESOURCES, Screen, manager_for, attached
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -165,12 +165,6 @@ class TestQTaskManagerResources(unittest.TestCase):
         task = QTask()
         self.manager.inject([task])
         self.assertHasAll(task)
-
-    def test_a_resource_that_a_task_was_given_is_its_own(self):
-        mine = MagicMock()
-        task = self.manager.register(QTask(overlay=mine))
-        self.assertIs(task.overlay, mine)
-        self.assertIs(task.cgh, self.resources['cgh'])
 
     def test_step_advances_the_tasks_when_it_is_called(self):
         task = QTask(duration=3)

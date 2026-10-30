@@ -23,13 +23,11 @@ class Record(QTask):
     Typically registered as a non-blocking (background) task so that
     trap-manipulation tasks proceed in parallel::
 
-        manager.register(Record(dvr=dvr, nframes=300), blocking=False)
+        manager.register(Record(nframes=300), blocking=False)
         manager.register(Move(overlay, trap, target))
 
     Parameters
     ----------
-    dvr : QDVRWidget
-        The video recorder.  Required to run the task.
     filename : str
         File to record to.  If ``''`` (default), the file name that the
         DVR widget shows is used.

@@ -37,7 +37,7 @@ class Move(QTask):
     --------
     Mark a trap with Ctrl+click, then move it to pixel (320, 240)::
 
-        manager.register(Move(overlay=overlay, x=320., y=240.))
+        manager.register(Move(x=320., y=240.))
     '''
 
     parameters = (

@@ -7,6 +7,11 @@ from pyqtgraph.Qt import QtWidgets
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.Snapshot import Snapshot
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -21,20 +26,23 @@ class TestSnapshotInit(unittest.TestCase):
         self.assertIn('Snapshot', QTask._registry)
 
     def test_duration_is_zero(self):
-        self.assertEqual(Snapshot(image=MagicMock()).duration, 0)
+        self.assertEqual(attached(Snapshot(), image=MagicMock()).duration, 0)
 
     def test_default_filename_empty(self):
-        self.assertEqual(Snapshot(image=MagicMock()).filename, '')
+        self.assertEqual(attached(Snapshot(), image=MagicMock()).filename, '')
 
     def test_default_prefix(self):
-        self.assertEqual(Snapshot(image=MagicMock()).prefix, 'snapshot')
+        self.assertEqual(attached(
+            Snapshot(),
+            image=MagicMock(),
+        ).prefix, 'snapshot')
 
     def test_explicit_filename_stored(self):
-        task = Snapshot(image=MagicMock(), filename='/tmp/snap.png')
+        task = attached(Snapshot(filename='/tmp/snap.png'), image=MagicMock())
         self.assertEqual(task.filename, '/tmp/snap.png')
 
     def test_explicit_prefix_stored(self):
-        task = Snapshot(image=MagicMock(), prefix='frame')
+        task = attached(Snapshot(prefix='frame'), image=MagicMock())
         self.assertEqual(task.prefix, 'frame')
 
     def test_parameters_declared(self):
@@ -50,36 +58,44 @@ class TestSnapshotExecution(unittest.TestCase):
         self.save  = MagicMock()
 
     def test_save_image_called_with_image_item(self):
-        task = Snapshot(image=self.image, save=self.save)
+        task = attached(Snapshot(), image=self.image, save=self.save)
         _run(task)
         self.save.image.assert_called_once()
         args, kwargs = self.save.image.call_args
         self.assertIs(args[0], self.image)
 
     def test_explicit_filename_passed_to_save(self):
-        task = Snapshot(
+        task = attached(
+            Snapshot(filename='/tmp/snap.png'),
             image=self.image,
             save=self.save,
-            filename='/tmp/snap.png',
         )
         _run(task)
         _, kwargs = self.save.image.call_args
         self.assertEqual(kwargs['filename'], '/tmp/snap.png')
 
     def test_empty_filename_passes_none(self):
-        task = Snapshot(image=self.image, save=self.save, filename='')
+        task = attached(
+            Snapshot(filename=''),
+            image=self.image,
+            save=self.save,
+        )
         _run(task)
         _, kwargs = self.save.image.call_args
         self.assertIsNone(kwargs['filename'])
 
     def test_prefix_passed_to_save(self):
-        task = Snapshot(image=self.image, save=self.save, prefix='frame')
+        task = attached(
+            Snapshot(prefix='frame'),
+            image=self.image,
+            save=self.save,
+        )
         _run(task)
         _, kwargs = self.save.image.call_args
         self.assertEqual(kwargs['prefix'], 'frame')
 
     def test_completes_after_one_step(self):
-        task = Snapshot(image=self.image, save=self.save)
+        task = attached(Snapshot(), image=self.image, save=self.save)
         _run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 

@@ -38,7 +38,7 @@ class MoveTraps(QTask):
     --------
     Move all traps 50 pixels to the right in steps of 2 pixels::
 
-        manager.register(MoveTraps(overlay=overlay, dx=50., step=2.))
+        manager.register(MoveTraps(dx=50., step=2.))
     '''
 
     parameters = (

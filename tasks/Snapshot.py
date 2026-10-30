@@ -26,7 +26,7 @@ class Snapshot(QTask):
     Save the current frame, then move all traps right by 20 pixels::
 
         manager.register(Snapshot())
-        manager.register(MoveTraps(overlay=overlay, dx=20.))
+        manager.register(MoveTraps(dx=20.))
     '''
 
     parameters = (

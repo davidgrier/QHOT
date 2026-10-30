@@ -7,6 +7,11 @@ from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.Record import Record
 from recordingfixtures import RealDVRCase, make_dvr
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 
 class TestRecordInit(unittest.TestCase):
 
@@ -14,37 +19,35 @@ class TestRecordInit(unittest.TestCase):
         self.dvr = make_dvr()
 
     def test_initial_state_is_pending(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         self.assertEqual(task.state, QTask.State.PENDING)
 
     def test_filename_default_empty(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         self.assertEqual(task.filename, '')
 
     def test_filename_stored(self):
-        task = Record(dvr=self.dvr, filename='out.mkv')
+        task = attached(Record(filename='out.mkv'), dvr=self.dvr)
         self.assertEqual(task.filename, 'out.mkv')
 
     def test_nframes_forwarded(self):
-        task = Record(dvr=self.dvr, nframes=120)
+        task = attached(Record(nframes=120), dvr=self.dvr)
         self.assertEqual(task.duration, 120)
 
     def test_nframes_default_unlimited(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         self.assertIsNone(task.duration)
 
     def test_overwrite_default_false(self):
-        self.assertFalse(Record(dvr=self.dvr).overwrite)
+        self.assertFalse(attached(Record(), dvr=self.dvr).overwrite)
 
     def test_nframes_setter_updates_duration(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task.nframes = 30
         self.assertEqual(task.duration, 30)
         task.nframes = 0
         self.assertIsNone(task.duration)
 
-    def test_needs_no_dvr_to_construct(self):
-        self.assertIsNone(Record(filename='out.mkv').dvr)
 
 
 class TestRecordExecution(unittest.TestCase):
@@ -53,24 +56,22 @@ class TestRecordExecution(unittest.TestCase):
         self.dvr = make_dvr(filename='widget.mkv', nframes=777)
 
     def test_starts_the_recorder_on_initialize(self):
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         self.dvr.recorder.start.assert_called_once()
 
     def test_no_button_is_clicked(self):
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         self.dvr.record.assert_not_called()
         self.dvr.stop.assert_not_called()
 
     def test_recorder_arguments(self):
-        task = Record(
+        task = attached(
+            Record(filename='test.mkv', nframes=5, overwrite=True),
             dvr=self.dvr,
-            filename='test.mkv',
-            nframes=5,
-            overwrite=True,
         )
         task._start()
         task._step()
@@ -78,53 +79,53 @@ class TestRecordExecution(unittest.TestCase):
             'test.mkv', 777, 1, overwrite=True)
 
     def test_empty_filename_uses_the_one_of_the_widget(self):
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         self.assertEqual(self.dvr.recorder.start.call_args.args[0],
                          'widget.mkv')
 
     def test_filename_shown_by_the_widget(self):
-        task = Record(dvr=self.dvr, filename='test.mkv', nframes=1)
+        task = attached(Record(filename='test.mkv', nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         self.assertEqual(self.dvr.filename, 'test.mkv')
 
     def test_not_started_before_the_first_step(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task._step()
         self.dvr.recorder.start.assert_not_called()
 
     def test_not_stopped_mid_recording(self):
-        task = Record(dvr=self.dvr, nframes=5)
+        task = attached(Record(nframes=5), dvr=self.dvr)
         task._start()
         task._step()   # initialize -> start
         task._step()   # process(1)
         self.dvr.recorder.stop.assert_not_called()
 
     def test_stopped_after_duration_expires(self):
-        task = Record(dvr=self.dvr, nframes=3)
+        task = attached(Record(nframes=3), dvr=self.dvr)
         task._start()
         for _ in range(3):
             task._step()
         self.dvr.recorder.stop.assert_called_once()
 
     def test_stopped_on_finish(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task._start()
         task._step()
         task.finish()
         self.dvr.recorder.stop.assert_called_once()
 
     def test_stopped_once_only(self):
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         task.abort()
         self.dvr.recorder.stop.assert_called_once()
 
     def test_abort_stops_the_recording(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task._start()
         task._step()
         task.abort('queue stopped')
@@ -132,14 +133,14 @@ class TestRecordExecution(unittest.TestCase):
         self.assertEqual(task.state, QTask.State.FAILED)
 
     def test_abort_before_start_stops_nothing(self):
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task.abort()
         self.dvr.recorder.stop.assert_not_called()
         self.assertEqual(task.state, QTask.State.FAILED)
 
     def test_refused_start_leaves_nothing_to_stop(self):
         self.dvr.recorder.start.side_effect = FileExistsError('exists')
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task._start()
         task._step()
         task.abort()
@@ -147,7 +148,7 @@ class TestRecordExecution(unittest.TestCase):
 
     def test_start_error_fails_task_with_its_reason(self):
         self.dvr.recorder.start.side_effect = RuntimeError('device busy')
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         spy = QtTest.QSignalSpy(task.failed)
         task._start()
         task._step()
@@ -156,7 +157,7 @@ class TestRecordExecution(unittest.TestCase):
 
     def test_refuses_during_playback(self):
         self.dvr.isPlaying.return_value = True
-        task = Record(dvr=self.dvr)
+        task = attached(Record(), dvr=self.dvr)
         task._start()
         task._step()
         self.assertEqual(task.state, QTask.State.FAILED)
@@ -164,7 +165,7 @@ class TestRecordExecution(unittest.TestCase):
 
     def test_stop_error_fails_task(self):
         self.dvr.recorder.stop.side_effect = RuntimeError('stop failed')
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         spy = QtTest.QSignalSpy(task.failed)
         task._start()
         task._step()
@@ -172,14 +173,14 @@ class TestRecordExecution(unittest.TestCase):
         self.assertEqual(task.state, QTask.State.FAILED)
 
     def test_completes_after_duration(self):
-        task = Record(dvr=self.dvr, nframes=2)
+        task = attached(Record(nframes=2), dvr=self.dvr)
         task._start()
         task._step()
         task._step()
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
     def test_can_run_again_after_reset(self):
-        task = Record(dvr=self.dvr, nframes=1)
+        task = attached(Record(nframes=1), dvr=self.dvr)
         task._start()
         task._step()
         task.reset()
@@ -208,7 +209,7 @@ class TestRecordSerialization(unittest.TestCase):
 
     def test_round_trip(self):
         task = Record(filename='clip.mkv', nframes=100, overwrite=True)
-        task2 = QTask.fromDict({**task.toDict(), 'dvr': make_dvr()})
+        task2 = QTask.fromDict(task.toDict())
         self.assertEqual(task2.filename, 'clip.mkv')
         self.assertEqual(task2.nframes, 100)
         self.assertEqual(task2.duration, 100)
@@ -218,7 +219,7 @@ class TestRecordSerialization(unittest.TestCase):
 class TestRecordWithARealRecorder(RealDVRCase):
 
     def test_records_for_as_long_as_the_task_runs(self):
-        task = Record(dvr=self.dvr, filename=self.path(), nframes=3)
+        task = attached(Record(filename=self.path(), nframes=3), dvr=self.dvr)
         task._start()
         task._step()
         self.assertTrue(self.dvr.recorder.isRecording())
@@ -230,7 +231,7 @@ class TestRecordWithARealRecorder(RealDVRCase):
         self.assertEqual(self.frames(self.path()), 9)
 
     def test_aborting_stops_a_running_recording(self):
-        task = Record(dvr=self.dvr, filename=self.path())
+        task = attached(Record(filename=self.path()), dvr=self.dvr)
         task._start()
         task._step()
         self.source.emit(4)
@@ -240,7 +241,7 @@ class TestRecordWithARealRecorder(RealDVRCase):
 
     def test_existing_file_fails_without_a_dialog(self):
         open(self.path(), 'wb').close()
-        task = Record(dvr=self.dvr, filename=self.path(), nframes=2)
+        task = attached(Record(filename=self.path(), nframes=2), dvr=self.dvr)
         spy = QtTest.QSignalSpy(task.failed)
         task._start()
         task._step()

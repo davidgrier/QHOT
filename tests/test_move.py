@@ -8,6 +8,11 @@ from pyqtgraph.Qt import QtWidgets, QtTest
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.Move import Move
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -92,12 +97,18 @@ class TestMoveExecution(unittest.TestCase):
         self.overlay = FakeOverlay(self.trap)
 
     def test_trap_reaches_target(self):
-        task = Move(overlay=self.overlay, x=50., y=80., z=0., step=1.)
+        task = attached(
+            Move(x=50., y=80., z=0., step=1.),
+            overlay=self.overlay,
+        )
         _run(task)
         np.testing.assert_array_almost_equal(self.trap._r, [50., 80., 0.])
 
     def test_3d_target(self):
-        task = Move(overlay=self.overlay, x=10., y=20., z=5., step=1.)
+        task = attached(
+            Move(x=10., y=20., z=5., step=1.),
+            overlay=self.overlay,
+        )
         _run(task)
         np.testing.assert_array_almost_equal(self.trap._r, [10., 20., 5.])
 
@@ -106,7 +117,7 @@ class TestMoveExecution(unittest.TestCase):
         t2 = FakeTrap(r=(10., 0., 0.))
         overlay = FakeOverlay(t1, t2)
         # centroid = (5, 0, 0); target = (15, 0, 0); shift = (+10, 0, 0)
-        task = Move(overlay=overlay, x=15., y=0., z=0., step=1.)
+        task = attached(Move(x=15., y=0., z=0., step=1.), overlay=overlay)
         _run(task)
         np.testing.assert_array_almost_equal(t1._r, [10.,  0., 0.])
         np.testing.assert_array_almost_equal(t2._r, [20.,  0., 0.])
@@ -114,7 +125,7 @@ class TestMoveExecution(unittest.TestCase):
     def test_no_marked_traps_completes_immediately(self):
         overlay = FakeOverlay(self.trap)
         overlay.marked = []
-        task = Move(overlay=overlay, x=50., y=50.)
+        task = attached(Move(x=50., y=50.), overlay=overlay)
         task._start()
         task._step()   # initialize sets duration=0; _step completes it
         self.assertEqual(task.state, QTask.State.COMPLETED)
@@ -123,18 +134,18 @@ class TestMoveExecution(unittest.TestCase):
         overlay = FakeOverlay(self.trap)
         overlay.marked = []
         r_before = self.trap._r.copy()
-        task = Move(overlay=overlay, x=50., y=50.)
+        task = attached(Move(x=50., y=50.), overlay=overlay)
         task._start()
         task._step()
         np.testing.assert_array_equal(self.trap._r, r_before)
 
     def test_target_already_at_current_position_completes(self):
-        task = Move(overlay=self.overlay, x=10., y=20., z=0.)
+        task = attached(Move(x=10., y=20., z=0.), overlay=self.overlay)
         _run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
     def test_finished_signal_emitted(self):
-        task = Move(overlay=self.overlay, x=20., y=20., step=10.)
+        task = attached(Move(x=20., y=20., step=10.), overlay=self.overlay)
         spy = QtTest.QSignalSpy(task.finished)
         _run(task)
         self.assertEqual(len(spy), 1)
@@ -142,7 +153,7 @@ class TestMoveExecution(unittest.TestCase):
     def test_duration_scales_with_displacement(self):
         trap = FakeTrap(r=(10., 20., 0.))
         overlay = FakeOverlay(trap)
-        task = Move(overlay=overlay, x=10., y=30., z=0., step=2.)
+        task = attached(Move(x=10., y=30., z=0., step=2.), overlay=overlay)
         # centroid at (10, 20, 0), target at (10, 30, 0), displacement = 10
         task._start()
         task._step()   # calls initialize, which sets duration

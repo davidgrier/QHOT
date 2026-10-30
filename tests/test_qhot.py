@@ -16,6 +16,8 @@ import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
 from QVideo.cameras import chooser
 
+from QHOT.lib import QSLM
+from QHOT.lib.holograms import CGH
 from QHOT.lib.holograms import reference as ref
 from QHOT.traps import QTweezer
 
@@ -54,7 +56,8 @@ class Window:
                 patch.object(sys, 'argv', ['qhot']):   # not pytest's flags
             key, cls.camera = chooser.open_camera()
             cls.tree = chooser.make_tree(key, cls.camera).start()   # as main()
-            cls.window = qhot.QHOT(cls.tree)    # its own SLM and CGH
+            slm = QSLM()
+            cls.window = qhot.QHOT(cls.tree, slm=slm, cgh=CGH(shape=slm.shape))
             cls.window.ready = QtTest.QSignalSpy(cls.window.cgh.hologramReady)
         wait_for(lambda: cls.window.screen.image.image is not None)
 

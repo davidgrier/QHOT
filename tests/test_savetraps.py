@@ -7,6 +7,11 @@ from pyqtgraph.Qt import QtWidgets
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.SaveTraps import SaveTraps
 
+try:
+    from taskmanagers import attached
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import attached
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -42,30 +47,34 @@ class TestSaveTrapsExecution(unittest.TestCase):
         self.save    = MagicMock()
 
     def test_save_traps_called_with_overlay(self):
-        task = SaveTraps(overlay=self.overlay, save=self.save)
+        task = attached(SaveTraps(), overlay=self.overlay, save=self.save)
         _run(task)
         self.save.traps.assert_called_once()
         args, _ = self.save.traps.call_args
         self.assertIs(args[0], self.overlay)
 
     def test_explicit_filename_passed(self):
-        task = SaveTraps(
+        task = attached(
+            SaveTraps(filename='/tmp/traps.json'),
             overlay=self.overlay,
             save=self.save,
-            filename='/tmp/traps.json',
         )
         _run(task)
         _, kwargs = self.save.traps.call_args
         self.assertEqual(kwargs['filename'], '/tmp/traps.json')
 
     def test_empty_filename_passes_none(self):
-        task = SaveTraps(overlay=self.overlay, save=self.save, filename='')
+        task = attached(
+            SaveTraps(filename=''),
+            overlay=self.overlay,
+            save=self.save,
+        )
         _run(task)
         _, kwargs = self.save.traps.call_args
         self.assertIsNone(kwargs['filename'])
 
     def test_completes_after_one_step(self):
-        task = SaveTraps(overlay=self.overlay, save=self.save)
+        task = attached(SaveTraps(), overlay=self.overlay, save=self.save)
         _run(task)
         self.assertEqual(task.state, QTask.State.COMPLETED)
 

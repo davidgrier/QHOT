@@ -43,8 +43,8 @@ class QTaskManager(QtCore.QObject):
 
     The manager owns the resources that tasks work with (the trap
     overlay, the CGH, the recorder, the file helper and the live image)
-    and gives each task the ones that it has not been given already, as
-    it takes the task (:meth:`register`, :meth:`load`, :meth:`inject`).
+    and gives them to each task as it takes the task (:meth:`register`,
+    :meth:`load`, :meth:`inject`).
     All of them are required: the manager is one part of a program that
     has them all.
 
@@ -379,14 +379,9 @@ class QTaskManager(QtCore.QObject):
     # Private slots
 
     def _attach(self, task: QTask) -> None:
-        '''Give a task the manager, and the resources that it lacks.
-
-        A resource that a task was given explicitly is its own, and is
-        not replaced by the manager's.
-        '''
+        '''Give a task the manager and the resources that it works with.'''
         for name in self.RESOURCES:
-            if getattr(task, name) is None:
-                setattr(task, name, getattr(self, name))
+            setattr(task, name, getattr(self, name))
         task.manager = self
 
     @QtCore.Slot()

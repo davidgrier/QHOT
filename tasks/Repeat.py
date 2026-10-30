@@ -48,7 +48,8 @@ class Repeat(QTask):
             raise TypeError("Repeat does not accept 'duration'")
         super().__init__(duration=0, **kwargs)
         self._n = int(n)
-        self._specs = _specs  # None for schedule tasks; set for injected copies
+        # None for schedule tasks; set for injected copies
+        self._specs = _specs
 
     @property
     def n(self) -> int:

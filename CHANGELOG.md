@@ -81,6 +81,9 @@
   equations in `.. math::` blocks, and the documentation builds without
   warnings.
 
+- A lint job in CI, `ruff check` with pyflakes, bugbear and the 79-column
+  limit, as in QVideo.  The 8 findings are fixed, and `main()` no longer
+  describes the hologram backends that were removed.
 - Arguments of definitions and calls are laid out either all on one line or
   one to a line, with a trailing comma, throughout the code, and a test
   (`tests/test_style.py`) keeps them so.

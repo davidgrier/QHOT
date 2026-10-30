@@ -33,7 +33,7 @@ class Snapshot(QTask):
 
     parameters = [
         dict(name='filename', type='str', value='', default=''),
-        dict(name='prefix',   type='str', value='snapshot', default='snapshot'),
+        dict(name='prefix', type='str', value='snapshot', default='snapshot'),
     ]
 
     def __init__(

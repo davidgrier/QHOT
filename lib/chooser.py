@@ -26,7 +26,6 @@ import logging
 from argparse import ArgumentParser
 from typing import NamedTuple
 
-import qtpy  # Required for Qt detection in QSLM
 from QHOT.lib.holograms import Backend, CGH, NumpyBackend
 from QHOT.lib.QSLM import QSLM
 
@@ -82,9 +81,9 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     '''Return a parser extended with a titled CGH backend option group.
 
     Adds ``-t`` (PyTorch), ``-j`` (numba), ``-n`` (NumPy) and ``-u``
-    (CuPy) as a mutually exclusive group under a ``CGH backend`` section heading.  If
-    the first flag is already registered on ``parser``, the group is
-    left unchanged.
+    (CuPy) as a mutually exclusive group under a ``CGH backend`` section
+    heading.  If the first flag is already registered on ``parser``, the
+    group is left unchanged.
 
     Parameters
     ----------

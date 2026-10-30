@@ -312,7 +312,7 @@ class QHOT(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def saveQueue(self) -> None:
-        '''Save the pending queue to the current file, or prompt if none set.'''
+        '''Save the pending queue to the current file, or prompt for one.'''
         filename = self.save.queue(self.manager, self._queueFile)
         self._queueFile = filename
         self.setStatus(f'Saved queue to {filename}')
@@ -462,9 +462,9 @@ def main() -> None:
     Parses command-line arguments for both the camera backend (QVideo
     flags) and the CGH backend (QHOT flags) from a shared parser, so
     that ``-h`` shows all options together.  The CGH backend is
-    auto-selected (TorchCGH → cupyCGH → CGH) when no flag is given.
+    auto-selected (PyTorch, then numba, then NumPy) when no flag is given.
     '''
-    app = pg.mkQApp('QHOT')
+    pg.mkQApp('QHOT')
     parser = build_parser()
     slm = choose_slm(parser)
     cgh = choose_cgh(parser, shape=slm.shape)

@@ -7,7 +7,7 @@ from QHOT.lib.tasks.QTask import QTask
 
 class Move(QTask):
 
-    '''Translate marked traps to an absolute target position over multiple frames.
+    '''Translate marked traps to an absolute target over multiple frames.
 
     Moves every leaf trap in the marked set so that their centroid
     reaches ``(x, y, z)``, preserving the relative configuration.
@@ -54,8 +54,10 @@ class Move(QTask):
                  step: float = 1.,
                  **kwargs) -> None:
         if 'duration' in kwargs:
-            raise TypeError("'duration' may not be set on Move; "
-                            'duration is computed from the displacement and step')
+            raise TypeError(
+                "'duration' may not be set on Move; "
+                'duration is computed from the displacement and step',
+            )
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
@@ -118,7 +120,8 @@ class Move(QTask):
     # QTask lifecycle hooks
 
     def initialize(self) -> None:
-        '''Record starting positions and compute duration from centroid displacement.'''
+        '''Record starting positions and compute the duration from the
+        displacement of the centroid.'''
         traps = list(self.overlay.marked)
         if not traps:
             self.duration = 0

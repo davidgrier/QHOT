@@ -8,27 +8,14 @@
   `active_raw`, `queue_size` and `wait_for_camera` are now `toDict`,
   `fromDict`, `toList`, `fromList`, `activeRaw`, `queueSize` and
   `waitForCamera`.  The files that QHOT saves are unchanged.
-- `QTaskManager` no longer takes the screen: its clock is the public slot
-  `step()`, and the window connects `screen.rendered` to it.  The overlay
-  is therefore a plain argument of the manager, and not also a property of
-  the screen that it was given.
-- `QTaskManager.enqueue(tasks)` adds what the user has chosen, and pauses a
-  manager that was idle so that it can be looked at before it runs.  The
-  Queue menu and `load()` use it: the window used to repeat that rule for
-  opening a queue file, in a slightly different form.  `toList()` is the
-  queue that `load()` reads, as the overlay's is for traps.
+- `QTaskManager` takes the resources that tasks work with, all of them
+  required: `overlay`, `cgh`, `dvr`, `save` and `image` (the live video
+  image).  QHOT is a program that has them all, and not a library that
+  may lack any.  The manager gives each task that it takes the ones that
+  the task lacks.  It no longer takes the screen: its clock is the public
+  slot `step()`, and the window connects `screen.rendered` to it.
 - `QueueMenu` no longer has `overlay`, `cgh` and `dvr`: it needs only the
-  manager, which owns the resources that tasks work with.
-- All the resources of `QTaskManager` are required (`overlay`, `cgh`, `dvr`,
-  `save`, and the new `image`, the live video image): QHOT is a program that
-  has them all, and not a library that may lack any.  A task is given the
-  ones that it lacks when the manager takes it.
-- `Snapshot` no longer needs an `image`: it saves the live image that the
-  manager provides.  It was offered in the Queue menu although it could not
-  be queued.
-- The position of `AddTweezer`, if not set, is the optical axis of the CGH
-  that the task works with, looked up when it is read.  (It was fixed when
-  the task was made, before the manager had given the task its CGH.)
+  manager.
 - The `parameters` of a task, and the tables of a trap overlay, are
   immutable (a tuple) or annotated `ClassVar`.
 
@@ -44,6 +31,14 @@
   than `CGH.INTERVAL` (15 ms), while the pipeline runs.  The window no longer
   watches every trap, nor owns the timer (`QHOT.COMPUTE_INTERVAL` is
   `CGH.INTERVAL`): it connects the overlay to the CGH.
+- `QTaskManager.enqueue(tasks)` adds what the user has chosen, and pauses a
+  manager that was idle so that it can be looked at before it runs.  The
+  Queue menu and `load()` use it: the window used to repeat that rule for
+  opening a queue file, in a slightly different form.  `toList()` is the
+  queue that `load()` reads, as the overlay's is for traps.
+- `Snapshot` no longer needs an `image`: it saves the live image that the
+  manager provides.  It was offered in the Queue menu although it could not
+  be queued.
 - Failures of a task or of the hologram computation are logged with their
   traceback.
 - `QTrapOverlay.undoStack` is public, and `Repeat` uses

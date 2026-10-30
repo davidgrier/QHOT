@@ -8,22 +8,17 @@ from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 
 try:
-    from taskmanagers import RESOURCES, manager_for
+    from taskmanagers import RESOURCES, Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import RESOURCES, manager_for
+    from tests.taskmanagers import RESOURCES, Screen, manager_for
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-
-
-class MockScreen(QtCore.QObject):
-    '''Minimal screen substitute with a rendered signal.'''
-    rendered = QtCore.pyqtSignal()
 
 
 class TestQTaskManagerInit(unittest.TestCase):
 
     def setUp(self):
-        self.screen = MockScreen()
+        self.screen = Screen()
 
     def test_no_active_task_initially(self):
         mgr = manager_for(self.screen)
@@ -55,7 +50,7 @@ class TestQTaskManagerInit(unittest.TestCase):
 class TestQTaskManagerRegistration(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def test_first_blocking_task_becomes_active(self):
@@ -190,7 +185,7 @@ class TestQTaskManagerUserAdditions(unittest.TestCase):
     '''What the user adds is looked at before it runs.'''
 
     def setUp(self):
-        self.screen = MockScreen()
+        self.screen = Screen()
         self.manager = manager_for(self.screen)
 
     def test_tasks_that_are_enqueued_are_registered_in_order(self):
@@ -229,7 +224,7 @@ class TestQTaskManagerUserAdditions(unittest.TestCase):
         self.manager.register(Delay(frames=7))
         saved = self.manager.toList()
         self.assertEqual([d['type'] for d in saved], ['Delay', 'Delay'])
-        other = manager_for(MockScreen())
+        other = manager_for(Screen())
         other.load(saved)
         self.assertEqual(other.toList(), saved)
 
@@ -244,7 +239,7 @@ class TestQTaskManagerUserAdditions(unittest.TestCase):
 class TestQTaskManagerFrameDispatch(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -304,7 +299,7 @@ class TestQTaskManagerFrameDispatch(unittest.TestCase):
 class TestQTaskManagerSequencing(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -379,7 +374,7 @@ class TestQTaskManagerSequencing(unittest.TestCase):
 class TestQTaskManagerStop(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def test_stop_rewinds_queue(self):
@@ -431,7 +426,7 @@ class TestQTaskManagerStop(unittest.TestCase):
 class TestQTaskManagerSchedule(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -517,7 +512,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
 class TestQTaskManagerAutoReset(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -572,7 +567,7 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
 class TestQTaskManagerBackground(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -616,7 +611,7 @@ class TestQTaskManagerBackground(unittest.TestCase):
 class TestQTaskManagerLoad(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.overlay = MagicMock()
         self.cgh     = MagicMock()
         self.dvr     = MagicMock()
@@ -685,7 +680,7 @@ class TestQTaskManagerLoad(unittest.TestCase):
 class TestQTaskManagerRemove(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _register(self, n: int) -> list:
@@ -751,7 +746,7 @@ class TestQTaskManagerRemove(unittest.TestCase):
 class TestQTaskManagerChanged(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
@@ -820,7 +815,7 @@ class TestQTaskManagerChanged(unittest.TestCase):
 class TestQTaskManagerReorder(unittest.TestCase):
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _register(self, n: int) -> list:

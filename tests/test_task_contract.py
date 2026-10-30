@@ -18,15 +18,11 @@ from QHOT.lib.tasks.QTaskTree import QTaskTree
 from QHOT.lib.tasks.QueueMenu import QueueMenu
 
 try:
-    from taskmanagers import RESOURCES, manager_for
+    from taskmanagers import RESOURCES, Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import RESOURCES, manager_for
+    from tests.taskmanagers import RESOURCES, Screen, manager_for
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-
-
-class Screen(QtCore.QObject):
-    rendered = QtCore.Signal()
 
 
 class ContractCase(unittest.TestCase):

@@ -9,29 +9,25 @@ from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QTaskManagerWidget import QTaskManagerWidget, _ROLE
 
 try:
-    from taskmanagers import manager_for
+    from taskmanagers import Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import manager_for
+    from tests.taskmanagers import Screen, manager_for
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
-class MockScreen(QtCore.QObject):
-    rendered = QtCore.pyqtSignal()
-
-
 def _make_manager():
-    screen = MockScreen()
+    screen = Screen()
     return manager_for(screen)
 
 
 def _make_manager_with_screen():
-    screen = MockScreen()
+    screen = Screen()
     return manager_for(screen), screen
 
 
 def _make_wired():
-    screen = MockScreen()
+    screen = Screen()
     manager = manager_for(screen)
     widget = QTaskManagerWidget()
     widget.manager = manager
@@ -472,7 +468,7 @@ class TestDraggableQueueListCanDropAt(unittest.TestCase):
 
     def setUp(self):
         from QHOT.lib.tasks.QTaskManagerWidget import _DraggableQueueList
-        screen = MockScreen()
+        screen = Screen()
         manager = manager_for(screen)
         t1, t2, t3 = QTask(), QTask(), QTask()
         manager.register(t1)   # RUNNING at row 0

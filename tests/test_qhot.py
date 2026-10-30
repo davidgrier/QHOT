@@ -6,7 +6,9 @@ the SLM, which is compared here with the algorithm in ``reference``.
 '''
 import importlib
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -36,13 +38,17 @@ class Window:
 
     window = None
     camera = None
+    home = None
 
     @classmethod
     def build(cls) -> None:
         # Saving and restoring the settings would read and write the
-        # configuration of the user.
+        # configuration of the user, and the file helper makes its
+        # directories in the home of the user.
+        cls.home = tempfile.TemporaryDirectory()
         with patch.object(qhot.QHOT, 'saveSettings'), \
                 patch.object(qhot.QHOT, 'restoreSettings'), \
+                patch.object(Path, 'home', return_value=Path(cls.home.name)), \
                 patch.object(sys, 'argv', ['qhot']):   # not pytest's flags
             key, cls.camera = chooser.open_camera()
             tree = chooser.make_tree(key, cls.camera)
@@ -54,6 +60,7 @@ class Window:
         with patch.object(qhot.QHOT, 'saveSettings'):
             cls.window.close()
         cls.camera.close()
+        cls.home.cleanup()
 
 
 def setUpModule():

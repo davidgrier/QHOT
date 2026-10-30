@@ -14,9 +14,9 @@ import importlib as _importlib
 from QHOT.lib.QSaveFile import QSaveFile
 
 try:
-    from taskmanagers import manager_for
+    from taskmanagers import Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import manager_for
+    from tests.taskmanagers import Screen, manager_for
 _qsavefile_mod = _importlib.import_module('QHOT.lib.QSaveFile')
 
 
@@ -345,10 +345,7 @@ class TestQueueSave(_Base):
         from pyqtgraph.Qt import QtCore as _QtCore
         from QHOT.lib.tasks.QTaskManager import QTaskManager
 
-        class _Screen(_QtCore.QObject):
-            rendered = _QtCore.pyqtSignal()
-
-        screen = _Screen()
+        screen = Screen()
         mgr = manager_for(screen)
         return mgr
 
@@ -403,10 +400,7 @@ class TestQueueAs(_Base):
         from pyqtgraph.Qt import QtCore as _QtCore
         from QHOT.lib.tasks.QTaskManager import QTaskManager
 
-        class _Screen(_QtCore.QObject):
-            rendered = _QtCore.pyqtSignal()
-
-        return manager_for(_Screen())
+        return manager_for(Screen())
 
     def _patch_dialog(self, chosen):
         return patch.object(_qsavefile_mod.QtWidgets.QFileDialog,
@@ -444,10 +438,7 @@ class TestOpenQueue(_Base):
         from pyqtgraph.Qt import QtCore as _QtCore
         from QHOT.lib.tasks.QTaskManager import QTaskManager
 
-        class _Screen(_QtCore.QObject):
-            rendered = _QtCore.pyqtSignal()
-
-        return manager_for(_Screen())
+        return manager_for(Screen())
 
     def _write_queue(self, task_dicts):
         path = self.save.datadir / 'test_queue.json'

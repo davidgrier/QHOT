@@ -217,7 +217,7 @@ Improve the interactive experience during experiments.
 Structural improvements to the codebase.
 
 - Plugin system for custom trap types so users can add new traps without modifying core code
-- ~~Decouple CGH computation rate from display frame rate — separate the two update loops~~  **Done** (hologram timer, `QHOT.COMPUTE_INTERVAL`; the worker computes from immutable snapshots)
+- ~~Decouple CGH computation rate from display frame rate — separate the two update loops~~  **Done** (`CGH.follow` and its timer, `CGH.INTERVAL`; the worker computes from immutable snapshots)
 - Event bus or signal log for debugging signal/slot chains
 
 ---

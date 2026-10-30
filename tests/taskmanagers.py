@@ -1,9 +1,18 @@
 '''A task manager, driven as the window drives it.'''
 from unittest.mock import MagicMock
 
+from pyqtgraph.Qt import QtCore
+
 from QHOT.lib.tasks import QTaskManager
 
 RESOURCES = 'overlay cgh dvr save image'.split()
+
+
+class Screen(QtCore.QObject):
+
+    '''The part of the screen that drives the tasks: a signal per frame.'''
+
+    rendered = QtCore.Signal()
 
 
 def manager_for(screen, **resources) -> QTaskManager:

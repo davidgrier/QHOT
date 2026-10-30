@@ -10,15 +10,11 @@ from QHOT.tasks.Delay import Delay
 from QHOT.tasks.Repeat import Repeat
 
 try:
-    from taskmanagers import manager_for
+    from taskmanagers import Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import manager_for
+    from tests.taskmanagers import Screen, manager_for
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-
-
-class MockScreen(QtCore.QObject):
-    rendered = QtCore.pyqtSignal()
 
 
 # ------------------------------------------------------------------
@@ -89,10 +85,10 @@ class TestRepeatSerialization(unittest.TestCase):
 # Execution helpers
 
 class TestRepeatSetup(unittest.TestCase):
-    '''Base class providing a manager wired to a MockScreen.'''
+    '''Base class providing a manager wired to a Screen.'''
 
     def setUp(self):
-        self.screen  = MockScreen()
+        self.screen  = Screen()
         self.manager = manager_for(self.screen)
 
     def _pump(self, max_signals=200):

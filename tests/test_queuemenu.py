@@ -10,19 +10,15 @@ from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QueueMenu import QueueMenu
 
 try:
-    from taskmanagers import manager_for
+    from taskmanagers import Screen, manager_for
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import manager_for
+    from tests.taskmanagers import Screen, manager_for
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
-class MockScreen(QtCore.QObject):
-    rendered = QtCore.pyqtSignal()
-
-
 def _make_manager():
-    screen = MockScreen()
+    screen = Screen()
     return manager_for(screen)
 
 
@@ -127,7 +123,7 @@ class TestQueueMenuSelection(unittest.TestCase):
             dvr=MagicMock(),
             save=MagicMock(),
         )
-        manager = manager_for(MockScreen(), **resources)
+        manager = manager_for(Screen(), **resources)
         self.menu.manager = manager
         self.menu._onTaskSelected('SaveTraps')
         task = manager.scheduled[-1]
@@ -139,7 +135,7 @@ class TestQueueMenuSelection(unittest.TestCase):
         # The menu once passed on the overlay, the CGH and the recorder
         # but not the file helper, so SaveTraps had nothing to save with.
         save, overlay = MagicMock(), MagicMock()
-        manager = manager_for(MockScreen(), overlay=overlay, save=save)
+        manager = manager_for(Screen(), overlay=overlay, save=save)
         self.menu.manager = manager
         self.menu._onTaskSelected('SaveTraps')
         task = manager.scheduled[-1]

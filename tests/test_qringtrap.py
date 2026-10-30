@@ -59,15 +59,16 @@ class TestStructureChangedSignal(unittest.TestCase):
         self.trap.radius = 20.
         self.assertEqual(len(spy), 1)
 
-    def test_ell_setter_does_not_emit_changed(self):
+    def test_ell_setter_emits_changed(self):
+        # a change of structure is a change of the trap
         spy = QtTest.QSignalSpy(self.trap.changed)
         self.trap.ell = 2.
-        self.assertEqual(len(spy), 0)
+        self.assertEqual(len(spy), 1)
 
-    def test_radius_setter_does_not_emit_changed(self):
+    def test_radius_setter_emits_changed(self):
         spy = QtTest.QSignalSpy(self.trap.changed)
         self.trap.radius = 20.
-        self.assertEqual(len(spy), 0)
+        self.assertEqual(len(spy), 1)
 
     def test_position_setter_does_not_emit_structure_changed(self):
         spy = QtTest.QSignalSpy(self.trap.structureChanged)

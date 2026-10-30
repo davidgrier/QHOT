@@ -208,6 +208,60 @@ class TestLeaves(unittest.TestCase):
         self.assertEqual(len(outer), 1)
 
 
+class TestSubgroupChanges(unittest.TestCase):
+
+    '''A change of a subgroup is a change of the group above it.'''
+
+    @staticmethod
+    def make(*members, r=(0., 0., 0.)) -> QTrapGroup:
+        group = QTrapGroup(r=r)
+        group.addTrap(list(members))
+        return group
+
+    def setUp(self):
+        self.inner = self.make(QTrap(r=(1., 1., 0.), phase=0.),
+                               QTrap(r=(3., 1., 0.), phase=0.))
+        self.outer = self.make(self.inner, QTrap(r=(9., 9., 0.), phase=0.))
+        self.spy = QtTest.QSignalSpy(self.outer.changed)
+
+    def test_a_subgroup_that_moves_changes_the_group(self):
+        self.inner.r = (5., 5., 0.)
+        self.assertGreaterEqual(len(self.spy), 1)
+
+    def test_a_change_reaches_the_top_of_a_hierarchy(self):
+        top = self.make(self.outer)
+        spy = QtTest.QSignalSpy(top.changed)
+        self.inner.r = (5., 5., 0.)
+        self.assertGreaterEqual(len(spy), 1)
+
+    def test_a_subgroup_that_is_removed_is_no_longer_forwarded(self):
+        self.outer.removeTrap(self.inner)
+        count = len(self.spy)
+        self.inner.r = (5., 5., 0.)
+        self.assertEqual(len(self.spy), count)
+
+    def test_a_subgroup_that_is_added_is_forwarded_once(self):
+        other = self.make(QTrap(r=(20., 20., 0.), phase=0.))
+        self.outer.addTrap(other)
+        count = len(self.spy)
+        other.r = (25., 25., 0.)
+        self.assertEqual(len(self.spy) - count, 1)
+
+    def test_a_subgroup_that_changes_parent_is_forwarded_to_the_new_one(self):
+        new = self.make(QTrap(r=(30., 30., 0.), phase=0.))
+        new.addTrap(self.inner)       # Qt removes it from the old parent
+        count, new_spy = len(self.spy), QtTest.QSignalSpy(new.changed)
+        self.inner.r = (5., 5., 0.)
+        self.assertEqual(len(self.spy), count)
+        self.assertGreaterEqual(len(new_spy), 1)
+
+    def test_a_trap_that_is_not_a_group_needs_no_forwarding(self):
+        leaf = self.outer.traps[-1]
+        count = len(self.spy)
+        leaf.x = 12.
+        self.assertEqual(len(self.spy), count)
+
+
 class TestRepr(unittest.TestCase):
 
     def test_repr(self):

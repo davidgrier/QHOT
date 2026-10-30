@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from qtpy import QtCore
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.lettersymbol import letterSymbol
 from typing import TYPE_CHECKING
@@ -36,9 +35,6 @@ class QVortex(QTrap):
     ell : int
         Topological charge of the optical vortex.
     '''
-
-    #: Emitted when the topological charge changes.
-    structureChanged = QtCore.Signal()
 
     structureParams = ('ell',)
 

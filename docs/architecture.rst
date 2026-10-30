@@ -362,13 +362,16 @@ existing File and Tasks actions:
 
 **Central signal flow:**
 
-1. A trap changes (``changed``, ``structureChanged``) or the calibration
-   changes (``recalculate``): ``QHOT._scheduleCompute`` notes that the
-   hologram is out of date.
-2. A timer (``COMPUTE_INTERVAL``, 15 ms), independent of the video, calls
-   ``CGH.compute(overlay.pattern())`` if something changed.  The hologram
-   therefore keeps up with the traps however slowly the camera delivers
-   frames.
+1. A trap changes (``changed``, which a change of structure also emits),
+   a group changes (a subgroup reports through the group above it), or
+   traps are added or removed: the overlay emits ``patternChanged``.  Or
+   the calibration changes: the CGH emits ``recalculate``.
+2. The CGH follows the overlay (:meth:`~QHOT.lib.holograms.CGH.CGH.follow`):
+   it notes that the hologram is out of date, and a timer of its own
+   (:attr:`~QHOT.lib.holograms.CGH.CGH.INTERVAL`, 15 ms), independent of
+   the video, calls ``CGH.compute(overlay.pattern())`` if something
+   changed.  The hologram therefore keeps up with the traps however
+   slowly the camera delivers frames.
 3. The worker thread computes the hologram with the backend.
 4. ``hologramReady`` updates ``QSLM`` and the ``QSLMWidget`` preview.  A
    failure arrives as ``computeFailed`` and appears in the status bar.

@@ -12,6 +12,17 @@
   immutable (a tuple) or annotated `ClassVar`.
 
 ### Changed
+- The overlay of traps says when its pattern changes: `QTrapOverlay.patternChanged`
+  is emitted when a trap or a group changes, or traps are added or removed
+  (tests check that it is, for every operation, whenever `pattern()` differs).
+  A subgroup reports its changes through the group above it, so a change
+  at any depth reaches the top, and a change of structure (`structureChanged`,
+  now declared by every trap) is also `changed`.
+- `CGH.follow(source)` keeps the hologram of a source of patterns up to date:
+  it requests one when the pattern or the calibration changed, no more often
+  than `CGH.INTERVAL` (15 ms), while the pipeline runs.  The window no longer
+  watches every trap, nor owns the timer (`QHOT.COMPUTE_INTERVAL` is
+  `CGH.INTERVAL`): it connects the overlay to the CGH.
 - Failures of a task or of the hologram computation are logged with their
   traceback.
 - `QTrapOverlay.undoStack` is public, and `Repeat` uses

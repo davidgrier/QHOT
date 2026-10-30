@@ -76,12 +76,17 @@ class QTrapOverlay(ScatterPlotItem):
         Emitted with the top-level trap or group after it is added.
     trapRemoved : QTrap
         Emitted with the top-level trap or group after it is removed.
+    patternChanged : None
+        Emitted when the hologram of the traps would change: a trap is
+        added or removed, or a trap or a group changes.
     '''
 
     #: Emitted with the trap when a trap is added to the scene.
     trapAdded = QtCore.Signal(QTrap)
     #: Emitted with the trap when a trap is removed from the scene.
     trapRemoved = QtCore.Signal(QTrap)
+    #: Emitted when anything changes that the hologram depends on.
+    patternChanged = QtCore.Signal()
 
     class State(Enum):
         '''Visual state of a trap spot, controlling its fill color.'''
@@ -158,6 +163,10 @@ class QTrapOverlay(ScatterPlotItem):
         self._rotationAngle: float = 0.
         self._rotationSnapshot: dict = {}
         self._undoStack = QUndoStack()
+        # Putting traps in or taking them out, however it comes about
+        # (adding, grouping, breaking a group), changes the pattern.
+        self.trapAdded.connect(self.patternChanged)
+        self.trapRemoved.connect(self.patternChanged)
         self._handler = dict(self._mapping(d) for d in descriptions)
 
     def __iter__(self) -> Iterator[QTrap]:
@@ -328,6 +337,7 @@ class QTrapOverlay(ScatterPlotItem):
                 )
         group.setParent(None)
         self._rebuildSpots()
+        self.patternChanged.emit()   # ``trapRemoved`` was emitted at the start
 
     def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
         '''Remove a trap from the overlay.
@@ -374,6 +384,7 @@ class QTrapOverlay(ScatterPlotItem):
             item.setParent(None)
             self.trapRemoved.emit(item)
         self._undoStack.clear()
+        self.patternChanged.emit()
 
     def _rebuildSpots(self) -> None:
         '''Rebuild all SpotItems after a removal, resequencing ``_index``.'''
@@ -456,6 +467,7 @@ class QTrapOverlay(ScatterPlotItem):
         spot._data['x'] = trap.x
         spot._data['y'] = trap.y
         spot.updateItem()
+        self.patternChanged.emit()
 
     @QtCore.Slot()
     def _onGroupChanged(self) -> None:
@@ -467,6 +479,7 @@ class QTrapOverlay(ScatterPlotItem):
                 spot._data['x'] = trap.x
                 spot._data['y'] = trap.y
                 spot.updateItem()
+        self.patternChanged.emit()
 
     def _setGroupBrush(self, group: QTrap, state: State) -> None:
         '''Set the brush of every leaf spot in a group to the given state.

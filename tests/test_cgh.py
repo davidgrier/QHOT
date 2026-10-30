@@ -491,6 +491,135 @@ class TestSnapshots(PipelineCase):
             levels(b, ref.hologram(pattern, cgh.optics)).max(), 1)
 
 
+class Source(QtCore.QObject):
+
+    '''A source of patterns, as the overlay of traps is.'''
+
+    patternChanged = QtCore.Signal()
+
+    def __init__(self, *xs):
+        super().__init__()
+        self.xs = xs
+
+    def pattern(self):
+        return tuple(tweezer(x, 20 + x % 7).spec() for x in self.xs)
+
+    def change(self, *xs):
+        self.xs = xs
+        self.patternChanged.emit()
+
+
+class TestFollow(PipelineCase):
+
+    INTERVAL = 5
+
+    def follow(self, source, **kwargs):
+        cgh = self.make(**kwargs)
+        self.assertIs(cgh.follow(source, interval=self.INTERVAL), cgh)
+        return cgh
+
+    def hologram(self, n=-1):
+        return np.array(self.ready[n][0])
+
+    def test_the_first_hologram_comes_when_the_pipeline_starts(self):
+        cgh = self.follow(Source(10, 30))
+        QtTest.QTest.qWait(50)
+        self.assertEqual(len(self.ready), 0)        # not running yet
+        cgh.start()
+        self.assertTrue(wait_for(self.ready, 1))
+        expected = ref.hologram(Source(10, 30).pattern(), cgh.optics)
+        self.assertLessEqual(levels(self.hologram(), expected).max(), 1)
+
+    def test_a_change_of_the_pattern_brings_a_hologram(self):
+        source = Source(10)
+        cgh = self.follow(source).start()
+        self.assertTrue(wait_for(self.ready, 1))
+        source.change(10, 40, 50)
+        self.assertTrue(wait_for(self.ready, 2))
+        expected = ref.hologram(source.pattern(), cgh.optics)
+        self.assertLessEqual(levels(self.hologram(), expected).max(), 1)
+
+    def test_a_change_of_the_calibration_brings_a_hologram(self):
+        cgh = self.follow(Source(10, 30)).start()
+        self.assertTrue(wait_for(self.ready, 1))
+        before = self.hologram()
+        cgh.wavelength = 0.8
+        self.assertTrue(wait_for(self.ready, 2))
+        self.assertFalse(np.array_equal(self.hologram(), before))
+
+    def test_nothing_is_computed_when_nothing_changes(self):
+        self.follow(Source(10)).start()
+        self.assertTrue(wait_for(self.ready, 1))
+        QtTest.QTest.qWait(100)
+        self.assertEqual(len(self.ready), 1)
+
+    def test_changes_in_one_interval_make_one_request(self):
+        calls = []
+        source = Source(10)
+        cgh = self.follow(source)
+        cgh.compute = lambda pattern: calls.append(pattern)
+        cgh.start()
+        QtTest.QTest.qWait(30)
+        calls.clear()
+        for x in range(20, 60):
+            source.change(x)
+        QtTest.QTest.qWait(30)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0], source.pattern())      # the newest
+
+    def test_the_hologram_is_of_the_last_pattern(self):
+        source = Source(10)
+        cgh = self.follow(source).start()
+        wait_for(self.ready, 1)
+        for x in range(20, 40):
+            source.change(x)
+        QtTest.QTest.qWait(200)
+        expected = ref.hologram(source.pattern(), cgh.optics)
+        self.assertLessEqual(levels(self.hologram(), expected).max(), 1)
+
+    def test_nothing_is_requested_after_stop(self):
+        source = Source(10)
+        cgh = self.follow(source).start()
+        wait_for(self.ready, 1)
+        cgh.stop()
+        count = len(self.ready)
+        source.change(33)
+        QtTest.QTest.qWait(100)
+        self.assertEqual(len(self.ready), count)
+
+    def test_it_follows_again_after_a_restart(self):
+        source = Source(10)
+        cgh = self.follow(source).start()
+        wait_for(self.ready, 1)
+        cgh.stop()
+        source.change(44)
+        cgh.start()
+        self.assertTrue(wait_for(self.ready, 2))
+        expected = ref.hologram(source.pattern(), cgh.optics)
+        self.assertLessEqual(levels(self.hologram(), expected).max(), 1)
+
+    def test_a_new_source_replaces_the_old_one(self):
+        old, new = Source(10), Source(30)
+        cgh = self.follow(old).start()
+        wait_for(self.ready, 1)
+        cgh.follow(new, interval=self.INTERVAL)
+        self.assertTrue(wait_for(self.ready, 2))
+        count = len(self.ready)
+        old.change(55)                              # no longer followed
+        QtTest.QTest.qWait(100)
+        self.assertEqual(len(self.ready), count)
+        new.change(56)
+        self.assertTrue(wait_for(self.ready, count + 1))
+
+    def test_a_cgh_that_follows_nothing_requests_nothing(self):
+        cgh = self.make().start()
+        QtTest.QTest.qWait(100)
+        self.assertEqual(len(self.ready), 0)
+
+    def test_the_default_interval(self):
+        self.assertEqual(CGH.INTERVAL, 15)
+
+
 class TestShutdown(unittest.TestCase):
 
     '''A pipeline must not leave its thread running when it is gone.

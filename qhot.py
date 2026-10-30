@@ -13,7 +13,7 @@ from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
 from QHOT.lib.QCameraOpener import QCameraOpener
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
-from QHOT.lib.traps import QTrap, QTrapGroup, QTrapMenu  # noqa: F401
+from QHOT.lib.traps import QTrap, QTrapMenu  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,6 @@ class QHOT(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QHOT', 'QHOT')
 
-    #: Shortest time between requests for a hologram [ms].
-    COMPUTE_INTERVAL = 15
-
     def __init__(self,
                  cameraTree: QCameraTree,
                  *args,
@@ -65,7 +62,6 @@ class QHOT(QtWidgets.QMainWindow):
         self.source = self.cameraTree.source
         self.slm = slm or QSLM()
         self.cgh = cgh or CGH(shape=self.slm.shape)
-        self._trapsChanged: bool = False
         self._setupUi()
         self._connectSignals()
         self._addFilters()
@@ -86,7 +82,6 @@ class QHOT(QtWidgets.QMainWindow):
         self._queueFile: str | None = None
         self.restoreSettings()
         self.cgh.start()
-        self._computeTimer.start(self.COMPUTE_INTERVAL)
 
     def _setupUi(self) -> None:
         '''Load the UI file and configure child widgets.'''
@@ -148,27 +143,22 @@ class QHOT(QtWidgets.QMainWindow):
         PyQt6 uic only handles no-argument connections from .ui files;
         typed signals (str, bool) must be connected here.
 
-        The hologram is requested by a timer of its own, not by the
-        video, so that it keeps up with the traps however slowly the
-        camera delivers frames.  The request is a snapshot of the traps,
-        a plain value, so that the thread that computes the hologram
-        never reads anything that the interface is editing.
+        The CGH follows the overlay of traps: it asks for a hologram of
+        the pattern whenever that changes, on a clock of its own and not
+        the video's, so that it keeps up with the traps however slowly
+        the camera delivers frames.
         '''
         self.dvr.playing.connect(self.dvrPlayback)
         self.dvr.recording.connect(self.cameraTree.setDisabled)
         self.cgh.hologramReady.connect(self.slm.setData)
         self.cgh.hologramReady.connect(self.slmView.setData)
         self.cgh.computeFailed.connect(self._onComputeFailed)
-        self._computeTimer = QtCore.QTimer(self)
-        self._computeTimer.timeout.connect(self._onComputeTimer)
         self.screen.status.connect(self.setStatus)
         self.taskManagerWidget.status.connect(self.setStatus)
         overlay = self.screen.overlay
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
-        overlay.trapAdded.connect(self._onTrapAdded)
-        overlay.trapRemoved.connect(self._onTrapRemoved)
-        self.cgh.recalculate.connect(self._scheduleCompute)
+        self.cgh.follow(overlay)
         self.menuAddTrap.trapRequested.connect(self._onTrapRequested)
 
     def _addFilters(self) -> None:
@@ -176,71 +166,11 @@ class QHOT(QtWidgets.QMainWindow):
         for f in ('Color Channel', 'Smoothing', 'Sample and Hold', 'Canny'):
             self.filter.addByName(f)
 
-    @QtCore.Slot(QTrap)
-    def _onTrapAdded(self, trap: QTrap) -> None:
-        '''Connect each new trap's changed signals and schedule a compute.
-
-        For groups, the group's own ``changed`` is connected to handle
-        translation (individual leaves do not emit ``changed`` on group
-        moves).  Each leaf's ``changed`` and ``structureChanged`` are
-        also connected to handle independent leaf changes.
-        '''
-        if isinstance(trap, QTrapGroup):
-            trap.changed.connect(self._scheduleCompute)
-        for leaf in trap.leaves():
-            leaf.changed.connect(self._scheduleCompute)
-            if hasattr(leaf, 'structureChanged'):
-                leaf.structureChanged.connect(self._scheduleCompute)
-        self._scheduleCompute()
-
-    @QtCore.Slot(QTrap)
-    def _onTrapRemoved(self, trap: QTrap) -> None:
-        '''Disconnect compute signals and schedule a hologram recompute.
-
-        Disconnects signals connected in ``_onTrapAdded`` so that
-        undo/redo cycles do not accumulate duplicate connections.
-        '''
-        if isinstance(trap, QTrapGroup):
-            try:
-                trap.changed.disconnect(self._scheduleCompute)
-            except (TypeError, RuntimeError):
-                logger.debug(f'could not disconnect changed from {trap!r}')
-        for leaf in trap.leaves():
-            try:
-                leaf.changed.disconnect(self._scheduleCompute)
-            except (TypeError, RuntimeError):
-                logger.debug(f'could not disconnect changed from {leaf!r}')
-            if hasattr(leaf, 'structureChanged'):
-                try:
-                    leaf.structureChanged.disconnect(self._scheduleCompute)
-                except (TypeError, RuntimeError):
-                    logger.debug(
-                        f'could not disconnect structureChanged from {leaf!r}',
-                    )
-        self._scheduleCompute()
-
     @QtCore.Slot(QtCore.QPointF, QTrap)
     def _onTrapRequested(self, pos: QtCore.QPointF, trap: QTrap) -> None:
         '''Add a trap from the menu at the requested position.'''
         trap.r = (pos.x(), pos.y(), 0.)
         self.screen.overlay.addTrap(trap)
-
-    @QtCore.Slot()
-    def _scheduleCompute(self) -> None:
-        '''Mark traps as changed; the next frame will trigger recomputation.'''
-        self._trapsChanged = True
-
-    @QtCore.Slot()
-    def _onComputeTimer(self) -> None:
-        '''Request a hologram if the traps or the calibration changed.
-
-        The CGH pipeline computes one hologram at a time and keeps only
-        the newest request, so asking is cheap and the hologram that
-        follows is always of the latest state.
-        '''
-        if self._trapsChanged:
-            self._trapsChanged = False
-            self.cgh.compute(self.screen.overlay.pattern())
 
     @QtCore.Slot(str)
     def _onComputeFailed(self, reason: str) -> None:
@@ -451,7 +381,6 @@ class QHOT(QtWidgets.QMainWindow):
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         '''Save settings, shut down CGH thread, and close the SLM on exit.'''
         self.saveSettings()
-        self._computeTimer.stop()
         self.cgh.stop()
         self.slm.close()
         super().closeEvent(event)

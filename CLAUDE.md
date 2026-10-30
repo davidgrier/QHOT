@@ -58,7 +58,7 @@ qhot.py (QHOTWindow)
   └── QSaveFile       — TOML config and image file I/O
 ```
 
-**Signal flow:** trap or calibration changes → `QHOT._scheduleCompute` → a timer (`QHOT.COMPUTE_INTERVAL`, independent of the video) calls `CGH.compute(overlay.pattern())` → the worker thread computes with a `Backend` → `CGH.hologramReady` → `QSLM.setData()` updates SLM display.
+**Signal flow:** a trap, or a group of traps, changes (`changed`, which a change of structure also emits) or the traps are added or removed → `QTrapOverlay.patternChanged`; or the calibration changes → `CGH.recalculate`. `CGH.follow(overlay)` notes that the hologram is stale, and a timer of the CGH (`CGH.INTERVAL`, independent of the video) calls `CGH.compute(overlay.pattern())` → the worker thread computes with a `Backend` → `CGH.hologramReady` → `QSLM.setData()` updates SLM display. `QHOT` only makes the connections.
 
 **Threading rule:** the compute thread must never touch anything the interface edits. `CGH.compute` captures two plain values at the request: the pattern (`QTrapOverlay.pattern()`, a tuple of immutable `TrapSpec`) and the calibration (`CGH.optics`, an immutable `Optics`). Anything a hologram depends on must therefore be in the `TrapSpec` or the `Optics`. There are no locks and no caches to invalidate: a hologram is computed from scratch, and the only thing kept between holograms is the structuring fields, keyed by value.
 

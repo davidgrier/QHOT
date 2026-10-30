@@ -118,6 +118,25 @@ class QTrapGroup(QTrap):
         if trap.parent() is self:
             trap.setParent(None)
 
+    def childEvent(self, event: QtCore.QChildEvent) -> None:
+        '''Report a change of a subgroup as a change of this group.
+
+        A subgroup that moves, moves part of this group, so its ``changed``
+        is forwarded to this group's.  Whatever watches the group at the
+        top of a hierarchy then sees every change below it, however the
+        hierarchy was put together: membership is Qt's parent and child.
+        '''
+        child = event.child()
+        if isinstance(child, QTrapGroup):
+            if event.added():
+                child.changed.connect(self.changed)
+            elif event.removed():
+                try:
+                    child.changed.disconnect(self.changed)
+                except (TypeError, RuntimeError):
+                    pass    # it was never connected
+        super().childEvent(event)
+
     def _translateSilently(self, delta: Displacement) -> None:
         '''Translate this node and all descendants by delta
         without emitting signals.'''

@@ -1,9 +1,12 @@
-'''Type aliases for array types used throughout the QHOT pipeline.'''
+'''Types used throughout the QHOT pipeline.'''
+from typing import Protocol
+
 import numpy as np
 from numpy.typing import NDArray
 
 
-__all__ = 'Field Hologram Shape Position Displacement'.split()
+__all__ = ('Field Hologram Shape Position Displacement '
+           'PatternSource').split()
 
 
 # 2D complex array produced by the CGH pipeline.
@@ -21,3 +24,18 @@ Position = NDArray[np.float64]
 
 # Three-dimensional displacement vector [pixels]: (dx, dy, dz).
 Displacement = NDArray[np.float64]
+
+
+class PatternSource(Protocol):
+
+    '''Something that has a pattern of traps, and says when it changes.
+
+    A :class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is one.  A
+    :class:`~QHOT.lib.holograms.CGH.CGH` follows it.
+    '''
+
+    #: Emitted, with no arguments, when the pattern changes.
+    patternChanged: object
+
+    def pattern(self) -> tuple:
+        '''Return the traps as they are now, a tuple of ``TrapSpec``.'''

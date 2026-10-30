@@ -8,7 +8,7 @@ import numpy as np
 from qtpy import QtCore, QtGui
 
 from QHOT.lib.traps import TrapSpec
-from QHOT.lib.types import Shape
+from QHOT.lib.types import PatternSource, Shape
 from .backends import Backend, NumpyBackend
 from .optics import Optics
 from .QHologramWorker import QHologramWorker
@@ -44,6 +44,9 @@ class CGH(QtCore.QObject):
     one hologram is computed at a time; if more requests arrive while it
     is, only the newest is kept, so the hologram that follows is always
     of the latest pattern.  The result arrives as ``hologramReady``.
+
+    :meth:`follow` asks for the holograms: it keeps the hologram of a
+    source of patterns, such as the overlay of traps, up to date.
 
     Parameters
     ----------
@@ -94,6 +97,9 @@ class CGH(QtCore.QObject):
     computeFailed = QtCore.Signal(str)
     #: Emitted when the calibration changes.
     recalculate = QtCore.Signal()
+
+    #: Shortest time between the requests of :meth:`follow` [ms].
+    INTERVAL = 15
     _request = QtCore.Signal(object, object)
 
     _fields = ('shape', 'wavelength', 'n_m', 'magnification', 'focallength',
@@ -148,6 +154,12 @@ class CGH(QtCore.QObject):
         self._worker: QHologramWorker | None = None
         self._quitConnected = False
         self._finalizer: weakref.finalize | None = None
+        # What follows a source of patterns (see ``follow``).
+        self._source: PatternSource | None = None
+        self._stale = True
+        self._timer = QtCore.QTimer(self)
+        self._timer.timeout.connect(self._requestIfStale)
+        self.recalculate.connect(self._markStale)
 
     def __setattr__(self, key: str, value: object) -> None:
         if key in self._fields:
@@ -284,6 +296,7 @@ class CGH(QtCore.QObject):
         self._worker.done.connect(self._onDone)
         self._worker.failed.connect(self._onFailed)
         self._thread.start()
+        self._timer.start()
         # A pipeline that is dropped, or left running when the program
         # ends without an event loop, must not leave its thread running
         # while Python shuts down.
@@ -296,6 +309,50 @@ class CGH(QtCore.QObject):
         self._dispatch()
         return self
 
+    def follow(self,
+               source: PatternSource,
+               interval: int = INTERVAL) -> CGH:
+        '''Keep the hologram of a source of patterns up to date.
+
+        While the pipeline runs, a hologram of ``source.pattern()`` is
+        requested whenever the source says that its pattern changed, or
+        the calibration did, and no more often than every ``interval``
+        milliseconds.  This is independent of the video, so the hologram
+        keeps up with the traps however slowly the camera delivers frames.
+        The first hologram is requested as soon as the pipeline starts.
+
+        Parameters
+        ----------
+        source : PatternSource
+            Has ``pattern()`` and the signal ``patternChanged``.
+        interval : int
+            Shortest time between requests [ms].  Default: ``INTERVAL``.
+
+        Returns
+        -------
+        CGH
+            This instance, for chaining.
+        '''
+        if self._source is not None:
+            self._source.patternChanged.disconnect(self._markStale)
+        self._source = source
+        source.patternChanged.connect(self._markStale)
+        self._timer.setInterval(interval)
+        self._markStale()
+        return self
+
+    @QtCore.Slot()
+    def _markStale(self) -> None:
+        '''Note that the hologram is out of date.'''
+        self._stale = True
+
+    @QtCore.Slot()
+    def _requestIfStale(self) -> None:
+        '''Ask for a new hologram if the old one is out of date.'''
+        if self._stale and self._source is not None:
+            self._stale = False
+            self.compute(self._source.pattern())
+
     @QtCore.Slot()
     def stop(self) -> None:
         '''Stop the thread that computes holograms.
@@ -305,6 +362,7 @@ class CGH(QtCore.QObject):
         if self._thread is None:
             return
         logger.info('stopping CGH pipeline')
+        self._timer.stop()
         self._thread.quit()
         self._thread.wait()
         self._finalizer.detach()

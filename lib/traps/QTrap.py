@@ -54,6 +54,9 @@ class QTrap(QtCore.QObject):
 
     #: Emitted when any trap property changes.
     changed = QtCore.Signal()
+    #: Emitted when a parameter of the structuring field changes.  This is
+    #: a change of the trap, so ``changed`` is emitted too.
+    structureChanged = QtCore.Signal()
 
     def __init__(self,
                  r: npt.ArrayLike = (0., 0., 0.),
@@ -68,6 +71,7 @@ class QTrap(QtCore.QObject):
                        if phase is None else float(phase))
         self._locked = bool(locked)
         self._index: int | None = None
+        self.structureChanged.connect(self.changed)
         self._registerProperties()
 
     def __len__(self) -> int:

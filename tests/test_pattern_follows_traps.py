@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtWidgets
+from pyqtgraph.Qt import QtCore, QtTest, QtWidgets
 
 from QHOT.lib.holograms import NumpyBackend
 from QHOT.lib.holograms import reference as ref
@@ -63,10 +63,25 @@ class PatternCase(unittest.TestCase):
     def setUp(self):
         self.overlay = QTrapOverlay()
         self.backend = NumpyBackend()
+        self.signals = QtTest.QSignalSpy(self.overlay.patternChanged)
+        self.seen = (self.overlay.pattern(), len(self.signals))
 
     def check(self):
-        '''The pattern is the traps, and makes the hologram of the traps.'''
+        '''The pattern is the traps, and makes the hologram of the traps.
+
+        Whenever the pattern is not what it was at the last check, the
+        overlay has said so: whatever follows the overlay, as the CGH
+        does, would otherwise show a hologram that is out of date.
+        '''
         pattern = self.overlay.pattern()
+        before, count = self.seen
+        if pattern != before:
+            self.assertGreater(
+                len(self.signals),
+                count,
+                'the pattern changed in silence',
+            )
+        self.seen = (pattern, len(self.signals))
         expected = tuple(describe(t) for t in self.overlay)
         self.assertEqual(pattern, expected)
         o = optics()
@@ -250,6 +265,79 @@ class TestGroups(PatternCase):
         self.check()
         top.r = (44., 26., 0.)
         self.check()
+
+
+class TestPatternChanged(PatternCase):
+
+    def emitted(self, operation) -> bool:
+        count = len(self.signals)
+        operation()
+        return len(self.signals) > count
+
+    def test_adding_a_trap(self):
+        self.assertTrue(self.emitted(lambda: self.overlay.addTrap(
+            tweezer(10, 12))))
+
+    def test_removing_a_trap(self):
+        a = tweezer(10, 12)
+        self.overlay.addTrap(a)
+        self.assertTrue(self.emitted(lambda: self.overlay.removeTrap(a)))
+
+    def test_clearing_the_traps(self):
+        self.overlay.addTrap(tweezer(10, 12))
+        self.assertTrue(self.emitted(self.overlay.clearTraps))
+
+    def test_changing_a_trap(self):
+        a = tweezer(10, 12)
+        self.overlay.addTrap(a)
+        for name, value in (('x', 20.), ('amplitude', 0.5), ('phase', 1.)):
+            with self.subTest(name):
+                self.assertTrue(self.emitted(
+                    lambda n=name, v=value: setattr(a, n, v)))
+
+    def test_changing_the_structure_of_a_trap(self):
+        v = QVortex(r=(20., 20., 0.), phase=0., ell=3)
+        r = QRingTrap(r=(30., 20., 0.), phase=0., ell=2, radius=5.)
+        self.overlay.addTrap([v, r])
+        self.assertTrue(self.emitted(lambda: setattr(v, 'ell', 4)))
+        self.assertTrue(self.emitted(lambda: setattr(r, 'radius', 9.)))
+
+    def test_moving_a_group(self):
+        g = make_group()
+        self.overlay.addTrap(g)
+        self.assertTrue(self.emitted(lambda: setattr(g, 'r', (40., 30., 0.))))
+
+    def test_undoing_and_redoing(self):
+        self.overlay.addTrap(QtCore.QPointF(10., 12.))
+        stack = self.overlay.undoStack
+        self.assertTrue(self.emitted(stack.undo))
+        self.assertEqual(self.overlay.pattern(), ())
+        self.assertTrue(self.emitted(stack.redo))
+        self.assertEqual(len(self.overlay.pattern()), 1)
+
+    def test_a_removed_trap_is_no_longer_followed(self):
+        a = tweezer(10, 12)
+        self.overlay.addTrap(a)
+        self.overlay.removeTrap(a)
+        self.assertFalse(self.emitted(lambda: setattr(a, 'x', 30.)))
+
+    def test_a_removed_group_is_no_longer_followed(self):
+        g = make_group()
+        member = g.traps[0]
+        self.overlay.addTrap(g)
+        self.overlay.removeTrap(g)
+        self.assertFalse(self.emitted(lambda: setattr(g, 'r', (1., 2., 0.))))
+        self.assertFalse(self.emitted(lambda: setattr(member, 'x', 5.)))
+
+    def test_a_trap_that_is_added_again_is_followed_once(self):
+        a = tweezer(10, 12)
+        for _ in range(3):
+            self.overlay.addTrap(a)
+            self.overlay.removeTrap(a)
+        self.overlay.addTrap(a)
+        count = len(self.signals)
+        a.x = 33.
+        self.assertEqual(len(self.signals) - count, 1)
 
 
 if __name__ == '__main__':

@@ -50,7 +50,18 @@ qhot = "QHOT.qhot:main"
 
 [tool.setuptools]
 package-dir = {"QHOT" = "."}
-packages = ["QHOT"]
+# Every directory that has an __init__.py is a package, and must be listed:
+# a package that is not listed is missing from the wheel.
+# tests/test_packaging.py checks the list.
+packages = [
+    "QHOT",
+    "QHOT.lib",
+    "QHOT.lib.holograms",
+    "QHOT.lib.tasks",
+    "QHOT.lib.traps",
+    "QHOT.tasks",
+    "QHOT.traps",
+]
 
 [tool.setuptools.package-data]
 "QHOT" = ["*.ui", "help/**/*"]

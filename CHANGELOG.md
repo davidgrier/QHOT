@@ -114,6 +114,14 @@
   stops its recording.
 
 ### Fixed
+- **The wheel was missing most of the program.**  Since 1.4.2 the package
+  list in `pyproject.toml` named only `QHOT`, so `pip install QHOT` installed
+  a package without `lib`, `traps` and `tasks`, and the program could not
+  import its own library (`No module named 'QHOT.lib'`).  Every release from
+  1.4.2 to 1.5.0 is affected.  All the packages are listed, a test
+  (`tests/test_packaging.py`) fails when a package directory is not in the
+  list, and a CI job builds the wheel, installs it in a clean environment and
+  imports the program from outside the checkout.
 - The splay correction counted `zc` twice: it grew with the depth from
   the focal plane minus `zc` again.  It now follows the depth from the
   focal plane, in `CGH.transform` and in `Optics.toSLM`.  Nothing

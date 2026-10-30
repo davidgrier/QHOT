@@ -18,6 +18,45 @@ jobs:
       - run: pip install ruff
       - run: ruff check .
 
+  package:
+    name: Wheel
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libgl1 libegl1 libglib2.0-0 libxkbcommon0
+      - name: Build the wheel
+        run: |
+          pip install build
+          python -m build --wheel
+      - name: Install the wheel, not the checkout
+        run: pip install "$(ls dist/*.whl)[pyqt6]"
+      - name: Import the program and read its files, from outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          python - <<'EOF'
+          import QHOT
+          assert 'site-packages' in QHOT.__file__, QHOT.__file__
+          from QHOT.lib.holograms import CGH, QCGHTree
+          from QHOT.lib.traps import QTrapOverlay
+          from QHOT.lib import tasks as lib_tasks
+          import QHOT.tasks, QHOT.traps
+          from QHOT.qhot import QHOT as Window
+          assert Window.UIFILE.is_file(), Window.UIFILE
+          assert (Window.HELPDIR / 'index.html').is_file(), Window.HELPDIR
+          from pyqtgraph.Qt import QtWidgets
+          app = QtWidgets.QApplication([])
+          QCGHTree(cgh=CGH())
+          print('the installed package works:', QHOT.__file__)
+          EOF
+
   test:
     name: Python ${{ matrix.python-version }} (${{ matrix.binding }}${{ matrix.extras }})
     runs-on: ubuntu-latest

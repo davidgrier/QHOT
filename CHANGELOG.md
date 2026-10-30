@@ -1,6 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [2.1.1] — 2026-10-30
+
+A fix for the lag of the traps with a GenICam camera such as the Flir.
 
 ### Fixed
 - The traps responded slowly with a GenICam camera such as the Flir: 3.4

@@ -1,3 +1,4 @@
+from .TrapSpec import TrapSpec
 from .QTrap import QTrap
 from .QTrapGroup import QTrapGroup
 from .QTrapOverlay import QTrapOverlay
@@ -7,7 +8,7 @@ from .commands import (
     MoveCommand, RotateCommand, WheelCommand, LockCommand)
 
 
-__all__ = ('QTrap QTrapGroup QTrapOverlay QTrapMenu '
+__all__ = ('TrapSpec QTrap QTrapGroup QTrapOverlay QTrapMenu '
            'AddTrapCommand RemoveTrapCommand '
            'MoveCommand RotateCommand WheelCommand '
            'LockCommand').split()

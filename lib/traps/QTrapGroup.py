@@ -1,6 +1,7 @@
 from qtpy import QtCore
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.types import Displacement
+from QHOT.lib.traps.TrapSpec import TrapSpec
 from collections.abc import Iterator
 import numpy as np
 import numpy.typing as npt
@@ -22,7 +23,36 @@ class QTrapGroup(QTrap):
     ----------
     traps : list[QTrap]
         Direct children of this group (may include nested QTrapGroups).
+    composite : bool
+        Whether the group is one trap made of others (class attribute).
+        Default: ``False``.
+
+    Notes
+    -----
+    There are two kinds of group.  A plain group is a way to handle traps
+    together, to move, rotate and save them.  The amplitude of a member
+    means the same in a group as alone, so that the traps of a group mix
+    with other traps on an equal footing, and the group has no amplitude
+    or phase of its own: they are fixed at 1 and 0.
+
+    A composite is a group that is used as a single trap, such as a trap
+    made of component traps in particular relations of phase and
+    amplitude.  Those relations are fixed, so it has an amplitude and a
+    phase of its own, to mix it with other traps.  A class of composites
+    sets ``composite = True``.
     '''
+
+    composite: bool = False
+
+    def _registerProperties(self) -> None:
+        '''Register the editable properties.
+
+        A plain group is not given an amplitude or a phase to edit.
+        '''
+        super()._registerProperties()
+        if not self.composite:
+            for name in ('amplitude', 'phase'):
+                self.properties.pop(name, None)
 
     def __len__(self) -> int:
         return sum(1 for _ in self)
@@ -48,6 +78,25 @@ class QTrapGroup(QTrap):
         x, y, z = self._r
         return (f'{name}(r=({x:.1f}, {y:.1f}, {z:.1f}), '
                 f'ntraps={len(self)})')
+
+    def spec(self) -> TrapSpec:
+        '''Return a snapshot of this group and all that it contains.
+
+        The structuring field of a group is the superposition of those of
+        its members, so a group needs no parameters of its own.  A plain
+        group has no amplitude or phase of its own, so its spec does not
+        record them: two groups of the same members in the same place
+        have equal specs.  A composite records its own.
+        '''
+        weight = (dict(amplitude=float(self._amplitude),
+                       phase=float(self._phase))
+                  if self.composite else {})
+        return TrapSpec(
+            kind=type(self).__name__,
+            r=tuple(float(v) for v in self._r),
+            children=tuple(child.spec() for child in self),
+            isGroup=True,
+            **weight)
 
     def addTrap(self, traps: QTrap) -> None:
         '''Adds one or more traps or groups to this group.

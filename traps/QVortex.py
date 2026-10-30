@@ -34,6 +34,8 @@ class QVortex(QTrap):
     #: Emitted when the topological charge changes.
     structureChanged = QtCore.Signal()
 
+    structureParams = ('ell',)
+
     def __init__(self, *args, ell: int = 10, **kwargs) -> None:
         self._ell = int(ell)
         super().__init__(*args, **kwargs)
@@ -58,6 +60,24 @@ class QVortex(QTrap):
         self._ell = int(ell)
         self.structureChanged.emit()
 
+    @classmethod
+    def structuringField(cls, geometry, ell: int = 0, **params) -> Field:
+        '''Return the helical phase ``exp(i ell θ)`` of a vortex.
+
+        Parameters
+        ----------
+        geometry : Geometry
+            The coordinates of the SLM plane; the angle ``theta`` is used.
+        ell : int
+            Topological charge.
+
+        Returns
+        -------
+        Field
+            Complex phase mask of shape ``geometry.shape``.
+        '''
+        return np.exp(1j * ell * geometry.theta)
+
     def structure(self, cgh: CGH) -> Field:
         '''Compute the helical phase structure ``exp(i ell θ)``.
 
@@ -72,7 +92,7 @@ class QVortex(QTrap):
         Field
             Complex phase mask of shape ``cgh.shape``.
         '''
-        return np.exp(1j * self.ell * cgh.theta)
+        return self.structuringField(cgh, ell=self.ell)
 
 
 if __name__ == '__main__':  # pragma: no cover

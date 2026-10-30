@@ -608,7 +608,7 @@ class CGH(QtCore.QObject):
             Position in SLM coordinates.
         '''
         r = self.matrix * r
-        fac = 1. / (1. + self.splay*(r.z() - self.zc))
+        fac = 1. / (1. + self.splay*r.z())
         r *= QtGui.QVector3D(fac, fac, 1.)
         return r
 

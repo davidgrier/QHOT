@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+### Added
+- `reference.hologram(pattern, optics)` (`lib/holograms/reference.py`):
+  the algorithm of linear superposition stated as plainly as possible,
+  in double precision, with no caching.  A trap's field is its complex
+  amplitude times its displacement `D(r)` times its structuring field;
+  a group's structuring field is the superposition of its members',
+  recursively.  It is the standard that the engines are tested against.
+- `Optics` and `Geometry` (`lib/holograms/Optics.py`): the calibration as
+  an immutable value, with the coordinate transform and the phase ramps
+  that move a focus; `Geometry` (the angle and radial wavenumber of the
+  SLM plane) is all that a trap is given to make its structure.
+- `TrapSpec` (`lib/traps/TrapSpec.py`) and `QTrap.spec()`: a snapshot of a
+  trap, or of a group with all its members, as a plain, hashable value.
+- Plain groups and composites.  A plain group is a way to handle traps
+  together: a member has the same amplitude in it as alone, so that its
+  traps mix with others on an equal footing, and the group has no
+  amplitude or phase of its own.  Its trap panel no longer offers them and
+  its saved form no longer contains them (older files still load).  A
+  composite, a group that is used as a single trap, has an amplitude and a
+  phase of its own, to mix it with other traps: a class of composites sets
+  `composite = True`.  No class does yet, and the old engine does not apply
+  a composite's weight; the reference does.
+- `QTrap.structuringField(geometry, **params)`: a trap makes its own
+  structuring field from the geometry and its parameters
+  (`structureParams`), as a function of values.  `QVortex` and
+  `QRingTrap` define it; their `structure(cgh)` now defers to it.
+
 ### Changed
 - The CGH engine no longer reads the traps of the GUI.  It computes from
   private replicas of the traps, which the new `QTrapSync` keeps up to date
@@ -38,6 +65,10 @@
   stops its recording.
 
 ### Fixed
+- The splay correction counted `zc` twice: it grew with the depth from
+  the focal plane minus `zc` again.  It now follows the depth from the
+  focal plane, in `CGH.transform` and in `Optics.transform`.  Nothing
+  changes while `zc` is 0, its default.
 - A saved queue that contains a `StartRecording` task could not be
   loaded: the task wrote into the DVR widget before the queue gave it one.
 - Detaching a trap from a group left the cached structure of the group

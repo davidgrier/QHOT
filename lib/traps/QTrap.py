@@ -5,7 +5,8 @@ import numpy.typing as npt
 from qtpy import QtCore
 from collections.abc import Iterator
 
-from QHOT.lib.types import Position
+from QHOT.lib.types import Field, Position
+from QHOT.lib.traps.TrapSpec import TrapSpec
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,11 @@ class QTrap(QtCore.QObject):
     '''
 
     _registry: dict[str, type] = {}
+
+    #: Names of the attributes that the structuring field depends on.
+    #: A trap with a structure lists them here; ``spec()`` records their
+    #: values, and ``structuringField`` receives them as keywords.
+    structureParams: tuple[str, ...] = ()
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
@@ -162,6 +168,45 @@ class QTrap(QtCore.QObject):
     @locked.setter
     def locked(self, value: bool) -> None:
         self._locked = bool(value)
+
+    @classmethod
+    def structuringField(cls, geometry, **params) -> Field | None:
+        '''Return the structuring field of a trap of this class.
+
+        A trap focuses light to a point, and its structuring field shapes
+        the focus: a helical phase makes a vortex, a Bessel profile
+        makes a ring.  The field depends on the plane of the SLM and on
+        the parameters in ``structureParams``, but not on where the trap
+        is, so it can be made once and used wherever the trap goes.
+
+        This is a function of values, not of a live trap, so that a
+        hologram can be computed in any thread from a ``TrapSpec``.
+
+        Parameters
+        ----------
+        geometry : Geometry
+            The coordinates of the SLM plane.  Nothing else of the
+            hologram engine is available to a trap.
+        **params
+            The parameters named in ``structureParams``.
+
+        Returns
+        -------
+        Field or None
+            A complex array of shape ``geometry.shape``, or ``None`` for
+            a trap without structure, whose field is a plain focus.
+        '''
+        return None
+
+    def spec(self) -> TrapSpec:
+        '''Return a snapshot of this trap as a plain value.'''
+        return TrapSpec(
+            kind=type(self).__name__,
+            r=tuple(float(v) for v in self._r),
+            amplitude=float(self._amplitude),
+            phase=float(self._phase),
+            params=tuple(sorted((name, getattr(self, name))
+                                for name in self.structureParams)))
 
     def leaves(self) -> Iterator['QTrap']:
         '''Yield this trap as its own sole leaf.

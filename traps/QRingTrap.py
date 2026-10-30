@@ -39,6 +39,8 @@ class QRingTrap(QTrap):
     #: Emitted when the topological charge or radius changes.
     structureChanged = QtCore.Signal()
 
+    structureParams = ('ell', 'radius')
+
     def __init__(self, *args,
                  radius: float = 10.,
                  ell: float = 10.,
@@ -91,8 +93,30 @@ class QRingTrap(QTrap):
         Field
             Complex structure mask of shape ``cgh.shape``.
         '''
-        return (jv(self.ell, self.radius * cgh.qr)
-                * np.exp(1j * self.ell * cgh.theta))
+        return self.structuringField(cgh, ell=self.ell, radius=self.radius)
+
+    @classmethod
+    def structuringField(cls, geometry, ell: float = 0.,
+                         radius: float = 0., **params) -> Field:
+        '''Return the Bessel profile and helical phase of a ring.
+
+        Parameters
+        ----------
+        geometry : Geometry
+            The coordinates of the SLM plane; ``qr`` and ``theta`` are
+            used.
+        ell : float
+            Topological charge.
+        radius : float
+            Radius of the ring [pixels].
+
+        Returns
+        -------
+        Field
+            Complex structure mask of shape ``geometry.shape``.
+        '''
+        return (jv(ell, radius * geometry.qr)
+                * np.exp(1j * ell * geometry.theta))
 
 
 if __name__ == '__main__':  # pragma: no cover

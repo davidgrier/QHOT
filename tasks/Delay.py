@@ -24,9 +24,9 @@ class Delay(QTask):
         manager.register(Record(dvr=dvr, nframes=60))
     '''
 
-    parameters = [
+    parameters = (
         dict(name='frames', type='int', value=30, default=30, min=0),
-    ]
+    )
 
     def __init__(self, frames: int = 30, **kwargs) -> None:
         if 'duration' in kwargs:

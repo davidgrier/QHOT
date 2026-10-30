@@ -258,14 +258,14 @@ class TestPlainGroupsAndComposites(unittest.TestCase):
         self.assertEqual(sorted(QTrapGroup().properties), ['x', 'y', 'z'])
 
     def test_a_plain_group_does_not_save_an_amplitude(self):
-        d = group(*self.members()).to_dict()
+        d = group(*self.members()).toDict()
         self.assertNotIn('amplitude', d)
         self.assertNotIn('phase', d)
 
     def test_older_files_with_a_group_amplitude_still_load(self):
         d = {'type': 'QTrapGroup', 'x': 1., 'y': 2., 'z': 0.,
              'amplitude': 3., 'phase': 1.5, 'children': []}
-        spec = QTrapGroup.from_dict(d).spec()
+        spec = QTrapGroup.fromDict(d).spec()
         self.assertEqual((spec.amplitude, spec.phase), (1., 0.))
 
     def test_setting_it_anyway_changes_nothing(self):
@@ -303,7 +303,7 @@ class TestPlainGroupsAndComposites(unittest.TestCase):
                         for a in (0.2, 5.))
         for c in (weak, strong):
             c.addTrap(self.members()[:2])
-        near = lambda c: ref.hologram([c.spec(), other], self.o)  # noqa
+        near = lambda c: ref.hologram([c.spec(), other], self.o)
         self.assertFalse(np.array_equal(near(weak), near(strong)))
 
     def test_the_phase_of_a_composite_shifts_its_hologram(self):

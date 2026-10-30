@@ -54,7 +54,7 @@ class TrapSpec:
     amplitude: float = 1.
     phase: float = 0.
     params: tuple[tuple[str, object], ...] = ()
-    children: tuple['TrapSpec', ...] = ()
+    children: tuple[TrapSpec, ...] = ()
     isGroup: bool = False
 
     def parameters(self) -> dict[str, object]:
@@ -90,7 +90,7 @@ class TrapSpec:
         else:
             yield self, mine
 
-    def leaves(self) -> Iterator['TrapSpec']:
+    def leaves(self) -> Iterator[TrapSpec]:
         '''Yield the traps that are not groups, at any depth.'''
         if self.isGroup:
             for child in self.children:

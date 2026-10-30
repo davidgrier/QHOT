@@ -42,11 +42,11 @@ class Record(QTask):
         Forwarded to ``QTask`` (e.g. ``delay``).
     '''
 
-    parameters = [
+    parameters = (
         dict(name='filename', type='str', value='', default=''),
         dict(name='nframes', type='int', value=0, default=0, min=0),
         dict(name='overwrite', type='bool', value=False, default=False),
-    ]
+    )
 
     def __init__(self,
                  *args,

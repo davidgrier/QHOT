@@ -50,12 +50,12 @@ class TestLoadTrapsExecution(unittest.TestCase):
     def test_from_list_called_with_file_contents(self):
         task = LoadTraps(overlay=self.overlay, filename=self.tmp.name)
         _run(task)
-        self.overlay.from_list.assert_called_once_with(self.trap_data)
+        self.overlay.fromList.assert_called_once_with(self.trap_data)
 
     def test_empty_filename_does_not_call_from_list(self):
         task = LoadTraps(overlay=self.overlay, filename='')
         _run(task)
-        self.overlay.from_list.assert_not_called()
+        self.overlay.fromList.assert_not_called()
 
     def test_empty_filename_still_completes(self):
         task = LoadTraps(overlay=self.overlay, filename='')
@@ -71,11 +71,11 @@ class TestLoadTrapsExecution(unittest.TestCase):
 class TestLoadTrapsSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        self.assertEqual(LoadTraps().to_dict()['type'], 'LoadTraps')
+        self.assertEqual(LoadTraps().toDict()['type'], 'LoadTraps')
 
     def test_round_trip(self):
         task = LoadTraps(filename='/tmp/traps.json')
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, LoadTraps)
         self.assertEqual(restored.filename, '/tmp/traps.json')
 

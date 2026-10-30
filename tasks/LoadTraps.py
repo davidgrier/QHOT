@@ -7,7 +7,7 @@ class LoadTraps(QTask):
 
     '''Load a trap configuration from a JSON file into the overlay.
 
-    Calls ``overlay.from_list()`` in ``initialize()``, replacing the
+    Calls ``overlay.fromList()`` in ``initialize()``, replacing the
     current traps with those stored in ``filename``.
     Completes immediately in a single frame.
 
@@ -29,9 +29,9 @@ class LoadTraps(QTask):
         manager.register(Record(dvr=dvr, nframes=300), blocking=False)
     '''
 
-    parameters = [
+    parameters = (
         dict(name='filename', type='str', value='', default=''),
-    ]
+    )
 
     def __init__(self, *, filename: str = '', **kwargs) -> None:
         super().__init__(duration=0, **kwargs)
@@ -44,4 +44,4 @@ class LoadTraps(QTask):
                 'LoadTraps: filename is required')
             return
         with open(self.filename) as f:
-            self.overlay.from_list(json.load(f))
+            self.overlay.fromList(json.load(f))

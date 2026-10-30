@@ -9,7 +9,7 @@ from QVideo.cameras import chooser
 from QVideo.lib import QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
-from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
+from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
 from QHOT.lib.QCameraOpener import QCameraOpener
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
@@ -107,7 +107,7 @@ class QHOT(QtWidgets.QMainWindow):
     def _setupEditMenu(self) -> None:
         '''Insert an Edit menu with Undo/Redo/Toggle Overlay between
         File and Tasks.'''
-        stack = self.screen.overlay._undoStack
+        stack = self.screen.overlay.undoStack
         undoAction = stack.createUndoAction(self, '&Undo')
         undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redoAction = stack.createRedoAction(self, '&Redo')
@@ -215,8 +215,8 @@ class QHOT(QtWidgets.QMainWindow):
                     leaf.structureChanged.disconnect(self._scheduleCompute)
                 except (TypeError, RuntimeError):
                     logger.debug(
-                        'could not disconnect structureChanged from %r',
-                        leaf)
+                        f'could not disconnect structureChanged from {leaf!r}',
+                    )
         self._scheduleCompute()
 
     @QtCore.Slot(QtCore.QPointF, QTrap)
@@ -485,7 +485,7 @@ def main() -> None:
     say(screen, 'Starting the hologram engine...')
     cgh = choose_cgh(parser, shape=slm.shape)
     say(screen, 'Waiting for the camera...')
-    if not opener.wait_for_camera():
+    if not opener.waitForCamera():
         screen.close()
         sys.exit(f'Error: {opener.reason}')
     say(screen, 'Building the interface...')

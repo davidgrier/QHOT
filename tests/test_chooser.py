@@ -108,11 +108,11 @@ class TestChooseCghAutoDetect(unittest.TestCase):
         self.assertIs(result, fake_backend)
 
     def unavailable(self, *names):
-        """Return a stand-in for the package of the backends.
+        '''Return a stand-in for the package of the backends.
 
         The backends that are named cannot be made, as when their library
         is not installed.
-        """
+        '''
         fake_module = MagicMock()
         for name in names:
             getattr(fake_module, name).side_effect = ImportError(f'no {name}')
@@ -216,7 +216,7 @@ class TestExplicitFlags(unittest.TestCase):
 
     def test_j_chooses_numba_if_it_is_installed(self):
         try:
-            import numba  # noqa: F401
+            import numba
         except ImportError:
             self.skipTest('numba is not installed')
         self.assertEqual(self.choose('-j').name, 'numba')
@@ -232,7 +232,7 @@ class TestExplicitFlags(unittest.TestCase):
 
     def test_t_chooses_torch_if_it_is_installed(self):
         try:
-            import torch  # noqa: F401
+            import torch
         except ImportError:
             self.skipTest('torch is not installed')
         self.assertEqual(self.choose('-t').name, 'torch')

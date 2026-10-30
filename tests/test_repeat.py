@@ -51,31 +51,31 @@ class TestRepeatInit(unittest.TestCase):
 class TestRepeatSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        self.assertEqual(Repeat(n=3).to_dict()['type'], 'Repeat')
+        self.assertEqual(Repeat(n=3).toDict()['type'], 'Repeat')
 
     def test_to_dict_includes_n(self):
-        self.assertEqual(Repeat(n=3).to_dict()['n'], 3)
+        self.assertEqual(Repeat(n=3).toDict()['n'], 3)
 
     def test_to_dict_no_specs_when_none(self):
-        self.assertNotIn('_specs', Repeat(n=3).to_dict())
+        self.assertNotIn('_specs', Repeat(n=3).toDict())
 
     def test_to_dict_includes_specs_when_set(self):
         specs = [{'type': 'Delay', 'delay': 0, 'frames': 0}]
         repeat = Repeat(n=2, _specs=specs)
-        d = repeat.to_dict()
+        d = repeat.toDict()
         self.assertIn('_specs', d)
         self.assertEqual(d['_specs'], specs)
 
     def test_round_trip_n(self):
         task = Repeat(n=4)
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, Repeat)
         self.assertEqual(restored.n, 4)
 
     def test_round_trip_with_specs(self):
         specs = [{'type': 'Delay', 'delay': 0, 'frames': 0}]
         task = Repeat(n=2, _specs=specs)
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, Repeat)
         self.assertEqual(restored._specs, specs)
 

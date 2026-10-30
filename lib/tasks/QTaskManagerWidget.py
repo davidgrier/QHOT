@@ -277,7 +277,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         task = item.data(_ROLE)
         menu = QtWidgets.QMenu(self)
         remove_action = menu.addAction('Remove')
-        remove_action.setEnabled(task is not self._manager.active_raw)
+        remove_action.setEnabled(task is not self._manager.activeRaw)
         chosen = menu.exec(self._queueList.mapToGlobal(pos))
         if chosen is remove_action:
             self._manager.remove(task)

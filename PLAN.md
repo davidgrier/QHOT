@@ -51,7 +51,7 @@ Missing relative to pyfab:
 | Delegate video, DVR, filters, histogram to QVideo | Positive | Removes about 40% of pyfab's code; QVideo 4.9 has recorder and player, filter rack, histogram, ROI, YOLO and trackpy overlays |
 | `qtpy` instead of PyQt5 | Positive | PyQt6 is production on macOS; future-proof |
 | `QTrapOverlay` as `QGraphicsScene` plus signals | Positive | Much cleaner than `ScatterPlotItem` plus raw mouse signals |
-| Trap tree with groups, `to_dict`, class registry | Positive | Makes tasks and files serializable |
+| Trap tree with groups, `toDict`, class registry | Positive | Makes tasks and files serializable |
 | Per-trap field cache | Positive | Large efficiency gain |
 | Torch CGH | Positive | Portable replacement for CUDA-only code |
 | TOML and ParameterTree for calibration | Mostly positive | Declarative and editable; TOML suits instrument profiles |

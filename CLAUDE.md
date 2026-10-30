@@ -92,8 +92,10 @@ qhot.py (QHOTWindow)
 - Prefer single quotes over double quotes for strings, including docstrings.
 - Docstrings use NumPy style.
 - Use split-string style for `__all__`: `__all__ = 'Foo Bar Baz'.split()`
-- Keep all lines within 79 columns, including comments and docstrings. `ruff check .` (pyflakes, bugbear and the line length, configured in `pyproject.toml`) runs in CI as the `Lint` job: fix what it reports rather than silencing it.
+- Keep all lines within 79 columns, including comments and docstrings. `ruff check .` (pyflakes, bugbear, the line length, single quotes, class attributes, quoted annotations and stale `noqa`, configured in `pyproject.toml`) runs in CI as the `Lint` job: fix what it reports rather than silencing it.
 - Layout of arguments, as in QVideo. In a definition, either everything fits on one line, or the parameters are aligned under the first, one to a line, with `self` or `cls` beside the first parameter or alone on the line of the name: `def phasors(self,` / `c,` / `positions) -> tuple:`. In a call, either everything fits on one line, or the arguments are aligned under the first, one to a line, or they hang, one to a line with a trailing comma and the closing parenthesis on a line of its own (good for a call with keywords, such as a table). Never several arguments on a line of a wrapped list. `tests/test_style.py` enforces it.
+- A class attribute that is shared is annotated `ClassVar`; a declarative table, such as a task's `parameters`, is a tuple (ruff `RUF012`).
+- Annotations are never quoted: a module that needs a forward reference has `from __future__ import annotations` (ruff `UP037`). A `# noqa` says why, and ruff `RUF100` removes one that is stale. Run it with all the rules selected, or it will remove a `noqa` for a rule that it was not checking.
 - Every public class, function, method and property has a NumPy-style docstring. Sphinx publishes only what has one, and `tests/test_docstrings.py` fails when one is missing (an override inherits the docstring of the method it overrides; Qt signals are documented with `#:` comments or in the class docstring).
 - Put the physics in the docstring. Equations go in `.. math::` blocks or `:math:` roles, and a docstring that has a backslash is a raw string (`r'''`). Build the docs with `python -m sphinx -b html -E docs docs/_build/html`; the build should have no warnings.
 - Name things in the physicist's words where they are physics (`psi`, `phasors`, `superpose`, `structuringField`, `amplitude`, `toSLM`) so that the code reads as the equation, and in plain engineering words where they are plumbing (`upload`, `cache`, `device`).
@@ -108,8 +110,8 @@ Names follow Qt for Qt and Python for the rest, as in QVideo:
 - A module that holds a Qt class is named after the class: `QFoo.py` holds `class QFoo` (and the traps and tasks, which are `QTrap` and `QTask` subclasses, keep the names of their classes). Do **not** rename these to snake_case.
 - Every other module has a short, lowercase name: `optics.py`, `trapspec.py`, `reference.py`, `lettersymbol.py`, `chooser.py`.
 - A family of implementations is a package of private modules, `_name.py`, whose package `__init__.py` exports the public classes: `backends/_numba.py` holds `NumbaBackend`, and you import it from `QHOT.lib.holograms.backends`. The underscore says "import from the package", and the class can have the name of its module's topic without shadowing it. A private module may still be imported by a test, to patch it.
-- Use `camelCase` for private instance attributes on Qt classes (e.g. `self._ignoreSync`, `self._isOpen`).
-- Use `snake_case` only for pure-Python, non-Qt classes.
+- Use `camelCase` for everything a Qt class has, public or private: methods, properties and attributes (`toDict`, `fromDict`, `queueSize`, `self._isOpen`, `self._rotationAngle`). Qt calls its own `setEnabled`, so the class should read the same.
+- Use `snake_case` for a pure-Python class (`Optics.from_settings`) and for module functions (`choose_cgh`, `build_parser`), as QVideo does. The names of a task's `parameters` are data that is saved in files, and keep their Python spelling (`selected_only`).
 - When renaming, update both the source file and all corresponding test files, and list a new package in `pyproject.toml` (`tests/test_packaging.py` checks).
 
 ## `__init__.py` re-exports and `mock.patch`

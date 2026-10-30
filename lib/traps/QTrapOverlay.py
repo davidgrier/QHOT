@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from qtpy import QtCore, QtWidgets, QtGui
 import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
@@ -89,19 +91,19 @@ class QTrapOverlay(ScatterPlotItem):
         GROUPING = 3
         SPECIAL = 4
 
-    brush: dict[State, QtGui.QBrush] = {
+    brush: ClassVar[dict[State, QtGui.QBrush]] = {
         State.STATIC: mkBrush(255, 255, 255, 120),
         State.NORMAL: mkBrush(100, 255, 100, 120),
         State.SELECTED: mkBrush(255, 105, 180, 120),
         State.GROUPING: mkBrush(255, 255, 100, 120),
         State.SPECIAL: mkBrush(238, 130, 238, 120)}
 
-    button: dict[str, QtCore.Qt.MouseButton] = {
+    button: ClassVar[dict[str, QtCore.Qt.MouseButton]] = {
         'left': QtCore.Qt.MouseButton.LeftButton,
         'middle': QtCore.Qt.MouseButton.MiddleButton,
         'right': QtCore.Qt.MouseButton.RightButton}
 
-    modifier: dict[str, QtCore.Qt.KeyboardModifier] = {
+    modifier: ClassVar[dict[str, QtCore.Qt.KeyboardModifier]] = {
         'shift': QtCore.Qt.KeyboardModifier.ShiftModifier,
         'alt': QtCore.Qt.KeyboardModifier.AltModifier,
         'ctrl': QtCore.Qt.KeyboardModifier.ControlModifier,
@@ -147,14 +149,14 @@ class QTrapOverlay(ScatterPlotItem):
         self._traps: list[QTrap] = []
         self._marked: set[QTrap] = set()
         self._selected: QTrap | None = None
-        self._move_origin = None
-        self._drag_last: QtCore.QPointF | None = None
-        self._selection_origin: QtCore.QPointF | None = None
+        self._moveOrigin = None
+        self._dragLast: QtCore.QPointF | None = None
+        self._selectionOrigin: QtCore.QPointF | None = None
         self._rotating: QTrapGroup | None = None
-        self._rotation_center: tuple[float, float] = (0., 0.)
-        self._rotation_angle0: float = 0.
-        self._rotation_angle: float = 0.
-        self._rotation_snapshot: dict = {}
+        self._rotationCenter: tuple[float, float] = (0., 0.)
+        self._rotationAngle0: float = 0.
+        self._rotationAngle: float = 0.
+        self._rotationSnapshot: dict = {}
         self._undoStack = QUndoStack()
         self._handler = dict(self._mapping(d) for d in descriptions)
 
@@ -169,6 +171,11 @@ class QTrapOverlay(ScatterPlotItem):
         for child in self.children():
             if isinstance(child, QTrap):
                 yield child
+
+    @property
+    def undoStack(self) -> QUndoStack:
+        '''The stack of undoable edits that the user has made.'''
+        return self._undoStack
 
     def pattern(self) -> tuple[TrapSpec, ...]:
         '''Return a snapshot of the traps, as a pattern of specs.
@@ -317,7 +324,8 @@ class QTrapOverlay(ScatterPlotItem):
                 group.changed.disconnect(self._onGroupChanged)
             except (TypeError, RuntimeError):
                 logger.debug(
-                    'could not disconnect changed from group %r', group)
+                    f'could not disconnect changed from group {group!r}',
+                )
         group.setParent(None)
         self._rebuildSpots()
 
@@ -510,7 +518,7 @@ class QTrapOverlay(ScatterPlotItem):
         pos : QPointF
             Anchor corner of the selection rectangle in item coordinates.
         '''
-        self._selection_origin = pos
+        self._selectionOrigin = pos
         self._selection.setRect(QtCore.QRectF(pos, QtCore.QSizeF(0., 0.)))
         self._selection.show()
 
@@ -522,7 +530,7 @@ class QTrapOverlay(ScatterPlotItem):
         pos : QPointF
             Current cursor position in item coordinates.
         '''
-        rect = QtCore.QRectF(self._selection_origin, pos).normalized()
+        rect = QtCore.QRectF(self._selectionOrigin, pos).normalized()
         self._selection.setRect(rect)
         for item in self:
             state = (self.State.GROUPING if item.isWithin(rect)
@@ -533,7 +541,7 @@ class QTrapOverlay(ScatterPlotItem):
         '''Finish the rubber-band selection and group the enclosed traps.'''
         rect = self._selection.rect()
         self._selection.hide()
-        self._selection_origin = None
+        self._selectionOrigin = None
         for item in self:
             self._setGroupBrush(item, self.State.NORMAL)
         self._finalizeSelection(rect)
@@ -727,7 +735,7 @@ class QTrapOverlay(ScatterPlotItem):
         if self._selected.locked:
             self._selected = None
             return True
-        self._move_origin = self._selected._r.copy()
+        self._moveOrigin = self._selected._r.copy()
         self._setGroupBrush(self._selected, self.State.SELECTED)
         return True
 
@@ -759,9 +767,9 @@ class QTrapOverlay(ScatterPlotItem):
             return True
         cx, cy = group._r[0], group._r[1]
         self._rotating = group
-        self._rotation_center = (cx, cy)
-        self._rotation_angle0 = np.arctan2(pos.y() - cy, pos.x() - cx)
-        self._rotation_snapshot = group._snapshot()
+        self._rotationCenter = (cx, cy)
+        self._rotationAngle0 = np.arctan2(pos.y() - cy, pos.x() - cx)
+        self._rotationSnapshot = group._snapshot()
         self._setGroupBrush(group, self.State.SELECTED)
         return True
 
@@ -832,7 +840,7 @@ class QTrapOverlay(ScatterPlotItem):
         if not handler(pos):
             self.startSelection(pos)
         else:
-            self._drag_last = pos
+            self._dragLast = pos
         return True
 
     def mouseMove(self, event: QtGui.QMouseEvent, pos: QtCore.QPointF) -> bool:
@@ -856,20 +864,20 @@ class QTrapOverlay(ScatterPlotItem):
         if event.buttons() != self.button['left']:
             return False
         if self._rotating is not None:
-            cx, cy = self._rotation_center
+            cx, cy = self._rotationCenter
             angle_now = np.arctan2(pos.y() - cy, pos.x() - cx)
-            angle = angle_now - self._rotation_angle0
+            angle = angle_now - self._rotationAngle0
             angle = (angle + np.pi) % (2. * np.pi) - np.pi
-            self._rotation_angle = angle
-            self._rotating.rotate(angle, self._rotation_snapshot)
-        elif self._selected is not None and self._drag_last is not None:
-            dx = pos.x() - self._drag_last.x()
-            dy = pos.y() - self._drag_last.y()
+            self._rotationAngle = angle
+            self._rotating.rotate(angle, self._rotationSnapshot)
+        elif self._selected is not None and self._dragLast is not None:
+            dx = pos.x() - self._dragLast.x()
+            dy = pos.y() - self._dragLast.y()
             new_r = self._selected._r.copy()
             new_r[0] += dx
             new_r[1] += dy
             self._selected.r = new_r
-            self._drag_last = pos
+            self._dragLast = pos
         elif self._selection.isVisible():
             self.growSelection(pos)
         return True
@@ -893,24 +901,24 @@ class QTrapOverlay(ScatterPlotItem):
         if self._selection.isVisible():
             self.endSelection()
         if self._rotating is not None:
-            if abs(self._rotation_angle) > 1e-10:
+            if abs(self._rotationAngle) > 1e-10:
                 self._undoStack.push(
                     RotateCommand(self._rotating,
-                                  self._rotation_snapshot))
+                                  self._rotationSnapshot))
             self._setGroupBrush(self._rotating, self.State.NORMAL)
             self._rotating = None
-            self._rotation_snapshot = {}
-            self._rotation_angle = 0.
+            self._rotationSnapshot = {}
+            self._rotationAngle = 0.
         if self._selected is not None:
-            if (self._move_origin is not None
+            if (self._moveOrigin is not None
                     and not np.allclose(self._selected._r,
-                                        self._move_origin)):
+                                        self._moveOrigin)):
                 self._undoStack.push(
-                    MoveCommand(self._selected, self._move_origin))
+                    MoveCommand(self._selected, self._moveOrigin))
             self._setGroupBrush(self._selected, self.State.NORMAL)
         self._selected = None
-        self._move_origin = None
-        self._drag_last = None
+        self._moveOrigin = None
+        self._dragLast = None
         return True
 
     def wheel(self, event: QtGui.QWheelEvent, pos: QtCore.QPointF) -> bool:
@@ -945,54 +953,54 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Serialization
 
-    def _make_trap(self, d: dict) -> QTrap:
+    def _makeTrap(self, d: dict) -> QTrap:
         '''Reconstruct a trap or group from a serialised dict.
 
         Parameters
         ----------
         d : dict
-            A dict produced by ``QTrap.to_dict()`` or
-            ``QTrapGroup.to_dict()``.
+            A dict produced by ``QTrap.toDict()`` or
+            ``QTrapGroup.toDict()``.
 
         Returns
         -------
         QTrap
             The reconstructed trap or group, with children attached.
         '''
-        cls = QTrap._registry.get(d['type'])
+        kind = d['type']
+        cls = QTrap._registry.get(kind)
         if cls is None:
-            logger.error('Unknown trap type %r; '
-                         'import its module before calling load()',
-                         d['type'])
-            raise KeyError(f'Unknown trap type {d["type"]!r}. '
-                           f'Import its module before calling load().')
-        trap = cls.from_dict(d)
+            message = (f'Unknown trap type {kind!r}. '
+                       'Import its module before calling load().')
+            logger.error(message)
+            raise KeyError(message)
+        trap = cls.fromDict(d)
         for child_d in d.get('children', []):
-            trap.addTrap(self._make_trap(child_d))
+            trap.addTrap(self._makeTrap(child_d))
         return trap
 
-    def to_list(self) -> list[dict]:
+    def toList(self) -> list[dict]:
         '''Serialise all traps to a list of plain dicts.
 
         Returns
         -------
         list[dict]
             One dict per top-level trap or group, as produced by
-            ``QTrap.to_dict()`` / ``QTrapGroup.to_dict()``.
+            ``QTrap.toDict()`` / ``QTrapGroup.toDict()``.
         '''
-        return [trap.to_dict() for trap in self]
+        return [trap.toDict() for trap in self]
 
-    def from_list(self, data: list[dict]) -> None:
+    def fromList(self, data: list[dict]) -> None:
         '''Replace the current traps with those described by ``data``.
 
         Parameters
         ----------
         data : list[dict]
-            A list of dicts as produced by ``to_list()``.
+            A list of dicts as produced by ``toList()``.
         '''
         self.clearTraps()
         for d in data:
-            self.addTrap(self._make_trap(d))
+            self.addTrap(self._makeTrap(d))
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

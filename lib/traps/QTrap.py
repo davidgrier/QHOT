@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
 
 import numpy as np
 import numpy.typing as npt
 from qtpy import QtCore
 from collections.abc import Iterator
+from typing import ClassVar
 
 from QHOT.lib.types import Field, Position
 from QHOT.lib.traps.trapspec import TrapSpec
@@ -38,7 +41,7 @@ class QTrap(QtCore.QObject):
         Emitted when any property of the trap changes.
     '''
 
-    _registry: dict[str, type] = {}
+    _registry: ClassVar[dict[str, type]] = {}
 
     #: Names of the attributes that the structuring field depends on.
     #: A trap with a structure lists them here; ``spec()`` records their
@@ -70,7 +73,7 @@ class QTrap(QtCore.QObject):
     def __len__(self) -> int:
         return 1
 
-    def __iter__(self) -> Iterator['QTrap']:
+    def __iter__(self) -> Iterator[QTrap]:
         yield self
 
     def __repr__(self) -> str:
@@ -208,7 +211,7 @@ class QTrap(QtCore.QObject):
             params=tuple(sorted((name, getattr(self, name))
                                 for name in self.structureParams)))
 
-    def leaves(self) -> Iterator['QTrap']:
+    def leaves(self) -> Iterator[QTrap]:
         '''Yield this trap as its own sole leaf.
 
         Provides a uniform interface with ``QTrapGroup.leaves()`` so that
@@ -283,7 +286,7 @@ class QTrap(QtCore.QObject):
         '''
         return {p: getattr(self, p) for p in self.properties.keys()}
 
-    def to_dict(self) -> dict:
+    def toDict(self) -> dict:
         '''Serialise this trap to a plain dict suitable for JSON export.
 
         Returns
@@ -299,13 +302,13 @@ class QTrap(QtCore.QObject):
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'QTrap':
+    def fromDict(cls, d: dict) -> QTrap:
         '''Reconstruct a trap from a serialised dict.
 
         Parameters
         ----------
         d : dict
-            A dict as produced by ``to_dict()``.
+            A dict as produced by ``toDict()``.
 
         Returns
         -------

@@ -48,7 +48,7 @@ rotate, lock, and break traps.  Every interactive gesture pushes an undoable
 command onto an embedded ``QUndoStack`` so that all operations can be reversed
 with Ctrl+Z / Cmd+Z.
 
-**Serialization.**  Every trap class implements ``to_dict()``, which returns a
+**Serialization.**  Every trap class implements ``toDict()``, which returns a
 plain ``dict`` containing a ``'type'`` key (the class name), all registered
 properties, and ``'locked': True`` when the trap is locked (omitted otherwise
 to keep JSON compact).  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
@@ -221,9 +221,9 @@ to the front of the queue via ``manager.inject()``.  Injected tasks
 are ephemeral: they are not added to ``scheduled``, so they do not
 persist across ``stop()`` / ``restart()`` calls.
 
-**Serialisation.**  ``QTask.to_dict()`` returns a plain dict with a
+**Serialisation.**  ``QTask.toDict()`` returns a plain dict with a
 ``'type'`` key (the class name), ``'delay'``, and all declared
-parameter values.  ``QTask.from_dict()`` looks up the class name in
+parameter values.  ``QTask.fromDict()`` looks up the class name in
 ``QTask._registry`` and reconstructs the task.  New subclasses are
 registered automatically via ``__init_subclass__``.  ``QTaskManager``
 uses this for ``load()``, ``restart()``, and loop injection.

@@ -21,7 +21,7 @@ class BeginRepeat(QTask):
         manager.register(TaskC(...))
     '''
 
-    parameters = []
+    parameters = ()
 
     def __init__(self, **kwargs) -> None:
         if 'duration' in kwargs:

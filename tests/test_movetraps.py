@@ -276,18 +276,18 @@ class TestMoveTrapsSelectedOnly(unittest.TestCase):
 
     def test_selected_only_round_trip(self):
         task = MoveTraps(dx=5., selected_only=True)
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertTrue(restored.selected_only)
 
 
 class TestMoveTrapsSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        d = MoveTraps(dx=5., dy=3., dz=1., step=2.).to_dict()
+        d = MoveTraps(dx=5., dy=3., dz=1., step=2.).toDict()
         self.assertEqual(d['type'], 'MoveTraps')
 
     def test_to_dict_includes_all_params(self):
-        d = MoveTraps(dx=5., dy=3., dz=1., step=2.).to_dict()
+        d = MoveTraps(dx=5., dy=3., dz=1., step=2.).toDict()
         self.assertAlmostEqual(d['dx'],   5.)
         self.assertAlmostEqual(d['dy'],   3.)
         self.assertAlmostEqual(d['dz'],   1.)
@@ -295,8 +295,8 @@ class TestMoveTrapsSerialization(unittest.TestCase):
 
     def test_round_trip(self):
         task = MoveTraps(dx=5., dy=3., dz=1., step=2.)
-        d = task.to_dict()
-        restored = QTask.from_dict(d)
+        d = task.toDict()
+        restored = QTask.fromDict(d)
         self.assertIsInstance(restored, MoveTraps)
         self.assertAlmostEqual(restored.dx,   5.)
         self.assertAlmostEqual(restored.dy,   3.)
@@ -305,7 +305,7 @@ class TestMoveTrapsSerialization(unittest.TestCase):
 
     def test_round_trip_preserves_duration(self):
         task = MoveTraps(dx=5., dy=3., dz=1., step=2.)
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertEqual(restored.duration, task.duration)
 
 

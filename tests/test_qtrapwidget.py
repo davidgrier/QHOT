@@ -192,15 +192,15 @@ class TestQTrapWidget(unittest.TestCase):
 
     def test_register_adds_to_dict(self):
         self.widget.registerTrap(self.trap)
-        self.assertIn(self.trap, self.widget._trap_widgets)
+        self.assertIn(self.trap, self.widget._trapWidgets)
 
     def test_register_multiple_traps(self):
         trap2 = QTrap(phase=0.)
         self.widget.registerTrap(self.trap)
         self.widget.registerTrap(trap2)
         self.assertEqual(self.widget.count(), 3)
-        self.assertIn(self.trap, self.widget._trap_widgets)
-        self.assertIn(trap2, self.widget._trap_widgets)
+        self.assertIn(self.trap, self.widget._trapWidgets)
+        self.assertIn(trap2, self.widget._trapWidgets)
 
     def test_register_duplicate_logs_warning(self):
         self.widget.registerTrap(self.trap)
@@ -217,11 +217,11 @@ class TestQTrapWidget(unittest.TestCase):
     def test_unregister_removes_from_dict(self):
         self.widget.registerTrap(self.trap)
         self.widget.unregisterTrap(self.trap)
-        self.assertNotIn(self.trap, self.widget._trap_widgets)
+        self.assertNotIn(self.trap, self.widget._trapWidgets)
 
     def test_unregister_disconnects_trap(self):
         self.widget.registerTrap(self.trap)
-        row = self.widget._trap_widgets[self.trap]
+        row = self.widget._trapWidgets[self.trap]
         self.widget.unregisterTrap(self.trap)
         initial_x = row.wid['x'].value
         self.trap.x = initial_x + 50.
@@ -251,12 +251,12 @@ class TestQTrapWidgetGroups(unittest.TestCase):
 
     def test_register_group_adds_header_row(self):
         self.widget.registerTrap(self.grp)
-        self.assertIn(self.grp, self.widget._trap_widgets)
+        self.assertIn(self.grp, self.widget._trapWidgets)
 
     def test_register_group_adds_leaf_rows(self):
         self.widget.registerTrap(self.grp)
-        self.assertIn(self.t1, self.widget._trap_widgets)
-        self.assertIn(self.t2, self.widget._trap_widgets)
+        self.assertIn(self.t1, self.widget._trapWidgets)
+        self.assertIn(self.t2, self.widget._trapWidgets)
 
     def test_register_group_count(self):
         # label + group header + 2 leaves = 4
@@ -265,26 +265,26 @@ class TestQTrapWidgetGroups(unittest.TestCase):
 
     def test_leaf_rows_are_indented(self):
         self.widget.registerTrap(self.grp)
-        leaf_widget = self.widget._trap_widgets[self.t1]
+        leaf_widget = self.widget._trapWidgets[self.t1]
         left_margin = leaf_widget.layout().contentsMargins().left()
         self.assertGreater(left_margin, 0)
 
     def test_group_header_not_indented(self):
         self.widget.registerTrap(self.grp)
-        grp_widget = self.widget._trap_widgets[self.grp]
+        grp_widget = self.widget._trapWidgets[self.grp]
         left_margin = grp_widget.layout().contentsMargins().left()
         self.assertEqual(left_margin, 0)
 
     def test_unregister_group_removes_header(self):
         self.widget.registerTrap(self.grp)
         self.widget.unregisterTrap(self.grp)
-        self.assertNotIn(self.grp, self.widget._trap_widgets)
+        self.assertNotIn(self.grp, self.widget._trapWidgets)
 
     def test_unregister_group_removes_leaf_rows(self):
         self.widget.registerTrap(self.grp)
         self.widget.unregisterTrap(self.grp)
-        self.assertNotIn(self.t1, self.widget._trap_widgets)
-        self.assertNotIn(self.t2, self.widget._trap_widgets)
+        self.assertNotIn(self.t1, self.widget._trapWidgets)
+        self.assertNotIn(self.t2, self.widget._trapWidgets)
 
     def test_unregister_group_decrements_count(self):
         self.widget.registerTrap(self.grp)
@@ -293,13 +293,13 @@ class TestQTrapWidgetGroups(unittest.TestCase):
 
     def test_leaf_editors_track_trap_changes(self):
         self.widget.registerTrap(self.grp)
-        leaf_widget = self.widget._trap_widgets[self.t1]
+        leaf_widget = self.widget._trapWidgets[self.t1]
         self.t1.x = 99.
         self.assertAlmostEqual(leaf_widget.wid['x'].value, 99., places=2)
 
     def test_unregister_group_disconnects_leaves(self):
         self.widget.registerTrap(self.grp)
-        leaf_widget = self.widget._trap_widgets[self.t1]
+        leaf_widget = self.widget._trapWidgets[self.t1]
         self.widget.unregisterTrap(self.grp)
         initial_x = leaf_widget.wid['x'].value
         self.t1.x = initial_x + 50.
@@ -327,9 +327,9 @@ class TestQTrapWidgetDuplicateLeaf(unittest.TestCase):
         self.widget.registerTrap(self.t1)
         with self.assertLogs('QHOT.lib.traps.QTrapWidget', level='WARNING'):
             self.widget.registerTrap(self.grp)
-        # t1 should appear only once in _trap_widgets
+        # t1 should appear only once in _trapWidgets
         self.assertEqual(
-            sum(1 for k in self.widget._trap_widgets if k is self.t1), 1)
+            sum(1 for k in self.widget._trapWidgets if k is self.t1), 1)
 
 
 if __name__ == '__main__':

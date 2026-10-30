@@ -156,19 +156,19 @@ class TestAddTweezerSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
         task = AddTweezer(x=10., y=20.)
-        d = task.to_dict()
+        d = task.toDict()
         self.assertEqual(d['type'], 'AddTweezer')
 
     def test_to_dict_includes_position(self):
         task = AddTweezer(x=10., y=20.)
-        d = task.to_dict()
+        d = task.toDict()
         self.assertAlmostEqual(d['x'], 10.)
         self.assertAlmostEqual(d['y'], 20.)
 
     def test_round_trip(self):
         task = AddTweezer(x=100., y=150.)
-        d = task.to_dict()
-        restored = QTask.from_dict(d)
+        d = task.toDict()
+        restored = QTask.fromDict(d)
         self.assertIsInstance(restored, AddTweezer)
         self.assertAlmostEqual(restored.x, 100.)
         self.assertAlmostEqual(restored.y, 150.)

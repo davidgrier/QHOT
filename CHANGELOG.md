@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking
+- Public methods and properties of Qt classes are `camelCase`, as in QVideo
+  and as Qt names its own: `to_dict`, `from_dict`, `to_list`, `from_list`,
+  `active_raw`, `queue_size` and `wait_for_camera` are now `toDict`,
+  `fromDict`, `toList`, `fromList`, `activeRaw`, `queueSize` and
+  `waitForCamera`.  The files that QHOT saves are unchanged.
+- The `parameters` of a task, and the tables of a trap overlay, are
+  immutable (a tuple) or annotated `ClassVar`.
+
+### Changed
+- `QTrapOverlay.undoStack` is public, and `Repeat` uses
+  `QTaskManager.scheduled`, so neither reaches into private attributes.
+- `ruff` also enforces single quotes, class attributes, quoted annotations
+  and stale `noqa` comments.
+
 ## [2.0.0] — 2026-10-29
 
 **Every wheel published from 1.4.2 to 1.5.0 is missing most of the package**

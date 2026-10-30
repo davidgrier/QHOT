@@ -101,7 +101,7 @@ class QueueMenu(QtWidgets.QMenu):
         subclasses have been registered via ``__init_subclass__``
         before the menu is built.
         '''
-        import QHOT.tasks  # noqa: F401 — triggers __init_subclass__ registrations
+        import QHOT.tasks  # noqa: F401 -- fills QTask._registry
         for name in QTask._registry:
             action = self.addAction(name)
             action.triggered.connect(
@@ -126,7 +126,7 @@ class QueueMenu(QtWidgets.QMenu):
         if cls is None:
             logger.warning(f'Unknown task type: {name!r}')
             return
-        was_idle = (self._manager.active_raw is None
+        was_idle = (self._manager.activeRaw is None
                     and not self._manager.background)
         task = cls(overlay=self._overlay, cgh=self._cgh, dvr=self._dvr)
         self._manager.register(task)

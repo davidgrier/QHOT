@@ -213,7 +213,8 @@ def choose_backend(parser: ArgumentParser | None = None) -> Backend:
                 return backend
             except Exception as ex:
                 logger.warning(
-                    f'Could not initialise {entry.label} backend: {ex}')
+                    f'Could not initialise {entry.label} backend: {ex}',
+                )
             break
 
     # Auto-detection: probe in priority order.

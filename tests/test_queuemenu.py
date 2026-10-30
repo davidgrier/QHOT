@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from pyqtgraph.Qt import QtCore, QtWidgets
 
-import QHOT.tasks  # noqa: F401 — ensure registry is populated
+import QHOT.tasks
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QueueMenu import QueueMenu
@@ -95,8 +95,8 @@ class TestQueueMenuSelection(unittest.TestCase):
         name = next(iter(QTask._registry))
         self.menu.manager = self.manager
         self.menu._onTaskSelected(name)
-        # Either active_raw or in background — something was registered
-        registered = (self.manager.active_raw is not None or
+        # Either activeRaw or in background — something was registered
+        registered = (self.manager.activeRaw is not None or
                       len(self.manager.background) > 0)
         self.assertTrue(registered)
 

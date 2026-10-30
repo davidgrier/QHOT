@@ -37,12 +37,12 @@ class StartRecording(QTask):
         Replace the file if it exists.  Default: ``False``.
     '''
 
-    parameters = [
+    parameters = (
         dict(name='filename', type='str', value='', default=''),
         dict(name='nframes', type='int', value=10_000, default=10_000, min=10),
         dict(name='nskip', type='int', value=1, default=1, min=1),
         dict(name='overwrite', type='bool', value=False, default=False),
-    ]
+    )
 
     def __init__(self,
                  *args,

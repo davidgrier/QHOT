@@ -110,7 +110,7 @@ class Optics:
     thetac: float = 0.
 
     @classmethod
-    def from_settings(cls, settings: dict) -> 'Optics':
+    def from_settings(cls, settings: dict) -> Optics:
         '''Make the optics of a calibration, such as ``CGH.settings``.'''
         names = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in settings.items() if k in names})

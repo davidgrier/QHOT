@@ -26,9 +26,9 @@ class SaveTraps(QTask):
         manager.register(Record(dvr=dvr, nframes=300), blocking=False)
     '''
 
-    parameters = [
+    parameters = (
         dict(name='filename', type='str', value='', default=''),
-    ]
+    )
 
     def __init__(self, *, filename: str = '', **kwargs) -> None:
         super().__init__(duration=0, **kwargs)

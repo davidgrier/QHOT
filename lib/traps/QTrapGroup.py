@@ -228,7 +228,7 @@ class QTrapGroup(QTrap):
         self._translateSilently(delta)
         self.changed.emit()
 
-    def to_dict(self) -> dict:
+    def toDict(self) -> dict:
         '''Serialise this group and all its children to a plain dict.
 
         Returns
@@ -238,8 +238,8 @@ class QTrapGroup(QTrap):
             ``'locked': True`` when the group is locked, and a
             ``'children'`` list of recursively serialised child traps.
         '''
-        d = super().to_dict()
-        d['children'] = [child.to_dict() for child in self]
+        d = super().toDict()
+        d['children'] = [child.toDict() for child in self]
         return d
 
     @property

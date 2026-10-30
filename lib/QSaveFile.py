@@ -168,7 +168,7 @@ class QSaveFile(QtCore.QObject):
         '''
         filename = filename or self.filename(prefix='traps', suffix='.json')
         with open(filename, 'w') as f:
-            json.dump(overlay.to_list(), f, indent=2)
+            json.dump(overlay.toList(), f, indent=2)
         return filename
 
     def trapsAs(self, overlay) -> str:
@@ -208,7 +208,7 @@ class QSaveFile(QtCore.QObject):
             self.parent(), 'Open Traps', str(self.datadir), self.trap_format)
         if filename:
             with open(filename) as f:
-                overlay.from_list(json.load(f))
+                overlay.fromList(json.load(f))
             return filename
         return ''
 
@@ -232,7 +232,7 @@ class QSaveFile(QtCore.QObject):
             Path of the file that was written.
         '''
         filename = filename or self.filename(prefix='queue', suffix='.json')
-        task_list = [task.to_dict() for task in manager.queued]
+        task_list = [task.toDict() for task in manager.queued]
         with open(filename, 'w') as f:
             json.dump(task_list, f, indent=2)
         return filename

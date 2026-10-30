@@ -40,12 +40,12 @@ class Move(QTask):
         manager.register(Move(overlay=overlay, x=320., y=240.))
     '''
 
-    parameters = [
+    parameters = (
         dict(name='x',    type='float', value=0., default=0.),
         dict(name='y',    type='float', value=0., default=0.),
         dict(name='z',    type='float', value=0., default=0.),
         dict(name='step', type='float', value=1., default=1., min=0.01),
-    ]
+    )
 
     def __init__(self,
                  x: float = 0.,
@@ -61,7 +61,7 @@ class Move(QTask):
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
-        self._step_size = max(1e-6, float(step))
+        self._stepSize = max(1e-6, float(step))
         super().__init__(duration=1, **kwargs)
         self._starts: dict = {}
         self._dr: np.ndarray = np.zeros(3)
@@ -74,8 +74,8 @@ class Move(QTask):
         positions = np.array(list(starts.values()))
         return positions.mean(axis=0)
 
-    def _compute_duration(self, displacement: float) -> int:
-        return max(1, math.ceil(displacement / self._step_size))
+    def _computeDuration(self, displacement: float) -> int:
+        return max(1, math.ceil(displacement / self._stepSize))
 
     # ------------------------------------------------------------------
     # Parameter properties
@@ -110,11 +110,11 @@ class Move(QTask):
     @property
     def step(self) -> float:
         '''Maximum displacement per frame [pixels].'''
-        return self._step_size
+        return self._stepSize
 
     @step.setter
     def step(self, value: float) -> None:
-        self._step_size = max(1e-6, float(value))
+        self._stepSize = max(1e-6, float(value))
 
     # ------------------------------------------------------------------
     # QTask lifecycle hooks
@@ -131,7 +131,7 @@ class Move(QTask):
         target = np.array([self._x, self._y, self._z])
         self._dr = target - centroid
         dist = float(np.linalg.norm(self._dr))
-        self.duration = self._compute_duration(dist)
+        self.duration = self._computeDuration(dist)
 
     def process(self, frame: int) -> None:
         '''Interpolate each trap toward its target position.'''

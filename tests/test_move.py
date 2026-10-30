@@ -155,11 +155,11 @@ class TestMoveExecution(unittest.TestCase):
 class TestMoveSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        self.assertEqual(Move(x=5.).to_dict()['type'], 'Move')
+        self.assertEqual(Move(x=5.).toDict()['type'], 'Move')
 
     def test_round_trip(self):
         task = Move(x=5., y=3., z=1., step=2.)
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, Move)
         self.assertAlmostEqual(restored.x,    5.)
         self.assertAlmostEqual(restored.y,    3.)

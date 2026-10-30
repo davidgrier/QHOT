@@ -38,10 +38,10 @@ class AddTweezer(QTask):
         manager.register(AddTweezer(overlay=overlay, cgh=cgh))
     '''
 
-    parameters = [
+    parameters = (
         dict(name='x', type='float', value=0., default=0.),
         dict(name='y', type='float', value=0., default=0.),
-    ]
+    )
 
     def __init__(self,
                  *args,

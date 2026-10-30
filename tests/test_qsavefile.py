@@ -495,8 +495,8 @@ class TestOpenQueue(_Base):
         filename = self.save.queue(mgr_save)
         with self._patch_dialog(filename):
             self.save.openQueue(mgr_load)
-        # first saved task becomes active_raw in loaded manager
-        self.assertEqual(mgr_load.active_raw.frames, 5)
+        # first saved task becomes activeRaw in loaded manager
+        self.assertEqual(mgr_load.activeRaw.frames, 5)
 
 
 if __name__ == '__main__':

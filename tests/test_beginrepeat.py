@@ -22,7 +22,7 @@ class TestBeginRepeatInit(unittest.TestCase):
             BeginRepeat(duration=1)
 
     def test_no_parameters(self):
-        self.assertEqual(BeginRepeat.parameters, [])
+        self.assertEqual(BeginRepeat.parameters, ())
 
     def test_initial_state_pending(self):
         self.assertEqual(BeginRepeat().state, QTask.State.PENDING)
@@ -47,11 +47,11 @@ class TestBeginRepeatExecution(unittest.TestCase):
 class TestBeginRepeatSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        self.assertEqual(BeginRepeat().to_dict()['type'], 'BeginRepeat')
+        self.assertEqual(BeginRepeat().toDict()['type'], 'BeginRepeat')
 
     def test_round_trip(self):
         task = BeginRepeat()
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, BeginRepeat)
 
 

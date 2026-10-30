@@ -31,10 +31,10 @@ class Snapshot(QTask):
         manager.register(MoveTraps(overlay=overlay, dx=20.))
     '''
 
-    parameters = [
+    parameters = (
         dict(name='filename', type='str', value='', default=''),
         dict(name='prefix', type='str', value='snapshot', default='snapshot'),
-    ]
+    )
 
     def __init__(self,
                  image,

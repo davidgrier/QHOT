@@ -76,7 +76,7 @@ class QCameraOpener(QtCore.QThread):
         self.key, self.camera = key, camera
         self.opened.emit(key, camera)
 
-    def wait_for_camera(self) -> bool:
+    def waitForCamera(self) -> bool:
         '''Wait, with the event loop running, until the thread is done.
 
         The splash screen and the rest of the interface stay alive.

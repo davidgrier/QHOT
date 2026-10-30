@@ -152,7 +152,7 @@ class TestStartRecordingSerialization(unittest.TestCase):
             nskip=2,
             overwrite=True,
         )
-        d = task.to_dict()
+        d = task.toDict()
         self.assertEqual(d['type'], 'StartRecording')
         self.assertEqual(d['filename'], 'out.mkv')
         self.assertEqual(d['nframes'], 300)
@@ -162,7 +162,7 @@ class TestStartRecordingSerialization(unittest.TestCase):
     def test_blank_filename_stays_blank(self):
         '''The file of the widget is not frozen into a saved queue.'''
         task = StartRecording(dvr=make_dvr(filename='widget.mkv'))
-        self.assertEqual(task.to_dict()['filename'], '')
+        self.assertEqual(task.toDict()['filename'], '')
 
     def test_round_trip(self):
         task = StartRecording(
@@ -171,7 +171,7 @@ class TestStartRecordingSerialization(unittest.TestCase):
             nskip=2,
             overwrite=True,
         )
-        task2 = QTask.from_dict(task.to_dict())
+        task2 = QTask.fromDict(task.toDict())
         self.assertIsInstance(task2, StartRecording)
         self.assertEqual(task2.filename, 'clip.mkv')
         self.assertEqual(task2.nframes, 100)
@@ -182,7 +182,7 @@ class TestStartRecordingSerialization(unittest.TestCase):
         '''QTaskManager.load builds a task before it gives it a DVR.'''
         d = {'type': 'StartRecording', 'delay': 0, 'filename': 'a.mkv',
              'nframes': 100, 'nskip': 1}
-        self.assertIsInstance(QTask.from_dict(d), StartRecording)
+        self.assertIsInstance(QTask.fromDict(d), StartRecording)
 
 
 class TestStartRecordingWithARealRecorder(RealDVRCase):

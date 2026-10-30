@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import numpy.typing as npt
 from qtpy import QtCore
@@ -192,10 +194,10 @@ class QTrapArray(QTrapGroup):
         if traps:
             self.addTrap(traps)
 
-    def to_dict(self) -> dict:
+    def toDict(self) -> dict:
         '''Serialise this array's parameters to a plain dict.
 
-        Overrides ``QTrapGroup.to_dict()`` to omit children, which are
+        Overrides ``QTrapGroup.toDict()`` to omit children, which are
         reconstructed automatically from ``shape``, ``separation``,
         ``fuzz``, and ``mask`` when the object is re-created.
 
@@ -210,17 +212,17 @@ class QTrapArray(QTrapGroup):
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'QTrapArray':
+    def fromDict(cls, d: dict) -> QTrapArray:
         '''Reconstruct a QTrapArray from a serialised dict.
 
-        Overrides ``QTrap.from_dict`` to convert the serialised ``nx``
+        Overrides ``QTrap.fromDict`` to convert the serialised ``nx``
         and ``ny`` values back into the ``shape`` constructor argument,
         and to convert ``mask`` from a nested list to a numpy array.
 
         Parameters
         ----------
         d : dict
-            A dict as produced by ``QTrapArray.to_dict()``.
+            A dict as produced by ``QTrapArray.toDict()``.
 
         Returns
         -------

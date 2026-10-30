@@ -24,7 +24,7 @@ class StopRecording(QTask):
         Forwarded to ``QTask`` (e.g. ``delay``).
     '''
 
-    parameters = []
+    parameters = ()
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

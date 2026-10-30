@@ -770,7 +770,7 @@ class TestRubberBandSelection(unittest.TestCase):
     def test_start_selection_sets_origin(self):
         pos = QtCore.QPointF(5., 5.)
         self.overlay.startSelection(pos)
-        self.assertEqual(self.overlay._selection_origin, pos)
+        self.assertEqual(self.overlay._selectionOrigin, pos)
 
     def test_start_selection_shows_rect(self):
         self.overlay.startSelection(QtCore.QPointF(2., 2.))
@@ -800,7 +800,7 @@ class TestRubberBandSelection(unittest.TestCase):
     def test_end_selection_clears_origin(self):
         self.overlay.startSelection(QtCore.QPointF(0., 0.))
         self.overlay.endSelection()
-        self.assertIsNone(self.overlay._selection_origin)
+        self.assertIsNone(self.overlay._selectionOrigin)
 
     def test_end_selection_resets_brushes(self):
         trap = QTrap(r=(3., 3., 0.), phase=0.)
@@ -830,7 +830,7 @@ class TestMousePressEvent(unittest.TestCase):
                                  pos)
         overlay.mousePressEvent(event)
         self.assertEqual(len(overlay._traps), 1)
-        self.assertEqual(overlay._drag_last, pos)
+        self.assertEqual(overlay._dragLast, pos)
 
     def test_left_no_trap_starts_selection(self):
         overlay = make_overlay()
@@ -865,7 +865,7 @@ class TestMouseMoveEvent(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._drag_last = QtCore.QPointF(5., 5.)
+        overlay._dragLast = QtCore.QPointF(5., 5.)
         overlay.mouseMoveEvent(self._make_event(QtCore.QPointF(8., 9.)))
         self.assertAlmostEqual(trap.x, 8.)
         self.assertAlmostEqual(trap.y, 9.)
@@ -875,10 +875,10 @@ class TestMouseMoveEvent(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._drag_last = QtCore.QPointF(5., 5.)
+        overlay._dragLast = QtCore.QPointF(5., 5.)
         new_pos = QtCore.QPointF(8., 9.)
         overlay.mouseMoveEvent(self._make_event(new_pos))
-        self.assertEqual(overlay._drag_last, new_pos)
+        self.assertEqual(overlay._dragLast, new_pos)
 
     def test_grows_selection_when_active(self):
         overlay = make_overlay()
@@ -918,9 +918,9 @@ class TestMouseReleaseEvent(unittest.TestCase):
 
     def test_clears_drag_last(self):
         overlay = make_overlay()
-        overlay._drag_last = QtCore.QPointF(1., 1.)
+        overlay._dragLast = QtCore.QPointF(1., 1.)
         overlay.mouseReleaseEvent(self._make_event())
-        self.assertIsNone(overlay._drag_last)
+        self.assertIsNone(overlay._dragLast)
 
     def test_resets_selected_brush(self):
         overlay = make_overlay()
@@ -963,7 +963,7 @@ class TestMousePress(unittest.TestCase):
                                  QtCore.Qt.KeyboardModifier.ShiftModifier)
         overlay.mousePress(event, pos)
         self.assertEqual(len(overlay._traps), 1)
-        self.assertEqual(overlay._drag_last, pos)
+        self.assertEqual(overlay._dragLast, pos)
 
     def test_left_no_trap_starts_selection(self):
         overlay = make_overlay()
@@ -993,7 +993,7 @@ class TestMouseMove(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._drag_last = QtCore.QPointF(5., 5.)
+        overlay._dragLast = QtCore.QPointF(5., 5.)
         event = self._make_event(QtCore.Qt.MouseButton.LeftButton)
         overlay.mouseMove(event, QtCore.QPointF(8., 9.))
         self.assertAlmostEqual(trap.x, 8.)
@@ -1004,7 +1004,7 @@ class TestMouseMove(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._drag_last = QtCore.QPointF(5., 5.)
+        overlay._dragLast = QtCore.QPointF(5., 5.)
         event = self._make_event(QtCore.Qt.MouseButton.LeftButton)
         self.assertTrue(overlay.mouseMove(event, QtCore.QPointF(6., 6.)))
 
@@ -1045,9 +1045,9 @@ class TestMouseRelease(unittest.TestCase):
 
     def test_clears_drag_last(self):
         overlay = make_overlay()
-        overlay._drag_last = QtCore.QPointF(1., 1.)
+        overlay._dragLast = QtCore.QPointF(1., 1.)
         overlay.mouseRelease(self._make_event())
-        self.assertIsNone(overlay._drag_last)
+        self.assertIsNone(overlay._dragLast)
 
     def test_resets_selected_brush(self):
         overlay = make_overlay()
@@ -1162,13 +1162,13 @@ class TestSaveLoad(unittest.TestCase):
     def test_roundtrip_tweezer_count(self):
         for x in (10., 50., 90.):
             self.overlay.addTrap(QTweezer(r=(x, 30., 0.), phase=0.))
-        data = self.overlay.to_list()
-        self.overlay.from_list(data)
+        data = self.overlay.toList()
+        self.overlay.fromList(data)
         self.assertEqual(len(self.overlay._traps), 3)
 
     def test_roundtrip_tweezer_position(self):
         self.overlay.addTrap(QTweezer(r=(123., 456., 7.), phase=0.))
-        self.overlay.from_list(self.overlay.to_list())
+        self.overlay.fromList(self.overlay.toList())
         trap = self.overlay._traps[0]
         self.assertAlmostEqual(trap.x, 123.)
         self.assertAlmostEqual(trap.y, 456.)
@@ -1180,22 +1180,22 @@ class TestSaveLoad(unittest.TestCase):
         grp.addTrap(QTweezer(r=(10., 10., 0.), phase=0.))
         grp.addTrap(QTweezer(r=(20., 20., 0.), phase=0.))
         self.overlay.addTrap(grp)
-        self.overlay.from_list(self.overlay.to_list())
+        self.overlay.fromList(self.overlay.toList())
         self.assertEqual(len(self.overlay._traps), 2)
 
     def test_roundtrip_trap_array(self):
         from QHOT.traps.QTrapArray import QTrapArray
         arr = QTrapArray(shape=(3, 2), separation=30., r=(100., 100., 0.))
         self.overlay.addTrap(arr)
-        self.overlay.from_list(self.overlay.to_list())
+        self.overlay.fromList(self.overlay.toList())
         self.assertEqual(len(self.overlay._traps), 6)
 
     def test_from_list_replaces_existing(self):
         self.overlay.addTrap(QTweezer(r=(1., 1., 0.), phase=0.))
-        data = self.overlay.to_list()
+        data = self.overlay.toList()
         for x in (10., 20., 30., 40.):
             self.overlay.addTrap(QTweezer(r=(x, 0., 0.), phase=0.))
-        self.overlay.from_list(data)
+        self.overlay.fromList(data)
         self.assertEqual(len(self.overlay._traps), 1)
 
 
@@ -1227,14 +1227,14 @@ class TestStartRotation(unittest.TestCase):
     def test_records_rotation_center(self):
         with patch.object(self.overlay, 'trapAt', return_value=self.t1):
             self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertAlmostEqual(self.overlay._rotation_center[0], 0.)
-        self.assertAlmostEqual(self.overlay._rotation_center[1], 0.)
+        self.assertAlmostEqual(self.overlay._rotationCenter[0], 0.)
+        self.assertAlmostEqual(self.overlay._rotationCenter[1], 0.)
 
     def test_snapshot_populated(self):
         with patch.object(self.overlay, 'trapAt', return_value=self.t1):
             self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertIn(id(self.t1), self.overlay._rotation_snapshot)
-        self.assertIn(id(self.t2), self.overlay._rotation_snapshot)
+        self.assertIn(id(self.t1), self.overlay._rotationSnapshot)
+        self.assertIn(id(self.t2), self.overlay._rotationSnapshot)
 
     def test_brush_set_to_selected(self):
         with patch.object(self.overlay, 'trapAt', return_value=self.t1):
@@ -1281,10 +1281,10 @@ class TestRotationGesture(unittest.TestCase):
         '''Directly configure rotation state from initial cursor position.'''
         self.overlay._rotating = self.grp
         cx, cy = self.grp._r[0], self.grp._r[1]
-        self.overlay._rotation_center = (cx, cy)
-        self.overlay._rotation_angle0 = np.arctan2(y0 - cy, x0 - cx)
-        self.overlay._rotation_snapshot = self.grp._snapshot()
-        self.overlay._drag_last = QtCore.QPointF(x0, y0)
+        self.overlay._rotationCenter = (cx, cy)
+        self.overlay._rotationAngle0 = np.arctan2(y0 - cy, x0 - cx)
+        self.overlay._rotationSnapshot = self.grp._snapshot()
+        self.overlay._dragLast = QtCore.QPointF(x0, y0)
 
     def test_mouseMove_rotates_traps(self):
         self._setup_rotation(4., 0.)
@@ -1307,7 +1307,7 @@ class TestRotationGesture(unittest.TestCase):
         self._setup_rotation(4., 0.)
         event = MagicMock()
         self.overlay.mouseRelease(event)
-        self.assertEqual(self.overlay._rotation_snapshot, {})
+        self.assertEqual(self.overlay._rotationSnapshot, {})
 
     def test_mouseRelease_restores_normal_brush(self):
         self._setup_rotation(4., 0.)
@@ -1349,10 +1349,10 @@ class TestRotationGesture(unittest.TestCase):
         outer.addTrap(inner)
         overlay.addTrap(outer)
         overlay._rotating = outer
-        overlay._rotation_center = (0., 0.)
-        overlay._rotation_angle0 = 0.
-        overlay._rotation_snapshot = outer._snapshot()
-        overlay._drag_last = QtCore.QPointF(2., 0.)
+        overlay._rotationCenter = (0., 0.)
+        overlay._rotationAngle0 = 0.
+        overlay._rotationSnapshot = outer._snapshot()
+        overlay._dragLast = QtCore.QPointF(2., 0.)
         move_pos = QtCore.QPointF(0., 2.)
         event = MagicMock()
         event.buttons.return_value = overlay.button['left']
@@ -1462,14 +1462,14 @@ class TestLockedSerialisation(unittest.TestCase):
         overlay = make_overlay()
         overlay.addTrap(QTweezer(r=(2., 3., 0.), locked=True))
         overlay2 = make_overlay()
-        overlay2.from_list(overlay.to_list())
+        overlay2.fromList(overlay.toList())
         self.assertEqual(len(overlay2._traps), 1)
         self.assertTrue(overlay2._traps[0].locked)
 
     def test_unlocked_not_in_dict(self):
         overlay = make_overlay()
         overlay.addTrap(QTweezer(r=(1., 1., 0.)))
-        data = overlay.to_list()
+        data = overlay.toList()
         self.assertNotIn('locked', data[0])
 
 

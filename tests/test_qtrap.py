@@ -271,22 +271,22 @@ class TestToDict(unittest.TestCase):
         self.trap = QTrap(r=(1., 2., 3.), amplitude=0.5, phase=1.0)
 
     def test_has_type_key(self):
-        self.assertEqual(self.trap.to_dict()['type'], 'QTrap')
+        self.assertEqual(self.trap.toDict()['type'], 'QTrap')
 
     def test_has_position_keys(self):
-        d = self.trap.to_dict()
+        d = self.trap.toDict()
         self.assertAlmostEqual(d['x'], 1.)
         self.assertAlmostEqual(d['y'], 2.)
         self.assertAlmostEqual(d['z'], 3.)
 
     def test_has_amplitude(self):
-        self.assertAlmostEqual(self.trap.to_dict()['amplitude'], 0.5)
+        self.assertAlmostEqual(self.trap.toDict()['amplitude'], 0.5)
 
     def test_has_phase(self):
-        self.assertAlmostEqual(self.trap.to_dict()['phase'], 1.0)
+        self.assertAlmostEqual(self.trap.toDict()['phase'], 1.0)
 
     def test_no_extra_keys(self):
-        d = self.trap.to_dict()
+        d = self.trap.toDict()
         self.assertEqual(set(d.keys()), {'type', 'x', 'y', 'z', 'amplitude', 'phase'})
 
 
@@ -313,11 +313,11 @@ class TestLocked(unittest.TestCase):
         self.assertNotIn('locked', trap.settings)
 
     def test_to_dict_omits_locked_when_false(self):
-        d = QTrap(phase=0.).to_dict()
+        d = QTrap(phase=0.).toDict()
         self.assertNotIn('locked', d)
 
     def test_to_dict_includes_locked_when_true(self):
-        d = QTrap(locked=True, phase=0.).to_dict()
+        d = QTrap(locked=True, phase=0.).toDict()
         self.assertTrue(d['locked'])
 
 

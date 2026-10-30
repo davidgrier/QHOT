@@ -192,7 +192,7 @@ class TestRecordExecution(unittest.TestCase):
 class TestRecordSerialization(unittest.TestCase):
 
     def test_to_dict_type(self):
-        self.assertEqual(Record().to_dict()['type'], 'Record')
+        self.assertEqual(Record().toDict()['type'], 'Record')
 
     def test_to_dict_values(self):
         d = Record(
@@ -200,7 +200,7 @@ class TestRecordSerialization(unittest.TestCase):
             nframes=60,
             overwrite=True,
             delay=5,
-        ).to_dict()
+        ).toDict()
         self.assertEqual(d['filename'], 'out.mkv')
         self.assertEqual(d['nframes'], 60)
         self.assertTrue(d['overwrite'])
@@ -208,7 +208,7 @@ class TestRecordSerialization(unittest.TestCase):
 
     def test_round_trip(self):
         task = Record(filename='clip.mkv', nframes=100, overwrite=True)
-        task2 = QTask.from_dict({**task.to_dict(), 'dvr': make_dvr()})
+        task2 = QTask.fromDict({**task.toDict(), 'dvr': make_dvr()})
         self.assertEqual(task2.filename, 'clip.mkv')
         self.assertEqual(task2.nframes, 100)
         self.assertEqual(task2.duration, 100)

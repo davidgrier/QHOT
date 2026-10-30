@@ -205,7 +205,7 @@ class WheelCommand(QUndoCommand):
         self._dz = dz
         self._first = True
 
-    def id(self) -> int:  # noqa: A003
+    def id(self) -> int:
         '''Return a stable integer ID to enable merging.'''
         return _WHEEL_ID
 

@@ -88,7 +88,7 @@ class QTaskManager(QtCore.QObject):
         self._queue:           deque[QTask] = deque()
         self._background:      list[QTask] = []
         self._current:         QTask | None = None
-        self._current_stepped: bool = False
+        self._currentStepped: bool = False
         self._paused:          bool = False
         screen.rendered.connect(self._onFrame)
 
@@ -108,10 +108,10 @@ class QTaskManager(QtCore.QObject):
         the manager is paused) is not considered active; it appears in
         ``queued`` instead.
         '''
-        return self._current if self._current_stepped else None
+        return self._current if self._currentStepped else None
 
     @property
-    def active_raw(self) -> QTask | None:
+    def activeRaw(self) -> QTask | None:
         '''The activated blocking task whether or not it has been stepped.
 
         Used internally.  Prefer ``active`` for display and ``queued``
@@ -120,7 +120,7 @@ class QTaskManager(QtCore.QObject):
         return self._current
 
     @property
-    def queue_size(self) -> int:
+    def queueSize(self) -> int:
         '''Number of blocking tasks waiting (excludes active task).'''
         return len(self._queue)
 
@@ -132,7 +132,7 @@ class QTaskManager(QtCore.QObject):
         position 0, followed by the remaining pending tasks.  This is
         the canonical list for saving.
         '''
-        head = ([] if self._current_stepped or self._current is None
+        head = ([] if self._currentStepped or self._current is None
                 else [self._current])
         return head + list(self._queue)
 
@@ -219,16 +219,16 @@ class QTaskManager(QtCore.QObject):
 
         ``QHOT.tasks`` is imported lazily here to ensure all concrete
         subclasses have registered themselves via ``__init_subclass__``
-        before ``QTask.from_dict`` is called.
+        before ``QTask.fromDict`` is called.
 
         Parameters
         ----------
         task_dicts : list[dict]
-            Dicts previously produced by ``QTask.to_dict()``.
+            Dicts previously produced by ``QTask.toDict()``.
         '''
-        import QHOT.tasks  # noqa: F401 — populate QTask._registry
+        import QHOT.tasks  # noqa: F401 -- fills QTask._registry
         for d in task_dicts:
-            task = QTask.from_dict(d)
+            task = QTask.fromDict(d)
             task.overlay = self.overlay
             task.cgh = self.cgh
             task.dvr = self.dvr
@@ -244,8 +244,8 @@ class QTaskManager(QtCore.QObject):
         The ``scheduled`` list is preserved.  Call ``clear()`` to
         discard it entirely.
         '''
-        self._abort_active_and_background()
-        self._reset_to_start()
+        self._abortActiveAndBackground()
+        self._resetToStart()
         self.changed.emit()
 
     def clear(self) -> None:
@@ -254,11 +254,11 @@ class QTaskManager(QtCore.QObject):
         After this call the manager is completely idle with no
         registered blocking tasks.
         '''
-        self._abort_active_and_background()
+        self._abortActiveAndBackground()
         self._schedule.clear()
         self._queue.clear()
         self._current = None
-        self._current_stepped = False
+        self._currentStepped = False
         self._paused = False
         self.changed.emit()
 
@@ -270,7 +270,7 @@ class QTaskManager(QtCore.QObject):
         ``PENDING`` with its saved parameters.  Has no effect if the
         schedule is empty.
         '''
-        specs = [t.to_dict() for t in self._schedule]
+        specs = [t.toDict() for t in self._schedule]
         if not specs:
             return
         self.clear()
@@ -299,7 +299,7 @@ class QTaskManager(QtCore.QObject):
             pass  # completed or failed — not in the pending queue
         self.changed.emit()
 
-    def reorder(self, tasks: 'list[QTask]') -> None:
+    def reorder(self, tasks: list[QTask]) -> None:
         '''Reorder the persistent schedule and pending queue.
 
         Accepts a permutation of the current ``scheduled`` list and
@@ -326,7 +326,7 @@ class QTaskManager(QtCore.QObject):
         self._queue.extend(pending)
         self.changed.emit()
 
-    def inject(self, tasks: 'list[QTask]') -> None:
+    def inject(self, tasks: list[QTask]) -> None:
         '''Prepend tasks to the blocking queue without adding to the schedule.
 
         Used by ``Repeat`` to insert fresh copies of a sub-sequence at
@@ -358,8 +358,8 @@ class QTaskManager(QtCore.QObject):
         if self._paused:
             return
         if self._current is not None:
-            if not self._current_stepped:
-                self._current_stepped = True
+            if not self._currentStepped:
+                self._currentStepped = True
                 self.changed.emit()   # task moves from queue to active display
             self._current._step()
         for task in list(self._background):
@@ -380,7 +380,7 @@ class QTaskManager(QtCore.QObject):
         self._queue.clear()
         if self._current is task:
             self._current = None
-            self._current_stepped = False
+            self._currentStepped = False
         self.changed.emit()
 
     @QtCore.Slot()
@@ -403,7 +403,7 @@ class QTaskManager(QtCore.QObject):
     # ------------------------------------------------------------------
     # Private helpers
 
-    def _abort_active_and_background(self) -> None:
+    def _abortActiveAndBackground(self) -> None:
         '''Abort the active and all background tasks.
 
         Clears ``_queue`` first so that ``_onBlockingFailed`` (which
@@ -417,9 +417,9 @@ class QTaskManager(QtCore.QObject):
             task.abort('manager stopped')
         self._background.clear()
         self._current = None
-        self._current_stepped = False
+        self._currentStepped = False
 
-    def _reset_to_start(self) -> None:
+    def _resetToStart(self) -> None:
         '''Reset every scheduled task to PENDING and activate the first.
 
         Repopulates ``_queue`` from ``_schedule``, pops and starts the
@@ -431,7 +431,7 @@ class QTaskManager(QtCore.QObject):
             self._queue.append(task)
         if self._queue:
             self._current = self._queue.popleft()
-            self._current_stepped = False
+            self._currentStepped = False
             self._current._start()
         self._paused = True
 
@@ -439,14 +439,14 @@ class QTaskManager(QtCore.QObject):
                       previous: QTask | None = None) -> None:
         if self._queue:
             self._current = self._queue.popleft()
-            self._current_stepped = False
+            self._currentStepped = False
             self._current._start(previous)
             logger.debug(f'Activating {type(self._current).__name__}')
         else:
             self._current = None
-            self._current_stepped = False
+            self._currentStepped = False
             if self._schedule:
                 # All tasks completed — reset to start for next run
-                self._reset_to_start()
+                self._resetToStart()
                 logger.debug('Schedule complete; reset and paused')
         self.changed.emit()

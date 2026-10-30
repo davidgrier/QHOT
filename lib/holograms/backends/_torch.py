@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover
 __all__ = ['TorchBackend']
 
 
-def select_device() -> 'torch.device':
+def select_device() -> torch.device:
     '''Return the best device that torch has: Apple's GPU (MPS), then
     CUDA (NVIDIA, or AMD with ROCm), then the CPU.'''
     if torch.backends.mps.is_available():
@@ -65,7 +65,7 @@ class TorchBackend(Backend):
 
     def _tensor(self,
                 array: np.ndarray,
-                dtype=np.float32) -> 'torch.Tensor':
+                dtype=np.float32) -> torch.Tensor:
         '''Return an array as a tensor on the device.'''
         array = np.ascontiguousarray(array, dtype=dtype)
         return torch.as_tensor(array, device=self.device)
@@ -81,7 +81,7 @@ class TorchBackend(Backend):
             y2=self._tensor(optics.y**2),
         )
 
-    def zeros(self, c: SimpleNamespace) -> 'torch.Tensor':
+    def zeros(self, c: SimpleNamespace) -> torch.Tensor:
         '''Return an empty ``complex64`` field on the device.'''
         return torch.zeros(
             c.shape,
@@ -107,9 +107,9 @@ class TorchBackend(Backend):
         return y.T, x
 
     def superpose(self,
-                  psi: 'torch.Tensor',
+                  psi: torch.Tensor,
                   phasors: tuple,
-                  structure: 'torch.Tensor | None' = None) -> 'torch.Tensor':
+                  structure: torch.Tensor | None = None) -> torch.Tensor:
         '''Add the traps to ``psi`` in place and return it.
 
         One trap is an outer product, fused with the addition into a
@@ -125,7 +125,7 @@ class TorchBackend(Backend):
             return psi.add_(term)
         return psi.addcmul_(term, structure)
 
-    def quantize(self, psi: 'torch.Tensor') -> Hologram:
+    def quantize(self, psi: torch.Tensor) -> Hologram:
         '''Return the phase of ``psi`` as ``uint8`` on the host.
 
         The phase is taken and scaled on the device, so that only the
@@ -134,6 +134,6 @@ class TorchBackend(Backend):
         phase = (128. / np.pi) * torch.atan2(psi.imag, psi.real) + 127.
         return phase.to(torch.uint8).cpu().numpy()
 
-    def upload(self, field: np.ndarray) -> 'torch.Tensor':
+    def upload(self, field: np.ndarray) -> torch.Tensor:
         '''Return the structuring field as a ``complex64`` tensor.'''
         return self._tensor(field, np.complex64)

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import Enum, auto
+from typing import ClassVar
 
 from qtpy import QtCore
 
@@ -21,7 +23,7 @@ class QTask(QtCore.QObject):
 
     Subclasses declare a ``parameters`` class variable listing
     pyqtgraph ``Parameter`` specs for their configurable fields.
-    ``to_dict()`` and ``from_dict()`` use this declaration together
+    ``toDict()`` and ``fromDict()`` use this declaration together
     with the class registry to serialise and reconstruct tasks.
 
     A task is a frame-synchronized operation on the trapping system.
@@ -100,13 +102,13 @@ class QTask(QtCore.QObject):
 
     #: Registry mapping class name → class, populated by
     #: ``__init_subclass__``.
-    _registry: 'dict[str, type[QTask]]' = {}
+    _registry: ClassVar[dict[str, type[QTask]]] = {}
 
     #: pyqtgraph Parameter specs for task-specific configurable fields.
     #: Override in subclasses.  Each entry is a dict accepted by
     #: ``Parameter.create``, e.g.
     #: ``dict(name='filename', type='str', value='')``.
-    parameters: list[dict] = []
+    parameters: ClassVar[Sequence[dict]] = ()
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -132,14 +134,14 @@ class QTask(QtCore.QObject):
         self._state = self.State.PENDING
         self._frame = 0
         self._skip = 0
-        self.previous: 'QTask | None' = None
-        self.manager: 'object | None' = None  # set by QTaskManager
+        self.previous: QTask | None = None
+        self.manager: object | None = None  # set by QTaskManager
 
     # ------------------------------------------------------------------
     # Public read-only state
 
     @property
-    def state(self) -> 'QTask.State':
+    def state(self) -> QTask.State:
         '''Current lifecycle state.'''
         return self._state
 
@@ -214,7 +216,7 @@ class QTask(QtCore.QObject):
     # ------------------------------------------------------------------
     # Serialisation
 
-    def to_dict(self) -> dict:
+    def toDict(self) -> dict:
         '''Serialise the task to a plain dict.
 
         Returns
@@ -222,7 +224,7 @@ class QTask(QtCore.QObject):
         dict
             Contains ``'type'`` (class name), ``'delay'``, and the
             current value of each declared parameter attribute.  Pass
-            the result to ``QTask.from_dict()`` to reconstruct an
+            the result to ``QTask.fromDict()`` to reconstruct an
             equivalent task.
         '''
         d: dict = {'type': type(self).__name__, 'delay': self.delay}
@@ -231,13 +233,13 @@ class QTask(QtCore.QObject):
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'QTask':
+    def fromDict(cls, d: dict) -> QTask:
         '''Reconstruct a task from a serialised dict.
 
         Parameters
         ----------
         d : dict
-            A dict previously produced by ``to_dict()``.
+            A dict previously produced by ``toDict()``.
 
         Returns
         -------
@@ -257,14 +259,14 @@ class QTask(QtCore.QObject):
         return klass(**d)
 
     @classmethod
-    def make(cls, d: dict) -> 'QTask':
-        '''Alias for ``from_dict``; reconstruct a task from a dict.'''
-        return cls.from_dict(d)
+    def make(cls, d: dict) -> QTask:
+        '''Alias for ``fromDict``; reconstruct a task from a dict.'''
+        return cls.fromDict(d)
 
     # ------------------------------------------------------------------
     # Internal machinery — called by QTaskManager
 
-    def _start(self, previous: 'QTask | None' = None) -> None:
+    def _start(self, previous: QTask | None = None) -> None:
         '''Transition to RUNNING.
 
         Parameters

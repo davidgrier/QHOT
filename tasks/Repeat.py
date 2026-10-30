@@ -39,9 +39,9 @@ class Repeat(QTask):
         manager.register(Snapshot())
     '''
 
-    parameters = [
+    parameters = (
         dict(name='n', type='int', value=1, default=1, min=1),
-    ]
+    )
 
     def __init__(self, n: int = 1, *, _specs=None, **kwargs) -> None:
         if 'duration' in kwargs:
@@ -62,14 +62,14 @@ class Repeat(QTask):
 
     def initialize(self) -> None:
         if self._specs is None:
-            self._specs = self._find_specs()
+            self._specs = self._findSpecs()
         if self._n <= 1 or not self._specs:
             return
-        new_tasks = [QTask.from_dict(s) for s in self._specs]
+        new_tasks = [QTask.fromDict(s) for s in self._specs]
         new_tasks.append(Repeat(n=self._n - 1, _specs=self._specs))
         self.manager.inject(new_tasks)
 
-    def _find_specs(self) -> list:
+    def _findSpecs(self) -> list:
         '''Scan the schedule backwards to find the matching BeginRepeat.
 
         Handles nesting by tracking depth: each ``Repeat`` encountered
@@ -85,7 +85,7 @@ class Repeat(QTask):
             matching bracket is found.
         '''
         from QHOT.tasks.BeginRepeat import BeginRepeat
-        schedule = self.manager._schedule
+        schedule = self.manager.scheduled
         try:
             my_idx = next(i for i, t in enumerate(schedule) if t is self)
         except StopIteration:
@@ -106,10 +106,10 @@ class Repeat(QTask):
         if begin_idx is None:
             logger.warning('Repeat: no matching BeginRepeat found in schedule')
             return []
-        return [t.to_dict() for t in schedule[begin_idx + 1:my_idx]]
+        return [t.toDict() for t in schedule[begin_idx + 1:my_idx]]
 
-    def to_dict(self) -> dict:
-        d = super().to_dict()
+    def toDict(self) -> dict:
+        d = super().toDict()
         if self._specs is not None:
             d['_specs'] = self._specs
         return d

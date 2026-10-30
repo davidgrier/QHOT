@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from QHOT.traps.QTrapArray import QTrapArray
 
@@ -169,10 +171,10 @@ class QLetterArray(QTrapArray):
         self.mask = _char_mask(char)  # triggers _repopulate via mask.setter
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'QLetterArray':
+    def fromDict(cls, d: dict) -> QLetterArray:
         '''Reconstruct a QLetterArray from a serialised dict.
 
-        Overrides ``QTrapArray.from_dict`` because ``QLetterArray``
+        Overrides ``QTrapArray.fromDict`` because ``QLetterArray``
         fixes ``shape`` at (5, 7) and does not serialise ``nx`` or
         ``ny``.  The mask is applied after construction so it is not
         passed directly to the constructor.
@@ -180,7 +182,7 @@ class QLetterArray(QTrapArray):
         Parameters
         ----------
         d : dict
-            A dict as produced by ``QTrapArray.to_dict()``.
+            A dict as produced by ``QTrapArray.toDict()``.
 
         Returns
         -------

@@ -26,7 +26,7 @@ class TestQTaskManagerInit(unittest.TestCase):
 
     def test_queue_size_zero_initially(self):
         mgr = QTaskManager(self.screen)
-        self.assertEqual(mgr.queue_size, 0)
+        self.assertEqual(mgr.queueSize, 0)
 
     def test_background_empty_initially(self):
         mgr = QTaskManager(self.screen)
@@ -56,7 +56,7 @@ class TestQTaskManagerRegistration(unittest.TestCase):
     def test_first_blocking_task_becomes_active(self):
         task = QTask()
         self.manager.register(task)
-        self.assertIs(self.manager.active_raw, task)
+        self.assertIs(self.manager.activeRaw, task)
 
     def test_first_blocking_task_starts_running(self):
         task = QTask()
@@ -67,19 +67,19 @@ class TestQTaskManagerRegistration(unittest.TestCase):
         t1, t2 = QTask(), QTask()
         self.manager.register(t1)
         self.manager.register(t2)
-        self.assertEqual(self.manager.queue_size, 1)
+        self.assertEqual(self.manager.queueSize, 1)
 
     def test_third_blocking_task_increments_queue(self):
         t1, t2, t3 = QTask(), QTask(), QTask()
         self.manager.register(t1)
         self.manager.register(t2)
         self.manager.register(t3)
-        self.assertEqual(self.manager.queue_size, 2)
+        self.assertEqual(self.manager.queueSize, 2)
 
     def test_nonblocking_task_not_queued(self):
         task = QTask()
         self.manager.register(task, blocking=False)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
         self.assertIsNone(self.manager.active)
 
     def test_nonblocking_task_starts_immediately(self):
@@ -201,7 +201,7 @@ class TestQTaskManagerSequencing(unittest.TestCase):
         self.manager.register(t2)
         self._emit(1)
         self.assertEqual(t1.state, QTask.State.COMPLETED)
-        self.assertIs(self.manager.active_raw, t2)
+        self.assertIs(self.manager.activeRaw, t2)
 
     def test_previous_passed_from_first_to_second(self):
         t1 = QTask(duration=1)
@@ -229,11 +229,11 @@ class TestQTaskManagerSequencing(unittest.TestCase):
         tasks = [QTask(duration=1) for _ in range(3)]
         for t in tasks:
             self.manager.register(t)
-        self.assertEqual(self.manager.queue_size, 2)
+        self.assertEqual(self.manager.queueSize, 2)
         self._emit(1)
-        self.assertEqual(self.manager.queue_size, 1)
+        self.assertEqual(self.manager.queueSize, 1)
         self._emit(1)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
 
     def test_active_is_none_after_all_complete(self):
         task = QTask(duration=1)
@@ -247,7 +247,7 @@ class TestQTaskManagerSequencing(unittest.TestCase):
         self.manager.register(t2)
         self.manager.register(t3)
         t1.abort('test failure')
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
         self.assertIsNone(self.manager.active)
 
     def test_blocking_failure_does_not_affect_background(self):
@@ -271,7 +271,7 @@ class TestQTaskManagerStop(unittest.TestCase):
         for _ in range(3):
             self.manager.register(QTask())
         self.manager.stop()
-        self.assertEqual(self.manager.queue_size, 2)
+        self.assertEqual(self.manager.queueSize, 2)
 
     def test_stop_resets_active_task_to_running(self):
         # stop() aborts the current task then resets and re-activates it.
@@ -281,7 +281,7 @@ class TestQTaskManagerStop(unittest.TestCase):
         # Task is reset to PENDING then immediately started → RUNNING,
         # but not yet stepped so active returns None.
         self.assertIsNone(self.manager.active)
-        self.assertEqual(self.manager.active_raw.state, QTask.State.RUNNING)
+        self.assertEqual(self.manager.activeRaw.state, QTask.State.RUNNING)
 
     def test_stop_removes_background_tasks(self):
         for _ in range(2):
@@ -370,7 +370,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
         self.manager.register(task)
         self.manager.clear()
         self.assertIsNone(self.manager.active)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
 
     def test_clear_on_empty_manager_does_not_raise(self):
         self.manager.clear()
@@ -380,7 +380,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
         self.manager.register(Delay(frames=5))
         self.manager.restart()
         self.assertEqual(len(self.manager.scheduled), 1)
-        self.assertEqual(self.manager.active_raw.frames, 5)
+        self.assertEqual(self.manager.activeRaw.frames, 5)
 
     def test_restart_creates_fresh_instances(self):
         from QHOT.tasks.Delay import Delay
@@ -388,7 +388,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
         self.manager.register(task)
         self._emit(1)         # task completes
         self.manager.restart()
-        new_task = self.manager.active_raw
+        new_task = self.manager.activeRaw
         self.assertIsNot(new_task, task)
         self.assertEqual(new_task.state, QTask.State.RUNNING)
 
@@ -418,7 +418,7 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
         task = Delay(frames=1)
         self.manager.register(task)
         self._emit(1)             # task completes → auto-reset, re-activated
-        self.assertIs(self.manager.active_raw, task)
+        self.assertIs(self.manager.activeRaw, task)
 
     def test_task_running_after_auto_reset(self):
         from QHOT.tasks.Delay import Delay
@@ -514,45 +514,45 @@ class TestQTaskManagerLoad(unittest.TestCase):
         t1, t2 = ClearTraps(), ClearTraps()
         self.manager.register(t1)   # becomes active
         self.manager.register(t2)   # queued
-        dicts = [t.to_dict() for t in self.manager.queued]
+        dicts = [t.toDict() for t in self.manager.queued]
         self.manager.stop()
         self.manager.load(dicts)
-        self.assertIsNotNone(self.manager.active_raw)
+        self.assertIsNotNone(self.manager.activeRaw)
 
     def test_load_injects_overlay(self):
         from QHOT.tasks.ClearTraps import ClearTraps
-        d = ClearTraps().to_dict()
+        d = ClearTraps().toDict()
         self.manager.load([d])
-        self.assertIs(self.manager.active_raw.overlay, self.overlay)
+        self.assertIs(self.manager.activeRaw.overlay, self.overlay)
 
     def test_load_injects_cgh(self):
         from QHOT.tasks.ClearTraps import ClearTraps
-        d = ClearTraps().to_dict()
+        d = ClearTraps().toDict()
         self.manager.load([d])
-        self.assertIs(self.manager.active_raw.cgh, self.cgh)
+        self.assertIs(self.manager.activeRaw.cgh, self.cgh)
 
     def test_load_injects_dvr(self):
         from QHOT.tasks.ClearTraps import ClearTraps
-        d = ClearTraps().to_dict()
+        d = ClearTraps().toDict()
         self.manager.load([d])
-        self.assertIs(self.manager.active_raw.dvr, self.dvr)
+        self.assertIs(self.manager.activeRaw.dvr, self.dvr)
 
     def test_load_preserves_task_params(self):
         from QHOT.tasks.Delay import Delay
-        d = Delay(frames=99).to_dict()
+        d = Delay(frames=99).toDict()
         self.manager.load([d])
-        self.assertEqual(self.manager.active_raw.frames, 99)
+        self.assertEqual(self.manager.activeRaw.frames, 99)
 
     def test_load_appends_to_existing_queue(self):
         from QHOT.tasks.ClearTraps import ClearTraps
         self.manager.register(QTask())       # becomes active
         self.manager.register(QTask())       # queued
-        self.manager.load([ClearTraps().to_dict()])
-        self.assertEqual(self.manager.queue_size, 2)
+        self.manager.load([ClearTraps().toDict()])
+        self.assertEqual(self.manager.queueSize, 2)
 
     def test_load_multiple_tasks_in_order(self):
         from QHOT.tasks.Delay import Delay
-        dicts = [Delay(frames=i).to_dict() for i in (10, 20, 30)]
+        dicts = [Delay(frames=i).toDict() for i in (10, 20, 30)]
         self.manager.load(dicts)
         # first task activated (not yet stepped) — still in queued
         queued = self.manager.queued
@@ -562,7 +562,7 @@ class TestQTaskManagerLoad(unittest.TestCase):
     def test_load_empty_list_is_noop(self):
         self.manager.load([])
         self.assertIsNone(self.manager.active)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
 
 
 class TestQTaskManagerRemove(unittest.TestCase):
@@ -585,14 +585,14 @@ class TestQTaskManagerRemove(unittest.TestCase):
     def test_remove_pending_task_from_queue(self):
         t1, t2 = self._register(2)
         self.manager.remove(t2)
-        self.assertEqual(self.manager.queue_size, 0)
+        self.assertEqual(self.manager.queueSize, 0)
 
     def test_remove_active_task_is_ignored(self):
         t1, t2 = self._register(2)
         # t1 is active
         self.manager.remove(t1)
         self.assertIn(t1, self.manager.scheduled)
-        self.assertIs(self.manager.active_raw, t1)
+        self.assertIs(self.manager.activeRaw, t1)
 
     def test_remove_active_logs_warning(self):
         t1 = self._register(1)[0]
@@ -728,7 +728,7 @@ class TestQTaskManagerReorder(unittest.TestCase):
         # t1 is currently active (_current); reorder puts t1 last
         self.manager.reorder([t2, t3, t1])
         # t1 is still _current, not re-enqueued
-        self.assertIs(self.manager.active_raw, t1)
+        self.assertIs(self.manager.activeRaw, t1)
         self.assertNotIn(t1, list(self.manager._queue))
 
     def test_reorder_with_wrong_tasks_ignored(self):

@@ -41,13 +41,13 @@ class MoveTraps(QTask):
         manager.register(MoveTraps(overlay=overlay, dx=50., step=2.))
     '''
 
-    parameters = [
+    parameters = (
         dict(name='dx',           type='float', value=0., default=0.),
         dict(name='dy',           type='float', value=0., default=0.),
         dict(name='dz',           type='float', value=0., default=0.),
         dict(name='step', type='float', value=1., default=1., min=0.01),
         dict(name='selected_only', type='bool', value=False, default=False),
-    ]
+    )
 
     def __init__(self,
                  dx: float = 0.,
@@ -64,14 +64,14 @@ class MoveTraps(QTask):
         _dx = float(dx)
         _dy = float(dy)
         _dz = float(dz)
-        _step_size = max(1e-6, float(step))
+        _stepSize = max(1e-6, float(step))
         _dist = math.sqrt(_dx**2 + _dy**2 + _dz**2)
-        _n = max(1, math.ceil(_dist / _step_size))
+        _n = max(1, math.ceil(_dist / _stepSize))
         super().__init__(duration=_n, **kwargs)
         self._dx          = _dx
         self._dy          = _dy
         self._dz          = _dz
-        self._step_size   = _step_size
+        self._stepSize   = _stepSize
         self.selected_only = bool(selected_only)
         self._starts: dict = {}
 
@@ -82,9 +82,9 @@ class MoveTraps(QTask):
         '''Compute duration from current displacement and step size.'''
         distance = math.sqrt(
             self._dx**2 + self._dy**2 + self._dz**2)
-        return max(1, math.ceil(distance / self._step_size))
+        return max(1, math.ceil(distance / self._stepSize))
 
-    def _update_duration(self) -> None:
+    def _updateDuration(self) -> None:
         self.duration = self._frames()
 
     # ------------------------------------------------------------------
@@ -98,7 +98,7 @@ class MoveTraps(QTask):
     @dx.setter
     def dx(self, value: float) -> None:
         self._dx = float(value)
-        self._update_duration()
+        self._updateDuration()
 
     @property
     def dy(self) -> float:
@@ -108,7 +108,7 @@ class MoveTraps(QTask):
     @dy.setter
     def dy(self, value: float) -> None:
         self._dy = float(value)
-        self._update_duration()
+        self._updateDuration()
 
     @property
     def dz(self) -> float:
@@ -118,17 +118,17 @@ class MoveTraps(QTask):
     @dz.setter
     def dz(self, value: float) -> None:
         self._dz = float(value)
-        self._update_duration()
+        self._updateDuration()
 
     @property
     def step(self) -> float:
         '''Maximum displacement per frame [pixels].'''
-        return self._step_size
+        return self._stepSize
 
     @step.setter
     def step(self, value: float) -> None:
-        self._step_size = max(1e-6, float(value))
-        self._update_duration()
+        self._stepSize = max(1e-6, float(value))
+        self._updateDuration()
 
     # ------------------------------------------------------------------
     # QTask lifecycle hooks

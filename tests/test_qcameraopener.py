@@ -39,7 +39,7 @@ class TestOpening(unittest.TestCase):
         with opens():
             opener = QCameraOpener()
             opener.start()
-            self.assertTrue(opener.wait_for_camera())
+            self.assertTrue(opener.waitForCamera())
         self.assertIsInstance(opener.camera, FakeCamera)
         self.assertEqual(opener.key, 'noise')
 
@@ -47,14 +47,14 @@ class TestOpening(unittest.TestCase):
         with opens():
             opener = QCameraOpener()
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
         self.assertIsNot(opener.camera.made_in, threading.main_thread())
 
     def test_hands_the_camera_to_the_thread_of_the_application(self):
         with opens():
             opener = QCameraOpener()
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
         self.assertIs(opener.camera.thread(), app.thread())
 
     def test_announces_the_camera(self):
@@ -62,7 +62,7 @@ class TestOpening(unittest.TestCase):
             opener = QCameraOpener()
             spy = QtTest.QSignalSpy(opener.opened)
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
             QtTest.QTest.qWait(20)
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'noise')
@@ -78,7 +78,7 @@ class TestOpening(unittest.TestCase):
         with patch.object(_opener.chooser, 'open_camera', open_camera):
             opener = QCameraOpener(parser)
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
         self.assertEqual(seen, [parser])
 
     def test_does_not_make_the_caller_wait_for_a_slow_camera(self):
@@ -88,7 +88,7 @@ class TestOpening(unittest.TestCase):
             opener.start()
             self.assertLess(time.perf_counter() - t0, 0.2)
             self.assertTrue(opener.isRunning())
-            opener.wait_for_camera()
+            opener.waitForCamera()
         self.assertFalse(opener.isRunning())
 
     def test_the_event_loop_runs_while_it_waits(self):
@@ -99,7 +99,7 @@ class TestOpening(unittest.TestCase):
         with opens(delay=0.3):
             opener = QCameraOpener()
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
         timer.stop()
         self.assertGreater(len(ticks), 5)
 
@@ -115,7 +115,7 @@ class TestFailing(unittest.TestCase):
         with self.failing():
             opener = QCameraOpener()
             opener.start()
-            self.assertFalse(opener.wait_for_camera())
+            self.assertFalse(opener.waitForCamera())
         self.assertIsNone(opener.camera)
 
     def test_says_why(self):
@@ -123,7 +123,7 @@ class TestFailing(unittest.TestCase):
             opener = QCameraOpener()
             spy = QtTest.QSignalSpy(opener.failed)
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
             QtTest.QTest.qWait(20)
         self.assertEqual(opener.reason, 'no camera could be opened')
         self.assertEqual(spy[0][0], 'no camera could be opened')
@@ -133,7 +133,7 @@ class TestFailing(unittest.TestCase):
             opener = QCameraOpener()
             spy = QtTest.QSignalSpy(opener.opened)
             opener.start()
-            opener.wait_for_camera()
+            opener.waitForCamera()
             QtTest.QTest.qWait(20)
         self.assertEqual(len(spy), 0)
 

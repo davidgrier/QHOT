@@ -253,7 +253,7 @@ class CGH(QtCore.QObject):
     # Computing holograms
 
     @QtCore.Slot()
-    def start(self) -> 'CGH':
+    def start(self) -> CGH:
         '''Start the thread that computes holograms and return self.
 
         Requests made before it starts are computed when it does.

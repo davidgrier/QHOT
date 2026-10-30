@@ -28,13 +28,13 @@ except ImportError:  # run from the root of the repository
                                 levels, optics, patterns, tweezer)
 
 try:
-    import torch  # noqa: F401
+    import torch
     from QHOT.lib.holograms.backends import TorchBackend
 except ImportError:
     TorchBackend = None
 
 try:
-    import numba  # noqa: F401
+    import numba
     from QHOT.lib.holograms.backends import NumbaBackend
     numba_module = importlib.import_module(
         'QHOT.lib.holograms.backends._numba',
@@ -46,7 +46,7 @@ from QHOT.lib.holograms.backends import CupyBackend
 cupy_module = importlib.import_module('QHOT.lib.holograms.backends._cupy')
 
 try:
-    import cupy  # noqa: F401
+    import cupy
     cupy.cuda.Device()
     HAVE_CUPY = True
 except Exception:

@@ -73,11 +73,11 @@ class TestSaveTrapsExecution(unittest.TestCase):
 class TestSaveTrapsSerialization(unittest.TestCase):
 
     def test_to_dict_includes_type(self):
-        self.assertEqual(SaveTraps().to_dict()['type'], 'SaveTraps')
+        self.assertEqual(SaveTraps().toDict()['type'], 'SaveTraps')
 
     def test_round_trip(self):
         task = SaveTraps(filename='/tmp/traps.json')
-        restored = QTask.from_dict(task.to_dict())
+        restored = QTask.fromDict(task.toDict())
         self.assertIsInstance(restored, SaveTraps)
         self.assertEqual(restored.filename, '/tmp/traps.json')
 

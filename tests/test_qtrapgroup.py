@@ -414,21 +414,21 @@ class TestToDict(unittest.TestCase):
         self.group.addTrap([self.child_a, self.child_b])
 
     def test_type_key(self):
-        self.assertEqual(self.group.to_dict()['type'], 'QTrapGroup')
+        self.assertEqual(self.group.toDict()['type'], 'QTrapGroup')
 
     def test_children_present(self):
-        self.assertIn('children', self.group.to_dict())
+        self.assertIn('children', self.group.toDict())
 
     def test_children_count(self):
-        self.assertEqual(len(self.group.to_dict()['children']), 2)
+        self.assertEqual(len(self.group.toDict()['children']), 2)
 
     def test_children_have_type(self):
-        for child in self.group.to_dict()['children']:
+        for child in self.group.toDict()['children']:
             self.assertIn('type', child)
 
     def test_empty_group(self):
         empty = QTrapGroup(r=(0., 0., 0.), phase=0.)
-        self.assertEqual(empty.to_dict()['children'], [])
+        self.assertEqual(empty.toDict()['children'], [])
 
 
 if __name__ == '__main__':

@@ -137,8 +137,8 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
                 wid.setToolTip(name)
             self.wid[name] = wid
             layout.addWidget(wid)
-        self._update_slot = functools.partial(self.updateValues, trap)
-        trap.changed.connect(self._update_slot)
+        self._updateSlot = functools.partial(self.updateValues, trap)
+        trap.changed.connect(self._updateSlot)
         self.setLayout(layout)
 
     def updateValues(self, trap: QTrap) -> None:
@@ -149,7 +149,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
     def cleanup(self) -> None:
         '''Disconnect from ``changed`` signal before deleting trap.'''
         try:
-            self._trap.changed.disconnect(self._update_slot)
+            self._trap.changed.disconnect(self._updateSlot)
         except (TypeError, RuntimeError):
             pass
 
@@ -165,18 +165,18 @@ class QTrapWidget(QtWidgets.QFrame):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._trap_widgets: dict[QTrap, QTrapPropertyWidget] = {}
+        self._trapWidgets: dict[QTrap, QTrapPropertyWidget] = {}
         self._setupUi()
 
     def _setupUi(self) -> None:
         '''Build the scrollable frame with a column header row.'''
         self.setFrameShape(QtWidgets.QFrame.Shape.Box)
         inner = QtWidgets.QWidget()
-        self._inner_layout = QtWidgets.QVBoxLayout()
-        self._inner_layout.setSpacing(0)
-        self._inner_layout.setContentsMargins(0, 0, 0, 0)
-        self._inner_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        inner.setLayout(self._inner_layout)
+        self._innerLayout = QtWidgets.QVBoxLayout()
+        self._innerLayout.setSpacing(0)
+        self._innerLayout.setContentsMargins(0, 0, 0, 0)
+        self._innerLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        inner.setLayout(self._innerLayout)
         scroll = QtWidgets.QScrollArea()
         policy = QtCore.Qt.ScrollBarPolicy
         scroll.setVerticalScrollBarPolicy(policy.ScrollBarAlwaysOn)
@@ -186,7 +186,7 @@ class QTrapWidget(QtWidgets.QFrame):
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(scroll)
         self.setLayout(layout)
-        self._inner_layout.addWidget(self._labelLine())
+        self._innerLayout.addWidget(self._labelLine())
 
     def _labelLine(self) -> QtWidgets.QWidget:
         '''Build the column header row.'''
@@ -210,20 +210,20 @@ class QTrapWidget(QtWidgets.QFrame):
         If ``trap`` is a ``QTrapGroup``, also adds an indented row for
         each leaf trap beneath the group header row.
         '''
-        if trap in self._trap_widgets:
+        if trap in self._trapWidgets:
             logger.warning(f'Trap already registered: {trap}')
             return
         trapWidget = QTrapPropertyWidget(trap)
-        self._trap_widgets[trap] = trapWidget
-        self._inner_layout.addWidget(trapWidget)
+        self._trapWidgets[trap] = trapWidget
+        self._innerLayout.addWidget(trapWidget)
         if isinstance(trap, QTrapGroup):
             for leaf in trap.leaves():
-                if leaf in self._trap_widgets:
+                if leaf in self._trapWidgets:
                     logger.warning(f'Leaf already registered: {leaf}')
                     continue
                 leafWidget = QTrapPropertyWidget(leaf, indent=20)
-                self._trap_widgets[leaf] = leafWidget
-                self._inner_layout.addWidget(leafWidget)
+                self._trapWidgets[leaf] = leafWidget
+                self._innerLayout.addWidget(leafWidget)
 
     @QtCore.Slot(QTrap)
     def unregisterTrap(self, trap: QTrap) -> None:
@@ -234,22 +234,22 @@ class QTrapWidget(QtWidgets.QFrame):
         '''
         if isinstance(trap, QTrapGroup):
             for leaf in trap.leaves():
-                widget = self._trap_widgets.pop(leaf, None)
+                widget = self._trapWidgets.pop(leaf, None)
                 if widget is not None:
                     widget.cleanup()
-                    self._inner_layout.removeWidget(widget)
+                    self._innerLayout.removeWidget(widget)
                     widget.deleteLater()
         try:
-            widget = self._trap_widgets.pop(trap)
+            widget = self._trapWidgets.pop(trap)
             widget.cleanup()
-            self._inner_layout.removeWidget(widget)
+            self._innerLayout.removeWidget(widget)
             widget.deleteLater()
         except KeyError:
             logger.warning(f'Trap not registered: {trap}')
 
     def count(self) -> int:
         '''Return the number of rows currently in the layout.'''
-        return self._inner_layout.count()
+        return self._innerLayout.count()
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

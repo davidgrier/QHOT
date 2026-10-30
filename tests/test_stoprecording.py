@@ -76,11 +76,11 @@ class TestStopRecordingSerialization(unittest.TestCase):
 
     def test_to_dict_type(self):
         task = StopRecording(dvr=make_dvr())
-        self.assertEqual(task.to_dict()['type'], 'StopRecording')
+        self.assertEqual(task.toDict()['type'], 'StopRecording')
 
     def test_round_trip(self):
         task = StopRecording(dvr=make_dvr(), delay=2)
-        task2 = QTask.from_dict({**task.to_dict(), 'dvr': make_dvr()})
+        task2 = QTask.fromDict({**task.toDict(), 'dvr': make_dvr()})
         self.assertIsInstance(task2, StopRecording)
         self.assertEqual(task2.delay, 2)
 

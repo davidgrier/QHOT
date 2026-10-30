@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from qtpy import QtCore
 
 from QHOT.lib.traps import TrapSpec
-from .Backend import Backend
-from .Optics import Optics
+from .backends import Backend
+from .optics import Optics
 
 
 logger = logging.getLogger(__name__)

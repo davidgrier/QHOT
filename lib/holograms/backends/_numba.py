@@ -5,7 +5,7 @@ import math
 import numpy as np
 
 from QHOT.lib.types import Hologram
-from .NumpyBackend import NumpyBackend
+from ._numpy import NumpyBackend
 
 try:
     from numba import njit, prange

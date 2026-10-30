@@ -7,7 +7,7 @@ import numpy as np
 
 from QHOT.lib.traps import QTrap, TrapSpec
 from QHOT.lib.types import Hologram
-from .Optics import Optics
+from ..optics import Optics
 
 
 __all__ = ['Backend']
@@ -66,8 +66,10 @@ class Backend:
     See Also
     --------
     QHOT.lib.holograms.reference : The algorithm, stated plainly.
-    QHOT.lib.holograms.NumpyBackend.NumpyBackend : Computes on the CPU.
-    QHOT.lib.holograms.TorchBackend.TorchBackend : Computes with PyTorch.
+    QHOT.lib.holograms.backends.NumpyBackend : Computes on the CPU.
+    QHOT.lib.holograms.backends.NumbaBackend : Computes with numba.
+    QHOT.lib.holograms.backends.TorchBackend : Computes with PyTorch.
+    QHOT.lib.holograms.backends.CupyBackend : Computes with CuPy.
     '''
 
     name = 'abstract'

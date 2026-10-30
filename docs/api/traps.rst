@@ -4,7 +4,7 @@ Traps
 Trap infrastructure
 -------------------
 
-.. automodule:: QHOT.lib.traps.TrapSpec
+.. automodule:: QHOT.lib.traps.trapspec
    :members:
 
 .. automodule:: QHOT.lib.traps.QTrap

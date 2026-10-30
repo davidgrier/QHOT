@@ -8,9 +8,8 @@ from qtpy import QtCore, QtGui
 
 from QHOT.lib.traps import TrapSpec
 from QHOT.lib.types import Shape
-from .Backend import Backend
-from .NumpyBackend import NumpyBackend
-from .Optics import Optics
+from .backends import Backend, NumpyBackend
+from .optics import Optics
 from .QHologramWorker import QHologramWorker
 
 
@@ -22,13 +21,13 @@ class CGH(QtCore.QObject):
     '''The pipeline that computes holograms of optical traps.
 
     A ``CGH`` holds the calibration of the optical train, and computes
-    holograms with a :class:`~QHOT.lib.holograms.Backend.Backend` in a
+    holograms with a :class:`~QHOT.lib.holograms.backends.Backend` in a
     thread of its own, so that the interface never waits for one.
 
     The calibration is a set of attributes (``xc``, ``wavelength``, ...)
     that the interface edits.  Assigning one emits ``recalculate``.  The
     calibration as it is at any moment is available as an immutable
-    :class:`~QHOT.lib.holograms.Optics.Optics`.
+    :class:`~QHOT.lib.holograms.optics.Optics`.
 
     A hologram is asked for with :meth:`compute`, which takes a pattern
     of traps (see :meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.pattern`)

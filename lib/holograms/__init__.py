@@ -1,7 +1,6 @@
-from .Backend import Backend
+from .backends import Backend, NumpyBackend
 from .CGH import CGH
-from .NumpyBackend import NumpyBackend
-from .Optics import Geometry, Optics
+from .optics import Geometry, Optics
 from .QCGHTree import QCGHTree
 from .QHologramWorker import QHologramWorker
 

@@ -9,11 +9,11 @@
   amplitude times its displacement `D(r)` times its structuring field;
   a group's structuring field is the superposition of its members',
   recursively.  It is the standard that the engines are tested against.
-- `Optics` and `Geometry` (`lib/holograms/Optics.py`): the calibration as
+- `Optics` and `Geometry` (`lib/holograms/optics.py`): the calibration as
   an immutable value, with the map to the SLM plane (`toSLM`) and the
   phasors that move a focus (`phasors`); `Geometry` (the angle and radial wavenumber of the
   SLM plane) is all that a trap is given to make its structure.
-- `TrapSpec` (`lib/traps/TrapSpec.py`) and `QTrap.spec()`: a snapshot of a
+- `TrapSpec` (`lib/traps/trapspec.py`) and `QTrap.spec()`: a snapshot of a
   trap, or of a group with all its members, as a plain, hashable value.
 - Plain groups and composites.  A plain group is a way to handle traps
   together: a member has the same amplitude in it as alone, so that its
@@ -25,7 +25,7 @@
   `composite = True`.  No class does yet, and the old engine does not apply
   a composite's weight; the reference does.
 - Backends that compute holograms from a pattern (`Backend`,
-  `NumpyBackend`, `TorchBackend` in `lib/holograms/`), tested against the
+  `NumpyBackend`, `TorchBackend`, in `lib/holograms/backends/`), tested against the
   reference.  The fields of plain tweezers are summed as one matrix
   product of phasors; traps with the same structure are summed first and
   the structure applied once; groups are flattened by their amplitudes.
@@ -88,6 +88,17 @@
   one to a line, throughout the code, and a test (`tests/test_style.py`)
   keeps them so.  As in QVideo, a definition aligns its parameters under
   the first; a call aligns them or hangs them with a trailing comma.
+
+- **Modules are named as in QVideo**: a module that holds a Qt class keeps the
+  name of the class, and every other module has a short lowercase name.  The
+  backends are the package `QHOT.lib.holograms.backends`, whose private
+  modules (`_numpy.py`, `_numba.py`, `_torch.py`, `_cupy.py`, `_base.py`)
+  are imported through the package, and the optional ones only when they
+  are asked for, so that importing QHOT does not import torch, numba or
+  cupy.  `QHOT.lib.holograms.Optics` is now `...optics`,
+  `QHOT.lib.traps.TrapSpec` is `...trapspec`, and `QHOT.lib.letterSymbol` is
+  `...lettersymbol`.  The names of the classes are the same, and
+  `from QHOT.lib.holograms import Optics, Backend, NumpyBackend` still works.
 
 ### Removed
 - `TorchCGH` and `cupyCGH` (replaced by `TorchBackend` and

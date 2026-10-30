@@ -57,6 +57,7 @@ packages = [
     "QHOT",
     "QHOT.lib",
     "QHOT.lib.holograms",
+    "QHOT.lib.holograms.backends",
     "QHOT.lib.tasks",
     "QHOT.lib.traps",
     "QHOT.tasks",

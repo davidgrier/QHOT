@@ -58,7 +58,7 @@ import numpy as np
 
 from QHOT.lib.traps import QTrap, TrapSpec
 from QHOT.lib.types import Field, Hologram
-from .Optics import Optics
+from .optics import Optics
 
 
 __all__ = [
@@ -76,7 +76,7 @@ def displacement(r, optics: Optics) -> Field:
 
     This is the phase ramp that moves a focus to ``r``, the outer product
     of the phasor of each row and the phasor of each column
-    (:meth:`~QHOT.lib.holograms.Optics.Optics.phasors`).
+    (:meth:`~QHOT.lib.holograms.optics.Optics.phasors`).
 
     Parameters
     ----------

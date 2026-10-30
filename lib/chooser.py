@@ -46,28 +46,28 @@ class _CGHEntry(NamedTuple):
 _CGH_BACKENDS: dict[str, _CGHEntry] = {
     'torch': _CGHEntry(
         '-t',
-        'QHOT.lib.holograms.TorchBackend',
+        'QHOT.lib.holograms.backends',
         'TorchBackend',
         'PyTorch',
         'PyTorch backend (auto-selects MPS, CUDA/ROCm, or CPU)',
     ),
     'numba': _CGHEntry(
         '-j',
-        'QHOT.lib.holograms.NumbaBackend',
+        'QHOT.lib.holograms.backends',
         'NumbaBackend',
         'Numba',
         'Numba backend (CPU, compiled, all cores)',
     ),
     'numpy': _CGHEntry(
         '-n',
-        'QHOT.lib.holograms.NumpyBackend',
+        'QHOT.lib.holograms.backends',
         'NumpyBackend',
         'NumPy',
         'NumPy backend (CPU)',
     ),
     'cupy':  _CGHEntry(
         '-u',
-        'QHOT.lib.holograms.CupyBackend',
+        'QHOT.lib.holograms.backends',
         'CupyBackend',
         'CuPy',
         'CuPy CUDA backend (NVIDIA only)',

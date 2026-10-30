@@ -1,4 +1,4 @@
-from .TrapSpec import TrapSpec
+from .trapspec import TrapSpec
 from .QTrap import QTrap
 from .QTrapGroup import QTrapGroup
 from .QTrapOverlay import QTrapOverlay

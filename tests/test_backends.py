@@ -5,6 +5,9 @@ follow are the same for each, and are run for each backend that is
 installed.
 '''
 import importlib
+import os
+import subprocess
+import sys
 import types
 import unittest
 from unittest.mock import patch
@@ -26,19 +29,21 @@ except ImportError:  # run from the root of the repository
 
 try:
     import torch  # noqa: F401
-    from QHOT.lib.holograms.TorchBackend import TorchBackend
+    from QHOT.lib.holograms.backends import TorchBackend
 except ImportError:
     TorchBackend = None
 
 try:
     import numba  # noqa: F401
-    from QHOT.lib.holograms.NumbaBackend import NumbaBackend
-    numba_module = importlib.import_module('QHOT.lib.holograms.NumbaBackend')
+    from QHOT.lib.holograms.backends import NumbaBackend
+    numba_module = importlib.import_module(
+        'QHOT.lib.holograms.backends._numba',
+    )
 except ImportError:
     NumbaBackend = None
 
-from QHOT.lib.holograms.CupyBackend import CupyBackend
-cupy_module = importlib.import_module('QHOT.lib.holograms.CupyBackend')
+from QHOT.lib.holograms.backends import CupyBackend
+cupy_module = importlib.import_module('QHOT.lib.holograms.backends._cupy')
 
 try:
     import cupy  # noqa: F401
@@ -298,6 +303,58 @@ class TestPatternOfAnOverlay(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertLessEqual(
             levels(result[0], ref.hologram(pattern, o)).max(), 1)
+
+
+class TestTheOptionalBackendsAreLazy(unittest.TestCase):
+
+    '''Importing the package must not import torch, numba or cupy.
+
+    Importing them takes a second or more, and a machine that has only
+    NumPy should not wait for, or fail on, the libraries it does not use.
+    '''
+
+    def run_python(self, code: str) -> str:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        done = subprocess.run(
+            [sys.executable, '-c',
+             f'import sys; sys.path.insert(0, {os.path.dirname(root)!r})\n'
+             + code],
+            capture_output=True,
+            text=True,
+            env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen'},
+            timeout=60,
+        )
+        self.assertEqual(done.returncode, 0, done.stderr[-500:])
+        return done.stdout.strip()
+
+    def test_importing_the_package_imports_none_of_the_libraries(self):
+        out = self.run_python(
+            'import QHOT.lib.holograms\n'
+            'import QHOT.lib.holograms.backends as b\n'
+            "print([m for m in ('torch', 'numba', 'cupy') if m in sys.modules])"
+        )
+        self.assertEqual(out, '[]')
+
+    def test_a_backend_is_imported_when_it_is_asked_for(self):
+        out = self.run_python(
+            'from QHOT.lib.holograms.backends import NumpyBackend\n'
+            'import QHOT.lib.holograms.backends as b\n'
+            "print('QHOT.lib.holograms.backends._torch' in sys.modules)\n"
+            'b.TorchBackend\n'
+            "print('QHOT.lib.holograms.backends._torch' in sys.modules)"
+        )
+        self.assertEqual(out.split(), ['False', 'True'])
+
+    def test_an_unknown_name_is_an_attribute_error(self):
+        from QHOT.lib.holograms import backends
+        with self.assertRaises(AttributeError):
+            backends.NoSuchBackend
+
+    def test_dir_lists_the_optional_backends(self):
+        from QHOT.lib.holograms import backends
+        for name in ('NumpyBackend', 'NumbaBackend', 'TorchBackend',
+                     'CupyBackend'):
+            self.assertIn(name, dir(backends))
 
 
 class TestComponents(unittest.TestCase):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from qtpy import QtCore
 from QHOT.lib.traps.QTrap import QTrap
-from QHOT.lib.letterSymbol import letterSymbol
+from QHOT.lib.lettersymbol import letterSymbol
 from typing import TYPE_CHECKING
 import numpy as np
 

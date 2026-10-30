@@ -48,6 +48,16 @@ jobs:
           from QHOT.lib.traps import QTrapOverlay
           from QHOT.lib import tasks as lib_tasks
           import QHOT.tasks, QHOT.traps
+          from QHOT.lib.holograms import Optics
+          from QHOT.lib.holograms.backends import Backend, NumpyBackend
+          from QHOT.traps import QTweezer
+          hologram = NumpyBackend().hologram(
+              (QTweezer(r=(8, 8, 0), phase=0.).spec(),),
+              Optics(shape=(16, 16)),
+          )
+          assert hologram.shape == (16, 16), hologram.shape
+          from QHOT.lib import choose_backend
+          assert isinstance(choose_backend(), Backend)
           from QHOT.qhot import QHOT as Window
           assert Window.UIFILE.is_file(), Window.UIFILE
           assert (Window.HELPDIR / 'index.html').is_file(), Window.HELPDIR

@@ -10,7 +10,7 @@ CGH
 Optics
 ------
 
-.. automodule:: QHOT.lib.holograms.Optics
+.. automodule:: QHOT.lib.holograms.optics
    :members:
 
 The reference
@@ -22,19 +22,21 @@ The reference
 Backends
 --------
 
-.. automodule:: QHOT.lib.holograms.Backend
+.. automodule:: QHOT.lib.holograms.backends
+
+.. autoclass:: QHOT.lib.holograms.backends.Backend
    :members:
 
-.. automodule:: QHOT.lib.holograms.NumpyBackend
+.. autoclass:: QHOT.lib.holograms.backends.NumpyBackend
    :members:
 
-.. automodule:: QHOT.lib.holograms.TorchBackend
+.. autoclass:: QHOT.lib.holograms.backends.NumbaBackend
    :members:
 
-.. automodule:: QHOT.lib.holograms.NumbaBackend
+.. autoclass:: QHOT.lib.holograms.backends.TorchBackend
    :members:
 
-.. automodule:: QHOT.lib.holograms.CupyBackend
+.. autoclass:: QHOT.lib.holograms.backends.CupyBackend
    :members:
 
 .. automodule:: QHOT.lib.holograms.QHologramWorker

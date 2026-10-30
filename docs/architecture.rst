@@ -36,7 +36,7 @@ own: a member means the same in a group as alone.  A *composite*, a group that
 is used as a single trap, sets ``composite = True`` and has an amplitude and a
 phase of its own.
 
-:class:`~QHOT.lib.traps.TrapSpec.TrapSpec` is a snapshot of a trap, or of a
+:class:`~QHOT.lib.traps.trapspec.TrapSpec` is a snapshot of a trap, or of a
 group with all it contains, as a plain, hashable value.
 ``QTrapOverlay.pattern()`` returns the specs of all the traps.  Every hologram
 is computed from such a pattern, never from the live traps.
@@ -103,11 +103,11 @@ possible, and every faster implementation is tested against it.
 
 A trap makes its own structuring field with
 :meth:`~QHOT.lib.traps.QTrap.QTrap.structuringField`, from a
-:class:`~QHOT.lib.holograms.Optics.Geometry` (the coordinates of the SLM plane)
+:class:`~QHOT.lib.holograms.optics.Geometry` (the coordinates of the SLM plane)
 and its own parameters, and nothing else.
 
-:class:`~QHOT.lib.holograms.Optics.Optics` is the calibration as an immutable
-value.  :class:`~QHOT.lib.holograms.Backend.Backend` computes holograms from a
+:class:`~QHOT.lib.holograms.optics.Optics` is the calibration as an immutable
+value.  :class:`~QHOT.lib.holograms.backends.Backend` computes holograms from a
 pattern and the optics.  The displacement is the outer product of a factor for
 each row and a factor for each column, so the fields of ``n`` plain tweezers
 add up to one matrix product.  Traps that share a structure are summed first

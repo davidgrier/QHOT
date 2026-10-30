@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import numpy as np
 
 from QHOT.lib.types import Hologram
-from .Backend import Backend
-from .Optics import Optics
+from ._base import Backend
+from ..optics import Optics
 
 try:
     import cupy as cp
@@ -22,7 +22,7 @@ class CupyBackend(Backend):
     r'''Computes holograms on an NVIDIA GPU with CuPy.
 
     CuPy has the API of NumPy, and the computation is that of
-    :class:`~QHOT.lib.holograms.NumpyBackend.NumpyBackend` carried out on
+    :class:`~QHOT.lib.holograms.backends.NumpyBackend` carried out on
     the device: the sum of the fields of the traps is a complex matrix
     product, :math:`\psi = YX`, done by cuBLAS, and the phase is taken and
     scaled on the device so that only the finished bytes cross to the

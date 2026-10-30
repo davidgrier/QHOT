@@ -5,7 +5,7 @@ from pyqtgraph import mkBrush, mkPen
 from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
-from QHOT.lib.traps.TrapSpec import TrapSpec
+from QHOT.lib.traps.trapspec import TrapSpec
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
     MoveCommand, RotateCommand, WheelCommand, LockCommand)

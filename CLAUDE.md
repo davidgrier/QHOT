@@ -72,9 +72,9 @@ qhot.py (QHOTWindow)
 
 **Hologram computation** (`lib/holograms/`):
 - `CGH.py` — calibration parameters (pixel pitch, wavelength, focal length, etc.) and the pipeline: `compute(pattern)`, `hologramReady`, `computeFailed`
-- `Optics.py` — the calibration as an immutable value; `Geometry` is all a trap is given
+- `optics.py` — the calibration as an immutable value (`Optics`); `Geometry` is all a trap is given
 - `reference.py` — the algorithm stated plainly; the standard for the backends
-- `Backend.py` — the shared algorithm; `NumpyBackend.py` (CPU, always available), `NumbaBackend.py` (CPU, compiled kernels in parallel), `TorchBackend.py` (Apple GPU, CUDA or CPU), `CupyBackend.py` (NVIDIA GPU; tested only with a NumPy stand-in until tried on CUDA) — each supplies a few array operations and is tested against `reference.py`. numba, torch and cupy are optional: import them lazily and skip their tests when absent. Choose with `-t`, `-j`, `-n`, `-u`; the automatic choice is torch, then numba, then NumPy, and never cupy.
+- `backends/` — compute holograms from a pattern. `_base.py` is the shared algorithm (`Backend`); `_numpy.py` (CPU, always available), `_numba.py` (CPU, compiled kernels in parallel), `_torch.py` (Apple GPU, CUDA or CPU) and `_cupy.py` (NVIDIA GPU; tested only with a NumPy stand-in until tried on CUDA) each supply a few array operations and are tested against `reference.py`. numba, torch and cupy are optional: `backends/__init__.py` imports them only when a name is asked for, and their tests skip when the library is absent. Import the classes from the package (`from QHOT.lib.holograms.backends import NumbaBackend`), not from the private modules. Choose with `-t`, `-j`, `-n`, `-u`; the automatic choice is torch, then numba, then NumPy, and never cupy.
 
 ## Testing
 
@@ -100,15 +100,17 @@ qhot.py (QHOTWindow)
 
 ## Imports
 
-Traps do not import the hologram pipeline: they are given a `Geometry`. `reference.py` and `Backend.py` import `QHOT.traps` lazily, inside the function that needs it, to register the trap classes without a cycle.
+Traps do not import the hologram pipeline: they are given a `Geometry`. `reference.py` and `backends/_base.py` import `QHOT.traps` lazily, inside the function that needs it, to register the trap classes without a cycle.
 
 ## Naming conventions
 
-Follow the PyQt camelCase convention throughout:
-- Module files are named after the class they contain: `QFoo.py` holds `class QFoo`. Do **not** rename modules to snake_case.
+Names follow Qt for Qt and Python for the rest, as in QVideo:
+- A module that holds a Qt class is named after the class: `QFoo.py` holds `class QFoo` (and the traps and tasks, which are `QTrap` and `QTask` subclasses, keep the names of their classes). Do **not** rename these to snake_case.
+- Every other module has a short, lowercase name: `optics.py`, `trapspec.py`, `reference.py`, `lettersymbol.py`, `chooser.py`.
+- A family of implementations is a package of private modules, `_name.py`, whose package `__init__.py` exports the public classes: `backends/_numba.py` holds `NumbaBackend`, and you import it from `QHOT.lib.holograms.backends`. The underscore says "import from the package", and the class can have the name of its module's topic without shadowing it. A private module may still be imported by a test, to patch it.
 - Use `camelCase` for private instance attributes on Qt classes (e.g. `self._ignoreSync`, `self._isOpen`).
 - Use `snake_case` only for pure-Python, non-Qt classes.
-- When renaming, update both the source file and all corresponding test files.
+- When renaming, update both the source file and all corresponding test files, and list a new package in `pyproject.toml` (`tests/test_packaging.py` checks).
 
 ## `__init__.py` re-exports and `mock.patch`
 

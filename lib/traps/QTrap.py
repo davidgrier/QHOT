@@ -6,7 +6,7 @@ from qtpy import QtCore
 from collections.abc import Iterator
 
 from QHOT.lib.types import Field, Position
-from QHOT.lib.traps.TrapSpec import TrapSpec
+from QHOT.lib.traps.trapspec import TrapSpec
 
 
 logger = logging.getLogger(__name__)

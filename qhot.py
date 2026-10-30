@@ -1,14 +1,17 @@
 import logging
+import sys
 from pathlib import Path
 
 from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
 
-from QVideo.cameras.chooser import choose_camera
+from QVideo.cameras import chooser
 from QVideo.lib import QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree      # noqa: F401
+from QHOT.lib.QCameraOpener import QCameraOpener
+from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
 from QHOT.lib.traps import QTrap, QTrapGroup, QTrapMenu  # noqa: F401
 
@@ -457,18 +460,40 @@ class QHOT(QtWidgets.QMainWindow):
 def main() -> None:
     '''Launch the QHOT application.
 
+    A splash screen appears at once and says what is happening.  The
+    camera opens in a thread of its own, so that a slow camera does not
+    freeze the splash screen, while the SLM and the hologram backend are
+    made in the meantime.
+
     Parses command-line arguments for both the camera backend (QVideo
     flags) and the CGH backend (QHOT flags) from a shared parser, so
     that ``-h`` shows all options together.  The CGH backend is
     auto-selected (PyTorch, then numba, then NumPy) when no flag is given.
     '''
-    pg.mkQApp('QHOT')
+    app = pg.mkQApp('QHOT')
+    screen = splash()
+    screen.show()
+    screen.raise_()  # macOS shows a splash screen only if it is raised
+    screen.activateWindow()
     parser = build_parser()
+    say(screen, 'Opening the camera...')
+    opener = QCameraOpener(parser)
+    app.aboutToQuit.connect(opener.stop)
+    opener.start()
+    say(screen, 'Opening the SLM...')
     slm = choose_slm(parser)
+    say(screen, 'Starting the hologram engine...')
     cgh = choose_cgh(parser, shape=slm.shape)
-    cameraTree = choose_camera(parser).start()
-    hot = QHOT(cameraTree, slm=slm, cgh=cgh)
+    say(screen, 'Waiting for the camera...')
+    if not opener.wait_for_camera():
+        screen.close()
+        sys.exit(f'Error: {opener.reason}')
+    say(screen, 'Building the interface...')
+    tree = chooser.make_tree(opener.key, opener.camera).start()
+    opener.camera = None  # the interface has it now
+    hot = QHOT(tree, slm=slm, cgh=cgh)
     hot.show()
+    screen.finish(hot)
     pg.exec()
 
 

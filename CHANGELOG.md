@@ -51,6 +51,15 @@
   (`structureParams`), as a function of values.  `QVortex` and
   `QRingTrap` define it; their `structure(cgh)` now defers to it.
 
+- A splash screen (`lib/splash.py`): the fringes of a particle's hologram,
+  the name and the version, and a message that says what is happening.
+  Copied and adapted from QVideo, where it is private.
+- `QCameraOpener` (`lib/QCameraOpener.py`): opens the camera in a thread, so
+  that a slow camera does not freeze the splash screen.  The SLM and the
+  hologram engine are made while the camera opens, so a slow camera costs
+  less of the start-up time.  If no camera opens, the program says why and
+  exits.
+
 ### Changed
 - **The hologram pipeline is rebuilt.**  `CGH` now holds the calibration
   and runs the compute thread itself; the computing is done by a

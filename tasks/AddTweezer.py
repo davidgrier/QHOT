@@ -12,8 +12,8 @@ class AddTweezer(QTask):
     Completes in a single frame.  The tweezer is placed at
     ``(x, y)`` in camera pixel coordinates.  If ``x`` or ``y``
     is not supplied, the CGH optical-axis coordinates
-    (``cgh.xc``, ``cgh.yc``) are used; if no CGH is available
-    either, the position defaults to ``(0., 0.)``.
+    (``cgh.xc``, ``cgh.yc``) of the CGH that the task works with are
+    used, as they are when the position is read.
 
     The addition is pushed onto the overlay undo stack, so it can
     be undone with Ctrl+Z.
@@ -49,12 +49,26 @@ class AddTweezer(QTask):
                  y: float | None = None,
                  **kwargs) -> None:
         super().__init__(*args, duration=0, **kwargs)
-        if x is None:
-            x = self.cgh.xc if self.cgh is not None else 0.
-        if y is None:
-            y = self.cgh.yc if self.cgh is not None else 0.
-        self.x = float(x)
-        self.y = float(y)
+        self._x = None if x is None else float(x)
+        self._y = None if y is None else float(y)
+
+    @property
+    def x(self) -> float:
+        '''Horizontal position [pixels]; ``cgh.xc`` until it is set.'''
+        return self.cgh.xc if self._x is None else self._x
+
+    @x.setter
+    def x(self, x: float) -> None:
+        self._x = float(x)
+
+    @property
+    def y(self) -> float:
+        '''Vertical position [pixels]; ``cgh.yc`` until it is set.'''
+        return self.cgh.yc if self._y is None else self._y
+
+    @y.setter
+    def y(self, y: float) -> None:
+        self._y = float(y)
 
     def initialize(self) -> None:
         self.overlay.addTrap(QtCore.QPointF(self.x, self.y))

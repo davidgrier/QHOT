@@ -76,6 +76,16 @@ qhot.py (QHOTWindow)
 - `reference.py` — the algorithm stated plainly; the standard for the backends
 - `backends/` — compute holograms from a pattern. `_base.py` is the shared algorithm (`Backend`); `_numpy.py` (CPU, always available), `_numba.py` (CPU, compiled kernels in parallel), `_torch.py` (Apple GPU, CUDA or CPU) and `_cupy.py` (NVIDIA GPU; tested only with a NumPy stand-in until tried on CUDA) each supply a few array operations and are tested against `reference.py`. numba, torch and cupy are optional: `backends/__init__.py` imports them only when a name is asked for, and their tests skip when the library is absent. Import the classes from the package (`from QHOT.lib.holograms.backends import NumbaBackend`), not from the private modules. Choose with `-t`, `-j`, `-n`, `-u`; the automatic choice is torch, then numba, then NumPy, and never cupy.
 
+## A product, not a library
+
+QHOT is a finished program, and the framework in `qhot.py` is not for users to take apart. This is unlike QVideo and QInstrument, which are building blocks that are meant to be used alone and together. It follows that:
+
+- **Contracts are enforced when the code is written, not when it runs.** A developer who breaks the contract of a component finds out from the tests, from the types, or from a `TypeError` at construction. Do not add run-time cross-checks, `requires` declarations or `if x is None` fallbacks for a part that the program always has.
+- **No options for the sake of options.** A resource that the program always provides is a required argument, not `x: X | None = None`. `QTaskManager` takes its `overlay`, `cgh`, `dvr`, `save` and `image`, all of them, and gives each task the ones that the task lacks.
+- **Run-time checks are for what comes from outside:** files that a user may have edited (traps, queues, the configuration), and hardware that may or may not be present.
+- **So the tests must cross the seams.** `tests/test_task_contract.py` takes every registered task through the path of a user (menu, manager, parameter tree, queue file), and `tests/test_qhot.py` builds the real window. A new task or component that does not fit fails there.
+- **`qhot.py` shows the wiring.** Components are written so that connecting them is one clear line; the window should not reach into them.
+
 ## Testing
 
 - Framework: `pytest` with `pytest-cov`; test files use `unittest.TestCase`

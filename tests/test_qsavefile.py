@@ -12,6 +12,11 @@ from pyqtgraph.Qt import QtCore, QtWidgets
 
 import importlib as _importlib
 from QHOT.lib.QSaveFile import QSaveFile
+
+try:
+    from taskmanagers import manager_for
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import manager_for
 _qsavefile_mod = _importlib.import_module('QHOT.lib.QSaveFile')
 
 
@@ -344,7 +349,7 @@ class TestQueueSave(_Base):
             rendered = _QtCore.pyqtSignal()
 
         screen = _Screen()
-        mgr = QTaskManager(screen)
+        mgr = manager_for(screen)
         return mgr
 
     def test_queue_creates_file(self):
@@ -401,7 +406,7 @@ class TestQueueAs(_Base):
         class _Screen(_QtCore.QObject):
             rendered = _QtCore.pyqtSignal()
 
-        return QTaskManager(_Screen())
+        return manager_for(_Screen())
 
     def _patch_dialog(self, chosen):
         return patch.object(_qsavefile_mod.QtWidgets.QFileDialog,
@@ -442,7 +447,7 @@ class TestOpenQueue(_Base):
         class _Screen(_QtCore.QObject):
             rendered = _QtCore.pyqtSignal()
 
-        return QTaskManager(_Screen())
+        return manager_for(_Screen())
 
     def _write_queue(self, task_dicts):
         path = self.save.datadir / 'test_queue.json'

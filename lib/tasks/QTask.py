@@ -49,16 +49,13 @@ class QTask(QtCore.QObject):
 
     Parameters
     ----------
-    overlay : QTrapOverlay or None
-        The trap overlay.  All trap operations go through this.
-        ``None`` is accepted so that the base class can be
-        instantiated without hardware for testing.
-    cgh : CGH or None
-        Hologram computation engine.  ``None`` if not needed.
-    dvr : QDVRWidget or None
-        Video recorder.  ``None`` if not needed.
-    save : QSaveFile or None
-        File-save helper.  ``None`` if not needed.
+    overlay, cgh, dvr, save, image
+        The resources that a task works with: the trap overlay, the
+        hologram engine, the video recorder, the file helper and the
+        live video image.  A task is given the ones that it lacks by
+        the :class:`~QHOT.lib.tasks.QTaskManager.QTaskManager` that
+        takes it, so a task need not be given any; one that is given
+        explicitly is kept.
     delay : int
         Number of rendered frames to skip before ``initialize()``
         is called.  Default: 0.
@@ -120,6 +117,7 @@ class QTask(QtCore.QObject):
                  cgh: CGH | None = None,
                  dvr: QDVRWidget | None = None,
                  save=None,
+                 image=None,
                  delay: int = 0,
                  duration: int | None = None,
                  parent: QtCore.QObject | None = None) -> None:
@@ -128,6 +126,7 @@ class QTask(QtCore.QObject):
         self.cgh = cgh
         self.dvr = dvr
         self.save = save
+        self.image = image
         self.delay = int(delay)
         self.duration = (int(duration)
                          if duration is not None else None)

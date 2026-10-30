@@ -8,6 +8,11 @@ from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QTaskManagerWidget import QTaskManagerWidget, _ROLE
 
+try:
+    from taskmanagers import manager_for
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import manager_for
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -17,17 +22,17 @@ class MockScreen(QtCore.QObject):
 
 def _make_manager():
     screen = MockScreen()
-    return QTaskManager(screen)
+    return manager_for(screen)
 
 
 def _make_manager_with_screen():
     screen = MockScreen()
-    return QTaskManager(screen), screen
+    return manager_for(screen), screen
 
 
 def _make_wired():
     screen = MockScreen()
-    manager = QTaskManager(screen)
+    manager = manager_for(screen)
     widget = QTaskManagerWidget()
     widget.manager = manager
     return screen, manager, widget
@@ -468,7 +473,7 @@ class TestDraggableQueueListCanDropAt(unittest.TestCase):
     def setUp(self):
         from QHOT.lib.tasks.QTaskManagerWidget import _DraggableQueueList
         screen = MockScreen()
-        manager = QTaskManager(screen)
+        manager = manager_for(screen)
         t1, t2, t3 = QTask(), QTask(), QTask()
         manager.register(t1)   # RUNNING at row 0
         manager.register(t2)   # PENDING at row 1

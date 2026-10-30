@@ -5,8 +5,9 @@ from collections import deque
 
 from qtpy import QtCore
 
+from pyqtgraph import ImageItem
 from QVideo.dvr import QDVRWidget
-from QHOT.lib.QHOTScreen import QHOTScreen
+from QHOT.lib.QSaveFile import QSaveFile
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QHOT.lib.holograms.CGH import CGH
 from QHOT.lib.tasks.QTask import QTask
@@ -19,8 +20,9 @@ class QTaskManager(QtCore.QObject):
 
     '''Schedules and dispatches QHOT tasks.
 
-    Connects to ``QHOTScreen.rendered`` and advances each registered
-    task by one step per video frame.  Blocking tasks are queued
+    Advances each registered task by one step each time :meth:`step` is
+    called, which is once per video frame when it is connected to
+    ``QHOTScreen.rendered``.  Blocking tasks are queued
     sequentially: the next task starts only after the current one
     finishes.  Non-blocking tasks start immediately and run in
     parallel with the blocking queue.
@@ -39,31 +41,32 @@ class QTaskManager(QtCore.QObject):
     and logged.  Background tasks fail independently without
     affecting the queue.
 
+    The manager owns the resources that tasks work with (the trap
+    overlay, the CGH, the recorder, the file helper and the live image)
+    and gives each task the ones that it has not been given already, as
+    it takes the task (:meth:`register`, :meth:`load`, :meth:`inject`).
+    All of them are required: the manager is one part of a program that
+    has them all.
+
     Parameters
     ----------
-    screen : QHOTScreen
-        The live video screen.  Its ``rendered`` signal drives all
-        registered tasks.
-    overlay : QTrapOverlay or None
-        Trap overlay, stored as ``self.overlay`` for tasks that need
-        it.  ``None`` if not available.
-    cgh : CGH or None
-        Hologram computation engine, stored as ``self.cgh``.
-    dvr : QDVRWidget or None
-        Video recorder, stored as ``self.dvr``.
-    save : QSaveFile or None
-        File-save helper, stored as ``self.save``.
+    overlay : QTrapOverlay
+        The trap overlay, stored as ``self.overlay``.
+    cgh : CGH
+        The hologram computation engine, stored as ``self.cgh``.
+    dvr : QDVRWidget
+        The video recorder, stored as ``self.dvr``.
+    save : QSaveFile
+        The file helper, stored as ``self.save``.
+    image : ImageItem
+        The live video image, stored as ``self.image``.
+    parent : QObject or None
+        Qt parent object.
 
     Attributes
     ----------
-    overlay : QTrapOverlay or None
-        Trap overlay (readable by tasks via ``self.manager``).
-    cgh : CGH or None
-        Hologram computation engine.
-    dvr : object or None
-        Video recorder.
-    save : object or None
-        File-save helper.
+    RESOURCES : tuple[str, ...]
+        The names of the resources that the manager gives to its tasks.
     '''
 
     #: Emitted whenever the active task, queue, background list, or
@@ -71,26 +74,29 @@ class QTaskManager(QtCore.QObject):
     #: their refresh method to stay up to date.
     changed = QtCore.Signal()
 
+    #: The resources that the manager gives to its tasks.
+    RESOURCES = ('overlay', 'cgh', 'dvr', 'save', 'image')
+
     def __init__(self,
-                 screen: QHOTScreen,
                  *,
-                 overlay: QTrapOverlay | None = None,
-                 cgh: CGH | None = None,
-                 dvr: QDVRWidget | None = None,
-                 save=None,
+                 overlay: QTrapOverlay,
+                 cgh: CGH,
+                 dvr: QDVRWidget,
+                 save: QSaveFile,
+                 image: ImageItem,
                  parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self.overlay = overlay
         self.cgh = cgh
         self.dvr = dvr
         self.save = save
+        self.image = image
         self._schedule:        list[QTask] = []
         self._queue:           deque[QTask] = deque()
         self._background:      list[QTask] = []
         self._current:         QTask | None = None
         self._currentStepped: bool = False
         self._paused:          bool = False
-        screen.rendered.connect(self._onFrame)
 
     # ------------------------------------------------------------------
     # Public read-only properties
@@ -181,8 +187,8 @@ class QTaskManager(QtCore.QObject):
         QTask
             The registered task, for inspection or chaining.
         '''
+        self._attach(task)
         if blocking:
-            task.manager = self
             task.finished.connect(self._onBlockingFinished)
             task.failed.connect(self._onBlockingFailed)
             self._schedule.append(task)
@@ -228,12 +234,7 @@ class QTaskManager(QtCore.QObject):
         '''
         import QHOT.tasks  # noqa: F401 -- fills QTask._registry
         for d in task_dicts:
-            task = QTask.fromDict(d)
-            task.overlay = self.overlay
-            task.cgh = self.cgh
-            task.dvr = self.dvr
-            task.save = self.save
-            self.register(task)
+            self.register(QTask.fromDict(d))
 
     def stop(self) -> None:
         '''Rewind the schedule to the beginning and pause.
@@ -341,11 +342,7 @@ class QTaskManager(QtCore.QObject):
             Tasks to insert, in execution order.
         '''
         for task in tasks:
-            task.overlay = self.overlay
-            task.cgh = self.cgh
-            task.dvr = self.dvr
-            task.save = self.save
-            task.manager = self
+            self._attach(task)
             task.finished.connect(self._onBlockingFinished)
             task.failed.connect(self._onBlockingFailed)
         self._queue.extendleft(reversed(tasks))
@@ -353,8 +350,25 @@ class QTaskManager(QtCore.QObject):
     # ------------------------------------------------------------------
     # Private slots
 
+    def _attach(self, task: QTask) -> None:
+        '''Give a task the manager, and the resources that it lacks.
+
+        A resource that a task was given explicitly is its own, and is
+        not replaced by the manager's.
+        '''
+        for name in self.RESOURCES:
+            if getattr(task, name) is None:
+                setattr(task, name, getattr(self, name))
+        task.manager = self
+
     @QtCore.Slot()
-    def _onFrame(self) -> None:
+    def step(self) -> None:
+        '''Advance the tasks by one frame.
+
+        Connect this to the signal that says that a frame has been shown,
+        such as ``QHOTScreen.rendered``.  Nothing happens while the
+        manager is paused.
+        '''
         if self._paused:
             return
         if self._current is not None:

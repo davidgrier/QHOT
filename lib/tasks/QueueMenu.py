@@ -20,9 +20,8 @@ class QueueMenu(QtWidgets.QMenu):
 
     Populates itself from ``QTask._registry`` and calls
     ``manager.register()`` when the user picks an entry.  Set
-    ``manager``, ``overlay``, ``cgh``, and ``dvr`` before the menu
-    is shown so that each newly queued task receives the correct
-    hardware dependencies.
+    ``manager`` before the menu is shown; the manager gives each task
+    that it takes the resources that the task works with.
 
     Parameters
     ----------
@@ -35,21 +34,12 @@ class QueueMenu(QtWidgets.QMenu):
     ----------
     manager : QTaskManager or None
         Task manager that receives ``register()`` calls.
-    overlay : QTrapOverlay or None
-        Passed to tasks that manipulate the trap overlay.
-    cgh : CGH or None
-        Passed to tasks that compute holograms.
-    dvr : QDVRWidget or None
-        Passed to tasks that record video.
     '''
 
     def __init__(self, *args, title: str = 'Queue', **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.setTitle(title)
         self._manager: QTaskManager | None = None
-        self._overlay = None
-        self._cgh = None
-        self._dvr = None
         self._populateMenu()
 
     # ------------------------------------------------------------------
@@ -63,33 +53,6 @@ class QueueMenu(QtWidgets.QMenu):
     @manager.setter
     def manager(self, manager: QTaskManager | None) -> None:
         self._manager = manager
-
-    @property
-    def overlay(self):
-        '''Trap overlay passed to tasks that need it.'''
-        return self._overlay
-
-    @overlay.setter
-    def overlay(self, overlay) -> None:
-        self._overlay = overlay
-
-    @property
-    def cgh(self):
-        '''CGH engine passed to tasks that need it.'''
-        return self._cgh
-
-    @cgh.setter
-    def cgh(self, cgh) -> None:
-        self._cgh = cgh
-
-    @property
-    def dvr(self):
-        '''Video recorder passed to tasks that need it.'''
-        return self._dvr
-
-    @dvr.setter
-    def dvr(self, dvr) -> None:
-        self._dvr = dvr
 
     # ------------------------------------------------------------------
     # Private
@@ -111,8 +74,7 @@ class QueueMenu(QtWidgets.QMenu):
     def _onTaskSelected(self, name: str) -> None:
         '''Instantiate the chosen task and register it with the manager.
 
-        All dependencies (overlay, cgh, dvr) are injected as keyword
-        arguments; tasks that do not use a dependency simply ignore it.
+        The manager gives the task the resources that it works with.
 
         Parameters
         ----------
@@ -128,7 +90,7 @@ class QueueMenu(QtWidgets.QMenu):
             return
         was_idle = (self._manager.activeRaw is None
                     and not self._manager.background)
-        task = cls(overlay=self._overlay, cgh=self._cgh, dvr=self._dvr)
+        task = cls()
         self._manager.register(task)
         if was_idle:
             self._manager.pause(True)

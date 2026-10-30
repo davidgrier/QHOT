@@ -9,6 +9,11 @@ from QHOT.tasks.BeginRepeat import BeginRepeat
 from QHOT.tasks.Delay import Delay
 from QHOT.tasks.Repeat import Repeat
 
+try:
+    from taskmanagers import manager_for
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import manager_for
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -88,7 +93,7 @@ class TestRepeatSetup(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _pump(self, max_signals=200):
         '''Fire rendered until manager pauses (schedule complete).

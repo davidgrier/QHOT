@@ -36,10 +36,23 @@ class TestAddTweezerInit(unittest.TestCase):
         self.assertEqual(task.x, 320.)
         self.assertEqual(task.y, 240.)
 
-    def test_default_position_without_cgh_is_origin(self):
+    def test_the_default_position_is_found_when_it_is_read(self):
+        # the manager gives the task its CGH after the task is made
         task = AddTweezer(overlay=self.overlay)
-        self.assertEqual(task.x, 0.)
-        self.assertEqual(task.y, 0.)
+        task.cgh = self.cgh
+        self.assertEqual((task.x, task.y), (320., 240.))
+
+    def test_the_default_position_follows_the_cgh(self):
+        task = AddTweezer(overlay=self.overlay, cgh=self.cgh)
+        self.cgh.xc = 300.
+        self.assertEqual(task.x, 300.)
+
+    def test_a_position_that_is_set_stays(self):
+        task = AddTweezer(overlay=self.overlay, cgh=self.cgh)
+        task.x = 10
+        self.cgh.xc = 300.
+        self.assertEqual(task.x, 10.)
+        self.assertIsInstance(task.x, float)
 
     def test_registered_in_registry(self):
         self.assertIn('AddTweezer', QTask._registry)

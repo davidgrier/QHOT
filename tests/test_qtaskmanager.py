@@ -7,6 +7,11 @@ from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 
+try:
+    from taskmanagers import RESOURCES, manager_for
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import RESOURCES, manager_for
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -21,29 +26,29 @@ class TestQTaskManagerInit(unittest.TestCase):
         self.screen = MockScreen()
 
     def test_no_active_task_initially(self):
-        mgr = QTaskManager(self.screen)
+        mgr = manager_for(self.screen)
         self.assertIsNone(mgr.active)
 
     def test_queue_size_zero_initially(self):
-        mgr = QTaskManager(self.screen)
+        mgr = manager_for(self.screen)
         self.assertEqual(mgr.queueSize, 0)
 
     def test_background_empty_initially(self):
-        mgr = QTaskManager(self.screen)
+        mgr = manager_for(self.screen)
         self.assertEqual(mgr.background, [])
 
     def test_not_paused_initially(self):
-        mgr = QTaskManager(self.screen)
+        mgr = manager_for(self.screen)
         self.assertFalse(mgr.paused)
 
     def test_overlay_stored(self):
         overlay = MagicMock()
-        mgr = QTaskManager(self.screen, overlay=overlay)
+        mgr = manager_for(self.screen, overlay=overlay)
         self.assertIs(mgr.overlay, overlay)
 
     def test_cgh_stored(self):
         cgh = MagicMock()
-        mgr = QTaskManager(self.screen, cgh=cgh)
+        mgr = manager_for(self.screen, cgh=cgh)
         self.assertIs(mgr.cgh, cgh)
 
 
@@ -51,7 +56,7 @@ class TestQTaskManagerRegistration(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def test_first_blocking_task_becomes_active(self):
         task = QTask()
@@ -124,11 +129,67 @@ class TestQTaskManagerRegistration(unittest.TestCase):
         self.assertEqual(len(self.manager.queued), 2)
 
 
+class TestQTaskManagerResources(unittest.TestCase):
+
+    '''The manager gives its tasks the resources that they work with.'''
+
+    def setUp(self):
+        self.resources = {name: MagicMock() for name in RESOURCES}
+        self.manager = QTaskManager(**self.resources)
+
+    def assertHasAll(self, task):
+        for name, resource in self.resources.items():
+            self.assertIs(getattr(task, name), resource, name)
+        self.assertIs(task.manager, self.manager)
+
+    def test_every_resource_is_required(self):
+        for missing in RESOURCES:
+            given = {k: v for k, v in self.resources.items() if k != missing}
+            with self.subTest(missing), self.assertRaises(TypeError):
+                QTaskManager(**given)
+
+    def test_the_resources_are_the_ones_that_tasks_work_with(self):
+        self.assertEqual(sorted(QTaskManager.RESOURCES), sorted(RESOURCES))
+        for name in RESOURCES:
+            self.assertIs(getattr(self.manager, name), self.resources[name])
+
+    def test_a_registered_task_gets_them(self):
+        task = self.manager.register(QTask())
+        self.assertHasAll(task)
+
+    def test_a_background_task_gets_them(self):
+        task = self.manager.register(QTask(), blocking=False)
+        self.assertHasAll(task)
+
+    def test_a_loaded_task_gets_them(self):
+        from QHOT.tasks import Delay
+        self.manager.load([Delay(frames=2).toDict()])
+        self.assertHasAll(self.manager.scheduled[-1])
+
+    def test_an_injected_task_gets_them(self):
+        task = QTask()
+        self.manager.inject([task])
+        self.assertHasAll(task)
+
+    def test_a_resource_that_a_task_was_given_is_its_own(self):
+        mine = MagicMock()
+        task = self.manager.register(QTask(overlay=mine))
+        self.assertIs(task.overlay, mine)
+        self.assertIs(task.cgh, self.resources['cgh'])
+
+    def test_step_advances_the_tasks_when_it_is_called(self):
+        task = QTask(duration=3)
+        self.manager.register(task)
+        self.manager.step()
+        self.manager.step()
+        self.assertEqual(task._frame, 2)
+
+
 class TestQTaskManagerFrameDispatch(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -188,7 +249,7 @@ class TestQTaskManagerSequencing(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -263,7 +324,7 @@ class TestQTaskManagerStop(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def test_stop_rewinds_queue(self):
         # After stop, tasks are reset and first is activated;
@@ -315,7 +376,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -401,7 +462,7 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -456,7 +517,7 @@ class TestQTaskManagerBackground(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -503,7 +564,7 @@ class TestQTaskManagerLoad(unittest.TestCase):
         self.overlay = MagicMock()
         self.cgh     = MagicMock()
         self.dvr     = MagicMock()
-        self.manager = QTaskManager(
+        self.manager = manager_for(
             self.screen,
             overlay=self.overlay,
             cgh=self.cgh,
@@ -569,7 +630,7 @@ class TestQTaskManagerRemove(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _register(self, n: int) -> list:
         tasks = [QTask() for _ in range(n)]
@@ -607,7 +668,7 @@ class TestQTaskManagerRemove(unittest.TestCase):
 
     def test_remove_completed_task(self):
         from QHOT.tasks.Delay import Delay
-        mgr = QTaskManager(self.screen)
+        mgr = manager_for(self.screen)
         d1 = Delay(frames=0)
         d2 = Delay(frames=0)
         mgr.register(d1)
@@ -635,7 +696,7 @@ class TestQTaskManagerChanged(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
@@ -704,7 +765,7 @@ class TestQTaskManagerReorder(unittest.TestCase):
 
     def setUp(self):
         self.screen  = MockScreen()
-        self.manager = QTaskManager(self.screen)
+        self.manager = manager_for(self.screen)
 
     def _register(self, n: int) -> list:
         tasks = [QTask() for _ in range(n)]
@@ -750,7 +811,7 @@ class TestQTaskManagerReorder(unittest.TestCase):
         # Complete t1 by stepping it (t1 has duration=None, won't complete)
         # Use a zero-duration task instead
         from QHOT.tasks.Delay import Delay
-        mgr = QTaskManager(screen)
+        mgr = manager_for(screen)
         d1 = Delay(frames=0)
         d2 = Delay(frames=0)
         d3 = Delay(frames=0)

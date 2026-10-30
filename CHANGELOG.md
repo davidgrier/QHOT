@@ -8,6 +8,22 @@
   `active_raw`, `queue_size` and `wait_for_camera` are now `toDict`,
   `fromDict`, `toList`, `fromList`, `activeRaw`, `queueSize` and
   `waitForCamera`.  The files that QHOT saves are unchanged.
+- `QTaskManager` no longer takes the screen: its clock is the public slot
+  `step()`, and the window connects `screen.rendered` to it.  The overlay
+  is therefore a plain argument of the manager, and not also a property of
+  the screen that it was given.
+- `QueueMenu` no longer has `overlay`, `cgh` and `dvr`: it needs only the
+  manager, which owns the resources that tasks work with.
+- All the resources of `QTaskManager` are required (`overlay`, `cgh`, `dvr`,
+  `save`, and the new `image`, the live video image): QHOT is a program that
+  has them all, and not a library that may lack any.  A task is given the
+  ones that it lacks when the manager takes it.
+- `Snapshot` no longer needs an `image`: it saves the live image that the
+  manager provides.  It was offered in the Queue menu although it could not
+  be queued.
+- The position of `AddTweezer`, if not set, is the optical axis of the CGH
+  that the task works with, looked up when it is read.  (It was fixed when
+  the task was made, before the manager had given the task its CGH.)
 - The `parameters` of a task, and the tables of a trap overlay, are
   immutable (a tuple) or annotated `ClassVar`.
 
@@ -31,6 +47,11 @@
   and stale `noqa` comments.
 
 ### Fixed
+- A task that was queued from the Queue menu was not given the file helper,
+  so `SaveTraps` had nothing to save with.  The manager now gives every
+  task that it takes (`register`, `load` and `inject`) the resources that
+  the task lacks, in one place, and a resource that a task was given
+  explicitly is its own.
 - A `CGH` that was running when the program ended without an event loop
   (a script or notebook that did not call `stop()`) could abort the
   process while Python shut down, in about one run in fifty.  The thread

@@ -67,17 +67,15 @@ class QHOT(QtWidgets.QMainWindow):
         self._addFilters()
         self.save = QSaveFile(self)
         self.manager = QTaskManager(
-            self.screen,
             overlay=self.screen.overlay,
             cgh=self.cgh,
             dvr=self.dvr,
             save=self.save,
+            image=self.screen.image,
             parent=self)
+        self.screen.rendered.connect(self.manager.step)
         self.taskManagerWidget.manager = self.manager
         self.menuQueue.manager = self.manager
-        self.menuQueue.overlay = self.screen.overlay
-        self.menuQueue.cgh = self.cgh
-        self.menuQueue.dvr = self.dvr
         self._trapFile:  str | None = None
         self._queueFile: str | None = None
         self.restoreSettings()

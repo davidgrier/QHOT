@@ -9,6 +9,11 @@ from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
 from QHOT.lib.tasks.QueueMenu import QueueMenu
 
+try:
+    from taskmanagers import manager_for
+except ImportError:  # run from the root of the repository
+    from tests.taskmanagers import manager_for
+
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
@@ -18,7 +23,7 @@ class MockScreen(QtCore.QObject):
 
 def _make_manager():
     screen = MockScreen()
-    return QTaskManager(screen)
+    return manager_for(screen)
 
 
 class TestQueueMenuInit(unittest.TestCase):
@@ -35,15 +40,6 @@ class TestQueueMenuInit(unittest.TestCase):
 
     def test_manager_none_initially(self):
         self.assertIsNone(self.menu.manager)
-
-    def test_overlay_none_initially(self):
-        self.assertIsNone(self.menu.overlay)
-
-    def test_cgh_none_initially(self):
-        self.assertIsNone(self.menu.cgh)
-
-    def test_dvr_none_initially(self):
-        self.assertIsNone(self.menu.dvr)
 
     def test_actions_populated_from_registry(self):
         names = {a.text() for a in self.menu.actions()}
@@ -69,20 +65,10 @@ class TestQueueMenuProperties(unittest.TestCase):
         self.menu.manager = None
         self.assertIsNone(self.menu.manager)
 
-    def test_set_overlay(self):
-        overlay = MagicMock()
-        self.menu.overlay = overlay
-        self.assertIs(self.menu.overlay, overlay)
-
-    def test_set_cgh(self):
-        cgh = MagicMock()
-        self.menu.cgh = cgh
-        self.assertIs(self.menu.cgh, cgh)
-
-    def test_set_dvr(self):
-        dvr = MagicMock()
-        self.menu.dvr = dvr
-        self.assertIs(self.menu.dvr, dvr)
+    def test_the_menu_holds_no_resources_of_its_own(self):
+        # the manager owns the resources, and gives them to its tasks
+        for name in ('overlay', 'cgh', 'dvr', 'save'):
+            self.assertFalse(hasattr(self.menu, name), name)
 
 
 class TestQueueMenuSelection(unittest.TestCase):
@@ -134,31 +120,32 @@ class TestQueueMenuSelection(unittest.TestCase):
         self.menu._onTaskSelected(name)
         self.assertFalse(self.manager.paused)
 
-    def test_dependencies_injected_into_task(self):
-        overlay = MagicMock()
-        cgh = MagicMock()
-        dvr = MagicMock()
-        self.menu.manager = self.manager
-        self.menu.overlay = overlay
-        self.menu.cgh = cgh
-        self.menu.dvr = dvr
+    def test_a_task_from_the_menu_gets_every_resource_of_the_manager(self):
+        resources = dict(
+            overlay=MagicMock(),
+            cgh=MagicMock(),
+            dvr=MagicMock(),
+            save=MagicMock(),
+        )
+        manager = manager_for(MockScreen(), **resources)
+        self.menu.manager = manager
+        self.menu._onTaskSelected('SaveTraps')
+        task = manager.scheduled[-1]
+        for name, resource in resources.items():
+            self.assertIs(getattr(task, name), resource, name)
+        self.assertIs(task.manager, manager)
 
-        name = next(iter(QTask._registry))
-        cls = QTask._registry[name]
-        created = []
-        original_init = cls.__init__
-
-        def capture_init(self_task, *args, **kwargs):
-            created.append(kwargs)
-            original_init(self_task, *args, **kwargs)
-
-        with patch.object(cls, '__init__', capture_init):
-            self.menu._onTaskSelected(name)
-
-        self.assertTrue(len(created) > 0)
-        self.assertIs(created[0].get('overlay'), overlay)
-        self.assertIs(created[0].get('cgh'), cgh)
-        self.assertIs(created[0].get('dvr'), dvr)
+    def test_a_task_that_saves_can_save_when_queued_from_the_menu(self):
+        # The menu once passed on the overlay, the CGH and the recorder
+        # but not the file helper, so SaveTraps had nothing to save with.
+        save, overlay = MagicMock(), MagicMock()
+        manager = manager_for(MockScreen(), overlay=overlay, save=save)
+        self.menu.manager = manager
+        self.menu._onTaskSelected('SaveTraps')
+        task = manager.scheduled[-1]
+        task.initialize()
+        save.traps.assert_called_once()
+        self.assertIs(save.traps.call_args.args[0], overlay)
 
 
 if __name__ == '__main__':

@@ -15,38 +15,59 @@ __all__ = ['Backend']
 
 class Backend:
 
-    '''Computes holograms, quickly, on some kind of hardware.
+    r'''Computes holograms, quickly, on some kind of hardware.
 
     A backend computes what :func:`~QHOT.lib.holograms.reference.hologram`
-    states, and is tested against it.  What it does differently is to use
+    states, the phase of the superposition of the fields of the traps,
+
+    .. math::
+
+        \psi(x, y) = \sum_j a_j \, D(x, y; \mathbf r_j) \, S_j(x, y),
+
+    and is tested against it.  It differs from the reference only in using
     the structure of the problem:
 
-    * The field of a focus is the outer product of a factor for each row
-      and a factor for each column.  So the fields of ``n`` plain
-      tweezers add up to one matrix product, ``(rows x n) @ (n x columns)``,
-      which hardware does very much faster than ``n`` outer products.
-    * A trap with a structuring field is that product times a field that
-      does not depend on where the trap is.  Traps that share the same
-      structure are summed first, and the structure multiplies the sum.
-    * The field of a group is the sum of the fields of its members,
-      weighted by the amplitudes of the groups that contain them, so the
+    * The displacement :math:`D` of a focus is the product of a phasor for
+      each column and a phasor for each row,
+      :math:`D = e^{i\varphi_y(y)} e^{i\varphi_x(x)}`.  So the fields of
+      :math:`n` plain tweezers, whose structure is 1, add up to one matrix
+      product,
+
+      .. math::
+
+          \psi_{mn} = \sum_j Y_{mj} X_{jn}, \qquad
+          Y_{mj} = a_j e^{i\varphi_y^{(j)}(y_m)}, \quad
+          X_{jn} = e^{i\varphi_x^{(j)}(x_n)},
+
+      which hardware does very much faster than :math:`n` outer products.
+    * A trap with a structuring field :math:`S` has the same product times
+      a field that does not depend on where the trap is.  Traps that share
+      a structure are summed first and the structure multiplies the sum,
+      :math:`\psi \leftarrow \psi + S \odot (YX)`.
+    * The field of a group is the sum of the fields of its members, each
+      with the complex amplitude of the groups that contain it, so the
       groups can be flattened away.
 
     Nothing is remembered between holograms except the structuring fields,
     which are kept by their value (the kind of trap and its parameters)
     and so cannot go stale.  There is no cache to invalidate when a trap
-    moves, because a hologram is computed from scratch in the time that
-    the cache used to take to sum.
+    moves, because a hologram is computed from scratch in less time than
+    the old cache took to sum.
 
     A subclass supplies the array operations: :meth:`calibrate`,
     :meth:`zeros`, :meth:`phasors`, :meth:`superpose`, :meth:`quantize`
-    and :meth:`upload`.  A backend is used by one thread
-    at a time.
+    and :meth:`upload`.  A backend is used by one thread at a time.
 
     Parameters
     ----------
     cache : int
         Number of structuring fields to keep.  Default: 64.
+
+    See Also
+    --------
+    QHOT.lib.holograms.reference : The algorithm, stated plainly.
+    QHOT.lib.holograms.NumpyBackend.NumpyBackend : Computes on the CPU.
+    QHOT.lib.holograms.TorchBackend.TorchBackend : Computes with PyTorch.
     '''
 
     name = 'abstract'
@@ -57,9 +78,15 @@ class Backend:
         self._context = None
         self._structures: OrderedDict = OrderedDict()
 
-    def hologram(self, pattern: Iterable[TrapSpec],
-                 optics: Optics) -> Hologram:
-        '''Return the hologram of a pattern of traps.
+    def hologram(
+        self,
+        pattern: Iterable[TrapSpec],
+        optics: Optics,
+    ) -> Hologram:
+        r'''Return the hologram of a pattern of traps.
+
+        The phase of the superposition :math:`\psi` of the fields of the
+        traps, quantized to 8 bits.
 
         Parameters
         ----------
@@ -71,20 +98,21 @@ class Backend:
         Returns
         -------
         Hologram
-            The phase of the sum of the fields, as ``uint8``.
+            The phase of the superposition, as ``uint8``.
         '''
         context = self._context_for(optics)
-        batches = self._batches(pattern, optics)
+        families = self._families(pattern, optics)
         psi = self.zeros(context)
-        for key, (positions, amplitudes) in batches.items():
-            R = optics.toSLM(np.array(positions, dtype=float))
-            phasors = self.phasors(context, R, np.array(amplitudes, dtype=complex))
+        for key, (positions, amplitudes) in families.items():
+            positions = optics.toSLM(np.array(positions, dtype=float))
+            amplitudes = np.array(amplitudes, dtype=complex)
+            phasors = self.phasors(context, positions, amplitudes)
             structure = None if key is None else self._structure(key, optics)
             psi = self.superpose(psi, phasors, structure)
         return self.quantize(psi)
 
-    def _batches(self, pattern: Iterable[TrapSpec], optics: Optics) -> dict:
-        '''Sort the traps by structure.
+    def _families(self, pattern: Iterable[TrapSpec], optics: Optics) -> dict:
+        '''Sort the traps into families that share a structuring field.
 
         Returns
         -------
@@ -92,16 +120,16 @@ class Backend:
             Maps the structure to the positions and the amplitudes of the
             traps that have it.  The key ``None`` is for plain tweezers.
         '''
-        batches: dict = {}
+        families: dict = {}
         for top in pattern:
             for spec, amplitude in top.components():
                 key = (spec.kind, spec.params)
                 if self._structure(key, optics) is None:
                     key = None
-                positions, amplitudes = batches.setdefault(key, ([], []))
+                positions, amplitudes = families.setdefault(key, ([], []))
                 positions.append(spec.r)
                 amplitudes.append(amplitude)
-        return batches
+        return families
 
     def _context_for(self, optics: Optics):
         '''Return what the backend keeps of the optics, remaking it only
@@ -137,40 +165,77 @@ class Backend:
     # The array operations that a backend provides.
 
     def calibrate(self, optics: Optics):
-        '''Return the vectors of the optics, in the form that this backend
-        computes with.'''
+        r'''Return the coordinates of the optics that this backend needs.
+
+        These are the vectors of the phase gradients along :math:`x` and
+        :math:`y` and of the squares of the coordinates, in the form that
+        this backend computes with.  They are made again only when the
+        calibration changes.
+
+        Parameters
+        ----------
+        optics : Optics
+            The calibration.
+        '''
         raise NotImplementedError
 
     def zeros(self, context):
-        '''Return an empty field.'''
-        raise NotImplementedError
-
-    def phasors(self, context, R: np.ndarray, amplitudes: np.ndarray):
-        '''Return the phase phasors of ``n`` traps, amplitudes included.
-
-        The field of the traps is the product of two matrices, the first
-        with a column for each trap and a row for each row of the
-        hologram and the second with a row for each trap and a column for
-        each column of the hologram.  They are returned as a pair, so
-        that :meth:`superpose` can choose how to multiply them.
+        '''Return a field with no light in it.
 
         Parameters
         ----------
         context
             What :meth:`calibrate` returned.
-        R : np.ndarray
+        '''
+        raise NotImplementedError
+
+    def phasors(
+        self,
+        context,
+        positions: np.ndarray,
+        amplitudes: np.ndarray,
+    ):
+        r'''Return the phasors of :math:`n` traps, amplitudes included.
+
+        The field of the traps is the product of two matrices: :math:`Y`,
+        with a row for each row of the hologram and a column for each
+        trap, and :math:`X`, with a row for each trap and a column for
+        each column of the hologram,
+
+        .. math::
+
+            Y_{mj} = a_j \, e^{i\varphi_y^{(j)}(y_m)}, \qquad
+            X_{jn} = e^{i\varphi_x^{(j)}(x_n)}.
+
+        They are returned as a pair, so that :meth:`superpose` can choose
+        how to multiply them.
+
+        Parameters
+        ----------
+        context
+            What :meth:`calibrate` returned.
+        positions : np.ndarray
             Positions of the traps in the SLM plane, shape ``(n, 3)``.
         amplitudes : np.ndarray
-            Complex amplitude of each trap, shape ``(n,)``.
+            Complex amplitude :math:`a_j` of each trap, shape ``(n,)``.
+
+        Returns
+        -------
+        tuple
+            :math:`(Y, X)`, in the form that this backend computes with.
         '''
         raise NotImplementedError
 
     def superpose(self, psi, phasors, structure=None):
-        '''Add the field of traps to the field, shaped by a structure.
+        r'''Add the field of some traps to the field.
 
-        This is ``psi + (rows @ columns) * structure``, or without the
-        structure if there is none.  It does it in as few passes over the
-        arrays as the hardware allows, and may change ``psi`` in place.
+        .. math::
+
+            \psi \leftarrow \psi + S \odot (Y X),
+
+        or :math:`\psi + YX` if there is no structure.  It does this in as
+        few passes over the arrays as the hardware allows, and may change
+        ``psi`` in place.
 
         Parameters
         ----------
@@ -179,16 +244,37 @@ class Backend:
         phasors
             What :meth:`phasors` returned.
         structure
-            What :meth:`upload` returned for the structuring field, or
-            ``None``.
+            The structuring field :math:`S`, as :meth:`upload` returned
+            it, or ``None``.
+
+        Returns
+        -------
+        The new field.
         '''
         raise NotImplementedError
 
     def quantize(self, psi) -> Hologram:
-        '''Return the phase of a field as 8-bit integers on the host.'''
+        r'''Return the phase of a field as 8-bit integers on the host.
+
+        Parameters
+        ----------
+        psi
+            The field.
+
+        Returns
+        -------
+        Hologram
+            :math:`\lfloor 128 \arg\psi / \pi + 127 \rfloor`, as ``uint8``.
+        '''
         raise NotImplementedError
 
     def upload(self, field: np.ndarray):
         '''Return a structuring field in the form that this backend
-        computes with.'''
+        computes with.
+
+        Parameters
+        ----------
+        field : np.ndarray
+            A complex array made on the host.
+        '''
         raise NotImplementedError

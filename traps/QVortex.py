@@ -61,7 +61,9 @@ class QVortex(QTrap):
 
     @classmethod
     def structuringField(cls, geometry, ell: int = 0, **params) -> Field:
-        '''Return the helical phase ``exp(i ell θ)`` of a vortex.
+        r'''Return the helical phase of a vortex.
+
+        .. math:: S(x, y) = e^{i \ell \theta(x, y)}
 
         Parameters
         ----------

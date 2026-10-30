@@ -94,6 +94,8 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         suitable for display in a status bar.
     '''
 
+    #: Emitted on every state change with a short description for a status
+    #: bar.
     status = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs) -> None:

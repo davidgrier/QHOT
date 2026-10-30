@@ -236,15 +236,40 @@ class QTrap(QtCore.QObject):
 
     # Methods for editing properties with QTrapWidget
 
-    def registerProperty(self,
-                         name: str,
-                         decimals: int = 2,
-                         tooltip: bool = False) -> None:
+    def registerProperty(
+        self,
+        name: str,
+        decimals: int = 2,
+        tooltip: bool = False,
+    ) -> None:
+        '''Make a property of the trap editable in the trap panel.
+
+        Parameters
+        ----------
+        name : str
+            Name of an attribute of the trap.
+        decimals : int
+            Number of decimals the editor shows.  Default: 2.
+        tooltip : bool
+            Whether the panel shows the name as a tooltip.  Default:
+            ``False``.
+        '''
         self.properties[name] = {'decimals': decimals,
                                  'tooltip': tooltip}
 
     @QtCore.Slot(str, float)
     def setTrapProperty(self, name: str, value: float) -> None:
+        '''Set a registered property, as the trap panel does.
+
+        Does nothing if ``name`` is not a registered property.
+
+        Parameters
+        ----------
+        name : str
+            Name of the property.
+        value : float
+            The new value.
+        '''
         if name in self.properties:
             setattr(self, name, value)
 
@@ -296,6 +321,7 @@ class QTrap(QtCore.QObject):
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover
+        '''Make a trap of this class and print it.'''
         trap = cls(r=(10, 20, 30))
         print(trap)
 

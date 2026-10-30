@@ -66,6 +66,11 @@
 - A hologram that cannot be computed no longer stops all later holograms:
   the status bar shows the reason, and the next change asks again.
 
+- The public API of the library is documented, and a test keeps it so
+  (`tests/test_docstrings.py`).  The docstrings carry the physics, with the
+  equations in `.. math::` blocks, and the documentation builds without
+  warnings.
+
 ### Removed
 - `TorchCGH` and `cupyCGH` (replaced by `TorchBackend`; a CuPy backend
   will follow), `QTrapSync` and the replicas, the per-trap caches and

@@ -36,16 +36,28 @@ class Geometry(NamedTuple):
 @dataclass(frozen=True, eq=False)
 class Optics:
 
-    '''The calibration of the optical train, and what follows from it.
+    r'''The calibration of the optical train, and what follows from it.
 
     An ``Optics`` is a value: it never changes, so a hologram computed
     from it in one thread cannot be disturbed by a calibration edited in
     another.  A changed calibration is a new ``Optics``.
 
-    A trap at ``r`` in the camera plane has the phase ramp that moves the
-    focus there (:meth:`phasors`).  The ramp is the product of a
-    factor along x and a factor along y, which is what makes a hologram of
-    many traps cheap to compute.
+    A trap at :math:`\mathbf r = (r_x, r_y, r_z)` in the camera plane is
+    brought to a focus there by a phase that is linear in the position
+    :math:`(x, y)` in the SLM plane, which moves the focus across the
+    plane, and quadratic, which moves it along the axis,
+
+    .. math::
+
+        \varphi(x, y) = q_\perp (x\, r_x - y\, r_y)
+            + q_\parallel (x^2 + y^2)\, r_z,
+
+    with the gradient :math:`q_\perp` and the curvature :math:`q_\parallel`
+    that the calibration sets (:attr:`qprp`, :attr:`qpar`).  Because the
+    phase is a sum of a function of :math:`x` and a function of :math:`y`,
+    the phasor :math:`e^{i\varphi}` is the product of a factor for each
+    column and a factor for each row (:meth:`phasors`), which is what makes
+    a hologram of many traps cheap to compute.
 
     Parameters
     ----------
@@ -107,27 +119,46 @@ class Optics:
 
     @property
     def height(self) -> int:
+        '''Number of rows of the hologram.'''
         return self.shape[0]
 
     @property
     def width(self) -> int:
+        '''Number of columns of the hologram.'''
         return self.shape[1]
 
     @property
     def wavenumber(self) -> float:
-        '''Wavenumber of the light in the medium [radians/um].'''
+        r'''Wavenumber of the light in the medium [radians/um].
+
+        .. math:: k = 2\pi n_m / \lambda
+        '''
         return 2. * np.pi * self.n_m / self.wavelength
 
     @property
     def qprp(self) -> float:
-        '''Phase gradient in the plane per unit displacement of a trap.'''
+        r'''Phase gradient in the plane per unit displacement of a trap.
+
+        .. math::
+
+            q_\perp = \frac{k}{f}\,\frac{p_c}{M}\,\frac{p_s}{s}
+
+        with the focal length :math:`f`, the camera pitch :math:`p_c`, the
+        magnification :math:`M`, the SLM pitch :math:`p_s` and its scale
+        :math:`s`.
+        '''
         cfactor = self.camerapitch / self.magnification  # [um/pixel]
         sfactor = self.slmpitch / self.scale             # [um/phixel]
         return (self.wavenumber / self.focallength) * cfactor * sfactor
 
     @property
     def qpar(self) -> float:
-        '''Phase curvature per unit axial displacement of a trap.'''
+        r'''Phase curvature per unit axial displacement of a trap.
+
+        .. math::
+
+            q_\parallel = \frac{q_\perp}{2 f}\,\frac{p_s}{s}
+        '''
         sfactor = self.slmpitch / self.scale             # [um/phixel]
         return self.qprp * sfactor / (2. * self.focallength)
 
@@ -189,10 +220,11 @@ class Optics:
         return np.stack([x * fac, y * fac, dz], axis=-1)
 
     def phasors(self, r) -> tuple[np.ndarray, np.ndarray]:
-        '''Return the phase ramps that move a focus to ``r``.
+        r'''Return the phasors that move a focus to ``r``.
 
         The field of a focus at ``r`` is the outer product of the two
-        vectors: one factor for each row and one for each column.
+        vectors: one factor :math:`e^{i\varphi_y(y)}` for each row and one
+        factor :math:`e^{i\varphi_x(x)}` for each column.
 
         Parameters
         ----------
@@ -202,7 +234,7 @@ class Optics:
         Returns
         -------
         tuple[np.ndarray, np.ndarray]
-            The factor of each row (length ``height``) and of each column
+            The phasor of each row (length ``height``) and of each column
             (length ``width``).
         '''
         rx, ry, rz = self.toSLM(r)

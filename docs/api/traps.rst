@@ -27,6 +27,7 @@ Undo/Redo commands
 
 .. automodule:: QHOT.lib.traps.commands
    :members:
+   :exclude-members: QUndoStack, QUndoCommand
 
 Concrete trap types
 -------------------

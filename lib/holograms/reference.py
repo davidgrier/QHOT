@@ -1,34 +1,48 @@
-'''The hologram of a pattern of traps, stated as plainly as possible.
+r'''The hologram of a pattern of traps, stated as plainly as possible.
 
 This is the algorithm of linear superposition [1]_, written to be read.
 It is slow and keeps nothing between calls, which is the point: it is the
 standard that every faster implementation is tested against.  The
 engines of QHOT are this, made quick.
 
-A focus at ``r`` has the field ``D(r)``, the phase ramp that moves it
-there.  A trap shapes its focus with a structuring field ``S`` that does
-not depend on where the trap is: 1 for a plain tweezer, a helical phase
-for a vortex.  So the field of a trap with the complex amplitude ``a`` is::
+A trap focuses the light at a position :math:`\mathbf r` and shapes the
+focus.  Its field in the plane of the SLM is the product of three things,
 
-    a * D(r) * S
+.. math::
 
-A group has no structuring field of its own.  It is the superposition
-of the fields of its members, measured from the group's own
-displacement, and this holds at every depth of nesting::
+    \psi(x, y) = a \; D(x, y; \mathbf r) \; S(x, y),
 
-    S(group) = sum(field(member) for member in group) / D(r_group)
-    field(group) = a_group * D(r_group) * S(group)
+the complex amplitude :math:`a = A e^{i\varphi}` of the trap, the
+*displacement* :math:`D`, which is the phase ramp that moves a focus to
+:math:`\mathbf r` (:func:`displacement`), and the *structuring field*
+:math:`S`, which shapes the focus and does not depend on where the trap is
+(:func:`structuringField`): 1 for a plain tweezer, a helical phase
+:math:`e^{i\ell\theta}` for a vortex.
 
-The group's displacement cancels, so a group is exactly the sum of its
-members.  The amplitude of a plain group is 1, so that a member means the
-same in a group as alone.  A composite, a group that is used as a single
-trap, has an amplitude and a phase of its own.  The structure of a group
-is worth having because it does not change when the group moves as a rigid
-body, so a cache of it can be reused until the members move relative to
-one another.
+A group has no structuring field of its own.  It is the superposition of
+the fields of its members, measured from the displacement of the group's
+own center :math:`\mathbf r_G`, and this holds at every depth of nesting,
 
-The hologram is the phase of the sum of the fields of the traps in the
-pattern, quantized to 8 bits.
+.. math::
+
+    S_G = D_G^{*} \sum_{k \in G} \psi_k, \qquad
+    \psi_G = a_G \, D_G \, S_G = a_G \sum_{k \in G} \psi_k.
+
+The displacement of the group cancels (:math:`|D_G| = 1`), so a group is
+exactly the sum of its members.  The complex amplitude of a plain group is
+1, so that a member means the same in a group as alone.  A composite, a
+group that is used as a single trap, has an amplitude and a phase of its
+own.  The structure :math:`S_G` is worth having because it does not change
+when the group moves as a rigid body, so a cache of it can be reused until
+the members move relative to one another.
+
+The hologram is the phase of the superposition of the fields of all the
+traps in the pattern, quantized to 8 bits (:func:`quantize`),
+
+.. math::
+
+    H = \left\lfloor \frac{128}{\pi} \arg \sum_j \psi_j + 127
+        \right\rfloor.
 
 References
 ----------
@@ -47,12 +61,35 @@ from QHOT.lib.types import Field, Hologram
 from .Optics import Optics
 
 
-__all__ = ('displacement structuringField structure field quantize '
-           'hologram').split()
+__all__ = [
+    'displacement',
+    'structuringField',
+    'structure',
+    'field',
+    'quantize',
+    'hologram',
+]
 
 
 def displacement(r, optics: Optics) -> Field:
-    '''Return the phase ramp ``D(r)`` that moves a focus to ``r``.'''
+    r'''Return the displacement :math:`D(x, y; \mathbf r)`.
+
+    This is the phase ramp that moves a focus to ``r``, the outer product
+    of the phasor of each row and the phasor of each column
+    (:meth:`~QHOT.lib.holograms.Optics.Optics.phasors`).
+
+    Parameters
+    ----------
+    r : array_like
+        Position (x, y, z) in the camera plane [pixels].
+    optics : Optics
+        The calibration.
+
+    Returns
+    -------
+    Field
+        A complex array of unit modulus, the shape of the hologram.
+    '''
     ey, ex = optics.phasors(r)
     return np.outer(ey, ex)
 
@@ -61,7 +98,20 @@ def structuringField(spec: TrapSpec, optics: Optics) -> Field | float:
     '''Return the structuring field of a trap that is not a group.
 
     The class of the trap makes it from the geometry of the SLM plane
-    and the parameters in the spec.  A trap without structure gives 1.
+    and the parameters in the spec.
+
+    Parameters
+    ----------
+    spec : TrapSpec
+        The trap.
+    optics : Optics
+        The calibration.
+
+    Returns
+    -------
+    Field or float
+        The structuring field :math:`S`, or 1 for a trap without
+        structure.
     '''
     import QHOT.traps  # noqa: F401 -- registers the trap classes
     cls = QTrap._registry.get(spec.kind)
@@ -72,10 +122,23 @@ def structuringField(spec: TrapSpec, optics: Optics) -> Field | float:
 
 
 def structure(spec: TrapSpec, optics: Optics) -> Field | float:
-    '''Return the structuring field of a trap or group.
+    r'''Return the structuring field of a trap or group.
 
     For a group it is the superposition of the fields of the members,
-    relative to the displacement of the group.
+    measured from the displacement of the group,
+    :math:`S_G = D_G^{*} \sum_{k \in G} \psi_k`.
+
+    Parameters
+    ----------
+    spec : TrapSpec
+        The trap or group.
+    optics : Optics
+        The calibration.
+
+    Returns
+    -------
+    Field or float
+        The structuring field :math:`S`.
     '''
     if not spec.isGroup:
         return structuringField(spec, optics)
@@ -86,18 +149,42 @@ def structure(spec: TrapSpec, optics: Optics) -> Field | float:
 
 
 def field(spec: TrapSpec, optics: Optics) -> Field:
-    '''Return the field of a trap or group.'''
+    r'''Return the field :math:`\psi = a D S` of a trap or group.
+
+    Parameters
+    ----------
+    spec : TrapSpec
+        The trap or group.
+    optics : Optics
+        The calibration.
+
+    Returns
+    -------
+    Field
+        A complex array, the shape of the hologram.
+    '''
     amplitude = spec.amplitude * np.exp(1j * spec.phase)
     return amplitude * displacement(spec.r, optics) * structure(spec, optics)
 
 
 def quantize(psi: Field) -> Hologram:
-    '''Return the phase of a complex field as 8-bit integers.'''
+    r'''Return the phase of a complex field as 8-bit integers.
+
+    Parameters
+    ----------
+    psi : Field
+        A complex field.
+
+    Returns
+    -------
+    Hologram
+        :math:`\lfloor 128 \arg\psi / \pi + 127 \rfloor`, as ``uint8``.
+    '''
     return ((128. / np.pi) * np.angle(psi) + 127.).astype(np.uint8)
 
 
 def hologram(pattern: Iterable[TrapSpec], optics: Optics) -> Hologram:
-    '''Return the hologram of a pattern of traps.
+    r'''Return the hologram of a pattern of traps.
 
     Parameters
     ----------
@@ -109,7 +196,8 @@ def hologram(pattern: Iterable[TrapSpec], optics: Optics) -> Hologram:
     Returns
     -------
     Hologram
-        The phase of the sum of the fields, as ``uint8``.
+        The phase of the superposition :math:`\sum_j \psi_j` of the
+        fields, as ``uint8``.
     '''
     psi = np.zeros(optics.shape, dtype=complex)
     for spec in pattern:

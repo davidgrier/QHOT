@@ -58,22 +58,29 @@ class TrapSpec:
         '''Return the parameters of the structuring field as a dict.'''
         return dict(self.params)
 
-    def components(self, envelope: complex = 1.
-                 ) -> Iterator[tuple['TrapSpec', complex]]:
-        '''Yield each trap that is not a group, with its complex weight.
+    def components(
+        self,
+        envelope: complex = 1.,
+    ) -> Iterator[tuple['TrapSpec', complex]]:
+        r'''Yield the components of the superposition, with their amplitudes.
 
-        The weight is the product of the complex amplitudes
-        ``amplitude * exp(i phase)`` of the trap and of every group that
-        contains it.  A plain group has a weight of 1, so a trap in one
-        has the weight that it has alone; a composite scales all of its
-        members.  The field of a group is the sum of the fields of its
-        members, so a hologram can be computed from these weights without
-        looking at the groups again.
+        The field of a group is the sum of the fields of its members, so
+        the hologram of a pattern is the superposition of the fields of
+        the traps that are not groups.  The complex amplitude of each is
+        the product of its own :math:`a = A e^{i\varphi}` and those of
+        every group that contains it.  A plain group has an amplitude of 1,
+        so a trap in one has the amplitude that it has alone; a composite
+        scales all of its members.
 
         Parameters
         ----------
-        weight : complex
-            The weight of what contains this spec.  Default: 1.
+        envelope : complex
+            The amplitude of what contains this spec.  Default: 1.
+
+        Yields
+        ------
+        tuple[TrapSpec, complex]
+            A trap that is not a group, and its complex amplitude.
         '''
         mine = envelope * self.amplitude * cmath.exp(1j * self.phase)
         if self.isGroup:

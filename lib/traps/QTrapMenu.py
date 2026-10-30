@@ -81,6 +81,7 @@ class QTrapMenu(QtWidgets.QMenu):
 
 
 def main() -> None:  # pragma: no cover
+    '''Show the menu of traps in a window and print the traps added.'''
     import pyqtgraph as pg
 
     @QtCore.Slot(QtCore.QPointF, QTrap)

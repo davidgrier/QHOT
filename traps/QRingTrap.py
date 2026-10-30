@@ -81,7 +81,13 @@ class QRingTrap(QTrap):
     @classmethod
     def structuringField(cls, geometry, ell: float = 0.,
                          radius: float = 0., **params) -> Field:
-        '''Return the Bessel profile and helical phase of a ring.
+        r'''Return the Bessel profile and helical phase of a ring.
+
+        .. math::
+
+            S(x, y) = J_\ell(R\, q_r(x, y)) \, e^{i \ell \theta(x, y)}
+
+        with the radius :math:`R` of the ring.
 
         Parameters
         ----------

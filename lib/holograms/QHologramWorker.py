@@ -39,7 +39,9 @@ class QHologramWorker(QtCore.QObject):
         The reason that a hologram could not be computed.
     '''
 
+    #: Emitted with the hologram, an array of ``uint8``.
     done = QtCore.Signal(object)
+    #: Emitted with the reason that a hologram could not be computed.
     failed = QtCore.Signal(str)
 
     def __init__(self, backend: Backend,

@@ -34,6 +34,11 @@ extensions = [
     'sphinx_autodoc_typehints',
 ]
 
+# Optional accelerators (torch) are not installed on the documentation
+# host, so the annotations that name them cannot be resolved.  The
+# annotations are then shown as they are written, which is what we want.
+suppress_warnings = ['sphinx_autodoc_typehints.forward_reference']
+
 # Napoleon settings for NumPy-style docstrings
 napoleon_numpy_docstring = True
 napoleon_google_docstring = False

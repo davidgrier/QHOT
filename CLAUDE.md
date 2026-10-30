@@ -93,6 +93,10 @@ qhot.py (QHOTWindow)
 - Docstrings use NumPy style.
 - Use split-string style for `__all__`: `__all__ = 'Foo Bar Baz'.split()`
 - Keep all lines within 79 columns, including comments and docstrings.
+- Layout of arguments, in definitions and calls: either everything fits on one line, or each argument has a line of its own, with a trailing comma and the closing parenthesis on a line of its own (what `ruff format` produces).
+- Every public class, function, method and property has a NumPy-style docstring. Sphinx publishes only what has one, and `tests/test_docstrings.py` fails when one is missing (an override inherits the docstring of the method it overrides; Qt signals are documented with `#:` comments or in the class docstring).
+- Put the physics in the docstring. Equations go in `.. math::` blocks or `:math:` roles, and a docstring that has a backslash is a raw string (`r'''`). Build the docs with `python -m sphinx -b html -E docs docs/_build/html`; the build should have no warnings.
+- Name things in the physicist's words where they are physics (`psi`, `phasors`, `superpose`, `structuringField`, `amplitude`, `toSLM`) so that the code reads as the equation, and in plain engineering words where they are plumbing (`upload`, `cache`, `device`).
 
 ## Imports
 

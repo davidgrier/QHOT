@@ -27,10 +27,11 @@ from argparse import ArgumentParser
 from typing import NamedTuple
 
 import qtpy  # Required for Qt detection in QSLM
-from QHOT.lib.holograms import CGH
+from QHOT.lib.holograms import Backend, CGH, NumpyBackend
 from QHOT.lib.QSLM import QSLM
 
-__all__ = 'build_parser cgh_parser choose_cgh choose_slm'.split()
+__all__ = ('build_parser cgh_parser choose_backend choose_cgh '
+           'choose_slm').split()
 
 logger = logging.getLogger(__name__)
 
@@ -44,24 +45,27 @@ class _CGHEntry(NamedTuple):
 
 
 _CGH_BACKENDS: dict[str, _CGHEntry] = {
-    'torch': _CGHEntry('-t', 'QHOT.lib.holograms.TorchCGH', 'TorchCGH',
-                       'PyTorch',
+    'torch': _CGHEntry('-t', 'QHOT.lib.holograms.TorchBackend',
+                       'TorchBackend', 'PyTorch',
                        'PyTorch backend '
                        '(auto-selects MPS, CUDA/ROCm, or CPU)'),
-    'cupy':  _CGHEntry('-u', 'QHOT.lib.holograms.cupyCGH', 'cupyCGH',
-                       'CuPy',
-                       'CuPy CUDA backend (NVIDIA only)'),
+    'numpy': _CGHEntry('-n', 'QHOT.lib.holograms.NumpyBackend',
+                       'NumpyBackend', 'NumPy',
+                       'NumPy backend (CPU)'),
+    'cupy':  _CGHEntry('-u', 'QHOT.lib.holograms.CupyBackend',
+                       'CupyBackend', 'CuPy',
+                       'CuPy CUDA backend (NVIDIA only; not yet written)'),
 }
 
-_AUTO_DETECT_ORDER = ('torch', 'cupy')
+_AUTO_DETECT_ORDER = ('torch', 'numpy')
 
 
 def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     '''Return a parser extended with a titled CGH backend option group.
 
-    Adds ``-t`` (TorchCGH) and ``-u`` (cupyCGH) as a mutually
+    Adds ``-t`` (PyTorch), ``-n`` (NumPy) and ``-u`` (CuPy) as a mutually
     exclusive group under a ``CGH backend`` section heading.  If
-    either flag is already registered on ``parser``, the group is
+    the first flag is already registered on ``parser``, the group is
     left unchanged.
 
     Parameters
@@ -75,10 +79,11 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
         Parser with a ``CGH backend`` section containing::
 
             -t  PyTorch (MPS / CUDA / ROCm / CPU auto-select)
-            -u  CuPy CUDA (NVIDIA only)
+            -n  NumPy (CPU)
+            -u  CuPy CUDA (NVIDIA only; not yet written)
 
-        When neither flag is given, ``choose_cgh`` probes the same
-        order automatically.
+        When no flag is given, ``choose_backend`` tries PyTorch, then
+        NumPy.
     '''
     parser = parser or ArgumentParser()
     first_flag = next(iter(_CGH_BACKENDS.values())).flag
@@ -133,17 +138,17 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
     return cgh_parser(parser)
 
 
-def choose_cgh(parser: ArgumentParser | None = None,
-               **kwargs) -> CGH:
-    '''Choose and return a CGH backend based on command-line arguments.
+def choose_backend(parser: ArgumentParser | None = None) -> Backend:
+    '''Choose and return the backend that computes holograms.
 
     When a backend flag is supplied the requested class is loaded and
     instantiated.  If loading fails (missing dependency, no GPU) a
     warning is logged and the function falls through to auto-detection.
 
     When no flag is given the function probes backends in priority
-    order (TorchCGH → cupyCGH → CGH) and returns the first that
-    succeeds.
+    order (PyTorch, then NumPy) and returns the first that succeeds.
+    PyTorch is preferred even without a GPU, since it uses all the cores
+    of the CPU.
 
     Parameters
     ----------
@@ -152,14 +157,11 @@ def choose_cgh(parser: ArgumentParser | None = None,
         flags are added if not already present.  Pass the same
         parser that was given to ``choose_camera`` so that all flags
         are parsed in one pass.
-    **kwargs
-        Forwarded verbatim to the CGH constructor (e.g.
-        ``shape=(512, 512)``).
 
     Returns
     -------
-    CGH
-        An initialised CGH instance on the best available backend.
+    Backend
+        The backend.
     '''
     args, _ = cgh_parser(parser).parse_known_args()
 
@@ -168,10 +170,9 @@ def choose_cgh(parser: ArgumentParser | None = None,
         if getattr(args, dest, False):
             try:
                 module = importlib.import_module(entry.module)
-                cls = getattr(module, entry.cls)
-                instance = cls(**kwargs)
-                logger.info(f'Using {entry.label} CGH backend')
-                return instance
+                backend = getattr(module, entry.cls)()
+                logger.info(f'Using {entry.label} backend')
+                return backend
             except Exception as ex:
                 logger.warning(
                     f'Could not initialise {entry.label} backend: {ex}')
@@ -182,15 +183,34 @@ def choose_cgh(parser: ArgumentParser | None = None,
         entry = _CGH_BACKENDS[dest]
         try:
             module = importlib.import_module(entry.module)
-            cls = getattr(module, entry.cls)
-            instance = cls(**kwargs)
-            logger.info(f'Auto-selected {entry.label} CGH backend')
-            return instance
+            backend = getattr(module, entry.cls)()
+            logger.info(f'Auto-selected {entry.label} backend')
+            return backend
         except Exception as ex:
             logger.debug(f'{entry.label} not available: {ex}')
 
-    logger.info('Using CPU CGH backend')
-    return CGH(**kwargs)
+    logger.info('Using the NumPy backend')
+    return NumpyBackend()
+
+
+def choose_cgh(parser: ArgumentParser | None = None,
+               **kwargs) -> CGH:
+    '''Return a CGH pipeline on the backend chosen by the command line.
+
+    Parameters
+    ----------
+    parser : ArgumentParser or None
+        See :func:`choose_backend`.
+    **kwargs
+        Forwarded verbatim to the CGH constructor (e.g.
+        ``shape=(512, 512)``).
+
+    Returns
+    -------
+    CGH
+        An initialised CGH pipeline.  Call ``start()`` to run it.
+    '''
+    return CGH(backend=choose_backend(parser), **kwargs)
 
 
 def choose_slm(parser: ArgumentParser | None = None) -> QSLM:

@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from QHOT.lib.holograms.CGH import CGH
     from QHOT.lib.types import Field
 
 
@@ -77,22 +76,6 @@ class QVortex(QTrap):
             Complex phase mask of shape ``geometry.shape``.
         '''
         return np.exp(1j * ell * geometry.theta)
-
-    def structure(self, cgh: CGH) -> Field:
-        '''Compute the helical phase structure ``exp(i ell θ)``.
-
-        Parameters
-        ----------
-        cgh : CGH
-            The hologram engine providing the angular coordinate
-            array ``theta``.
-
-        Returns
-        -------
-        Field
-            Complex phase mask of shape ``cgh.shape``.
-        '''
-        return self.structuringField(cgh, ell=self.ell)
 
 
 if __name__ == '__main__':  # pragma: no cover

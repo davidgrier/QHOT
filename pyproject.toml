@@ -64,7 +64,6 @@ omit = [
     "*/__pycache__/*",
     "*/old/*",
     "*/.ipynb_checkpoints/*",
-    "*/holograms/cupyCGH.py",
 ]
 
 [tool.coverage.report]

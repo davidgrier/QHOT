@@ -22,12 +22,6 @@ except ImportError:  # run from the root of the repository
     from tests.patterns import (CALIBRATIONS, SHAPE, Composite, group,
                                 levels, optics, patterns, tweezer)
 
-try:
-    from QHOT.lib.holograms.TorchCGH import TorchCGH
-    import torch  # noqa: F401
-except ImportError:
-    TorchCGH = None
-
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 class TestOptics(unittest.TestCase):
@@ -67,6 +61,22 @@ class TestOptics(unittest.TestCase):
                 self.assertAlmostEqual(x, 10. / (1. + 0.05 * 5.))
                 self.assertAlmostEqual(z, 5.)
 
+    def test_the_camera_rotates_counterclockwise(self):
+        '''A quarter turn takes the x axis to the y axis.'''
+        o = optics(thetac=90., splay=0.)
+        x, y, z = o.transform((o.xc + 10., o.yc, o.zc))
+        self.assertAlmostEqual(x, 0.)
+        self.assertAlmostEqual(y, 10.)
+        self.assertAlmostEqual(z, 0.)
+
+    def test_the_origin_of_the_camera_is_the_optical_axis(self):
+        o = optics(thetac=33., zc=4.)
+        self.assertTrue(np.allclose(o.transform((o.xc, o.yc, o.zc)), 0.))
+
+    def test_depth_is_measured_from_the_focal_plane(self):
+        o = optics(zc=4., splay=0.)
+        self.assertAlmostEqual(o.transform((o.xc, o.yc, 9.))[2], 5.)
+
     def test_displacement_has_unit_modulus(self):
         ey, ex = optics().displacement((10., 20., 3.))
         self.assertTrue(np.allclose(np.abs(ey), 1.))
@@ -76,54 +86,6 @@ class TestOptics(unittest.TestCase):
         ey, ex = optics().displacement((10., 20., 3.))
         self.assertEqual(ey.shape, (SHAPE[0],))
         self.assertEqual(ex.shape, (SHAPE[1],))
-
-
-class TestOpticsAgreesWithTheEngine(unittest.TestCase):
-
-    def pairs(self, name):
-        settings = dict(shape=SHAPE, xc=32., yc=24.)
-        settings.update(CALIBRATIONS[name])
-        cgh = CGH(**settings)
-        return cgh, Optics.from_settings(cgh.settings)
-
-    def test_geometry(self):
-        for name in CALIBRATIONS:
-            with self.subTest(name):
-                cgh, o = self.pairs(name)
-                self.assertTrue(np.allclose(o.geometry.theta, cgh.theta,
-                                            atol=1e-5))
-                self.assertTrue(np.allclose(o.geometry.qr, cgh.qr,
-                                            rtol=1e-5, atol=1e-6))
-
-    def test_transform(self):
-        from qtpy import QtGui
-        rng = np.random.default_rng(0)
-        for name in CALIBRATIONS:
-            cgh, o = self.pairs(name)
-            for r in rng.uniform(-20, 60, size=(5, 3)):
-                with self.subTest(name, r=r):
-                    q = cgh.transform(QtGui.QVector3D(*r))
-                    self.assertTrue(np.allclose(
-                        o.transform(r), (q.x(), q.y(), q.z()), atol=1e-4))
-
-    def test_engine_splay_follows_the_depth_from_the_focal_plane(self):
-        from qtpy import QtGui
-        for zc in (0., 7., -4.):
-            with self.subTest(zc=zc):
-                cgh = CGH(shape=SHAPE, xc=32., yc=24., zc=zc, splay=0.05)
-                q = cgh.transform(QtGui.QVector3D(42., 24., zc + 5.))
-                self.assertAlmostEqual(q.x(), 10. / (1. + 0.05 * 5.),
-                                       places=4)
-
-    def test_displacement(self):
-        for name in CALIBRATIONS:
-            cgh, o = self.pairs(name)
-            trap = tweezer(21., 17., 2., phase=0.)
-            engine = cgh.fieldOf(trap)
-            ey, ex = o.displacement(trap.r)
-            with self.subTest(name):
-                self.assertTrue(np.allclose(np.outer(ey, ex), engine,
-                                            atol=1e-3))
 
 
 class TestTrapSpec(unittest.TestCase):
@@ -199,16 +161,6 @@ class TestTrapSpec(unittest.TestCase):
         ell3 = QVortex.structuringField(o.geometry, ell=3)
         self.assertEqual(ell3.shape, SHAPE)
         self.assertTrue(np.allclose(np.abs(ell3), 1.))
-
-    def test_engine_structure_is_the_structuring_field(self):
-        '''One source of physics: the old method defers to the new.'''
-        cgh = CGH(shape=SHAPE)
-        for trap in (QVortex(ell=3), QRingTrap(radius=6., ell=2)):
-            expected = trap.structuringField(
-                Optics.from_settings(cgh.settings).geometry,
-                **trap.spec().parameters())
-            self.assertTrue(np.allclose(trap.structure(cgh), expected,
-                                        atol=1e-4))
 
 
 class TestTheReference(unittest.TestCase):
@@ -403,39 +355,6 @@ class TestRelocation(unittest.TestCase):
         s0 = self.structure(o, 0, 0, 0, spread=6.)
         moved = self.structure(o, 8., -5., 0., spread=6.)
         self.assertFalse(np.allclose(moved, s0, atol=1e-3))
-
-
-class TestAgainstTheEngine(unittest.TestCase):
-
-    '''The engines compute what the reference states.'''
-
-    ENGINE = CGH
-
-    def check(self, name, settings, pattern):
-        # A new engine has cached nothing, so it computes exactly what is
-        # asked, however the traps of a group are spread in depth.
-        engine = self.ENGINE(**{**dict(shape=SHAPE, xc=32., yc=24.),
-                                **settings})
-        o = Optics.from_settings(engine.settings)
-        expected = ref.hologram([t.spec() for t in pattern], o)
-        actual = engine.compute(pattern)
-        d = levels(actual, expected)
-        with self.subTest(name, calibration=settings):
-            self.assertLessEqual(d.max(), 1)
-            self.assertLess(np.count_nonzero(d), 0.01 * d.size)
-
-    def test_every_pattern_and_calibration(self):
-        for label, settings in CALIBRATIONS.items():
-            for name, pattern in patterns():
-                if name.startswith('composite'):
-                    continue  # this engine does not apply their weight
-                self.check(f'{name} / {label}', settings, pattern)
-
-
-@unittest.skipIf(TorchCGH is None, 'torch is not installed')
-class TestTorchAgainstTheReference(TestAgainstTheEngine):
-
-    ENGINE = TorchCGH
 
 
 if __name__ == '__main__':

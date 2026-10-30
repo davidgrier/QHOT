@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
-import threading
-import weakref
-from functools import partial
+from collections.abc import Iterable
 
 import numpy as np
 from qtpy import QtCore, QtGui
 
-from QHOT.lib.types import Field, Hologram, Shape
-from QHOT.lib.traps import QTrap, QTrapGroup
-from QHOT.lib.holograms import replicas
+from QHOT.lib.traps import TrapSpec
+from QHOT.lib.types import Shape
+from .Backend import Backend
+from .NumpyBackend import NumpyBackend
+from .Optics import Optics
+from .QHologramWorker import QHologramWorker
 
 
 logger = logging.getLogger(__name__)
@@ -18,51 +19,42 @@ logger = logging.getLogger(__name__)
 
 class CGH(QtCore.QObject):
 
-    '''Base class for computing computer-generated holograms.
+    '''The pipeline that computes holograms of optical traps.
 
-    Implements the linear-superposition CGH algorithm: the hologram
-    field is the coherent sum of the individual trap fields, each
-    computed as a phase-ramp (lateral displacement) combined with a
-    quadratic phase (axial displacement) and an optional structure
-    factor [1]_.
+    A ``CGH`` holds the calibration of the optical train, and computes
+    holograms with a :class:`~QHOT.lib.holograms.Backend.Backend` in a
+    thread of its own, so that the interface never waits for one.
 
-    For each trap, the coordinate r obtained from the fabscreen is
-    measured relative to the calibrated location rc of the zeroth-order
-    focal point, which itself is measured relative to the center of the
-    focal plane. The resulting displacement is projected onto the
-    coordinate system in the SLM plane via a calibrated rotation matrix.
+    The calibration is a set of attributes (``xc``, ``wavelength``, ...)
+    that the interface edits.  Assigning one emits ``recalculate``.  The
+    calibration as it is at any moment is available as an immutable
+    :class:`~QHOT.lib.holograms.Optics.Optics`.
 
-    The hologram is computed using calibrated wavenumbers for the
-    Cartesian coordinates in the SLM plane.  These differ from each other
-    because the SLM is likely to be tilted relative to the optical axis.
+    A hologram is asked for with :meth:`compute`, which takes a pattern
+    of traps (see :meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.pattern`)
+    and returns at once.  The pattern and the optics at the time of the
+    request are plain values that nothing changes, so the thread that
+    computes never reads anything that the interface is editing.  At most
+    one hologram is computed at a time; if more requests arrive while it
+    is, only the newest is kept, so the hologram that follows is always
+    of the latest pattern.  The result arrives as ``hologramReady``.
 
-    Assigning any calibration attribute automatically triggers
-    ``updateGeometry`` or ``updateTransformationMatrix`` as appropriate,
-    and emits the ``recalculate`` signal.
-
-    Attributes
+    Parameters
     ----------
-    dtype : type
-        NumPy dtype used for complex field arrays. Defaults to
-        ``np.complex128``. Subclasses (e.g. GPU-accelerated variants)
-        may override this to use an alternative complex type.
-    phase : np.ndarray
-        Quantized phase hologram from the most recent ``compute()`` call.
-        Undefined before the first call to ``compute()``.
     shape : tuple[int, int]
         Hologram dimensions (height, width) in pixels.
     wavelength : float
-        Vacuum wavelength of trapping light [μm].
+        Vacuum wavelength of trapping light [um].
     n_m : float
         Refractive index of the trapping medium.
     magnification : float
         Magnification of the objective lens.
     focallength : float
-        Focal length of the tube lens [μm].
+        Focal length of the tube lens [um].
     camerapitch : float
-        Camera pixel pitch [μm/pixel].
+        Camera pixel pitch [um/pixel].
     slmpitch : float
-        SLM pixel pitch [μm/phixel].
+        SLM pixel pitch [um/phixel].
     scale : float
         SLM scale factor.
     splay : float
@@ -75,54 +67,32 @@ class CGH(QtCore.QObject):
         Coordinates of the optical axis in the camera plane [pixels].
     thetac : float
         Rotation of the camera relative to the SLM [degrees].
+    backend : Backend or None
+        What computes the holograms.  Default: a ``NumpyBackend``.
+    parent : QtCore.QObject or None
+        Qt parent object.
 
     Signals
     -------
     hologramReady : QtCore.Signal(np.ndarray)
         Emitted with the quantized phase array when a hologram is computed.
-    recalculate : QtCore.Signal()
-        Emitted when the geometry or transformation matrix is updated.
     computeFailed : QtCore.Signal(str)
-        Emitted with the reason when :meth:`computeKeys` cannot compute
-        a hologram.
-
-    Notes
-    -----
-    A CGH engine can run in a thread of its own.  Then it must not read
-    the traps of the GUI, which change at any moment.  A
-    :class:`~QHOT.lib.holograms.QTrapSync.QTrapSync` describes the traps
-    to the engine in messages that the slots :meth:`addReplica`,
-    :meth:`removeReplica`, :meth:`updateReplica` and
-    :meth:`updateReplicaStructure` receive in the thread of the engine,
-    and :meth:`computeKeys` computes from the replicas that result.
-    A calibration attribute that is assigned from another thread waits
-    for a hologram in progress, so that the geometry never changes
-    under it.
-
-    References
-    ----------
-    .. [1] J. E. Curtis, B. A. Koss, and D. G. Grier, "Dynamic holographic
-       optical tweezers," *Opt. Commun.* **207**, 169 (2002).
-       https://doi.org/10.1016/S0030-4018(02)01524-9
+        Emitted with the reason when a hologram cannot be computed.
+    recalculate : QtCore.Signal()
+        Emitted when the calibration changes.
     '''
 
     #: Emitted with the quantized phase array when a hologram is computed.
     hologramReady = QtCore.Signal(np.ndarray)
-    #: Emitted when the geometry or transformation matrix is updated.
-    recalculate = QtCore.Signal()
-    #: Emitted with the reason when a requested hologram cannot be computed.
+    #: Emitted with the reason when a hologram cannot be computed.
     computeFailed = QtCore.Signal(str)
-
-    dtype = np.complex64
+    #: Emitted when the calibration changes.
+    recalculate = QtCore.Signal()
+    _request = QtCore.Signal(object, object)
 
     _fields = ('shape', 'wavelength', 'n_m', 'magnification', 'focallength',
                'camerapitch', 'slmpitch', 'scale', 'splay',
                'xs', 'ys', 'phis', 'xc', 'yc', 'zc', 'thetac')
-
-    _matrix_attrs = frozenset({'xc', 'yc', 'zc', 'thetac'})
-    _geometry_attrs = frozenset(_fields) - _matrix_attrs
-    assert _matrix_attrs <= frozenset(_fields), \
-        '_matrix_attrs contains entries not in _fields'
 
     def __init__(self, *,
                  shape: Shape = (512, 512),
@@ -141,52 +111,10 @@ class CGH(QtCore.QObject):
                  yc: float = 240.,
                  zc: float = 0.,
                  thetac: float = 0.,
+                 backend: Backend | None = None,
                  parent: QtCore.QObject | None = None) -> None:
-        '''Initialize the CGH pipeline.
-
-        Parameters
-        ----------
-        shape : tuple[int, int]
-            Hologram dimensions (height, width) in pixels.
-        wavelength : float
-            Vacuum wavelength of trapping light [μm].
-        n_m : float
-            Refractive index of the trapping medium.
-        magnification : float
-            Magnification of the objective lens.
-        focallength : float
-            Focal length of the tube lens [μm].
-        camerapitch : float
-            Camera pixel pitch [μm/pixel].
-        slmpitch : float
-            SLM pixel pitch [μm/phixel].
-        scale : float
-            SLM scale factor.
-        splay : float
-            Axial splay correction factor (dimensionless).
-        xs, ys : float
-            Coordinates of the optical axis in the SLM plane [phixels].
-        phis : float
-            Tilt of the SLM relative to the optical axis [degrees].
-        xc, yc, zc : float
-            Coordinates of the optical axis in the camera plane [pixels].
-        thetac : float
-            Rotation of the camera relative to the SLM [degrees].
-        parent : QtCore.QObject or None
-            Qt parent object.
-        '''
         super().__init__(parent)
-        # Use object.__setattr__ to set all attributes without triggering
-        # __setattr__ dispatch before initialization is complete.
-        object.__setattr__(self, 'matrix', QtGui.QMatrix4x4())
-        object.__setattr__(self, '_field_cache',
-                           weakref.WeakKeyDictionary())
-        object.__setattr__(self, '_structure_cache',
-                           weakref.WeakKeyDictionary())
-        object.__setattr__(self, '_connected_traps',
-                           weakref.WeakSet())
-        object.__setattr__(self, '_replicas', {})
-        object.__setattr__(self, '_lock', threading.RLock())
+        # Plain assignment, so that building the object emits nothing.
         for attr, val in (('shape', shape),
                           ('wavelength', wavelength),
                           ('n_m', n_m),
@@ -204,124 +132,46 @@ class CGH(QtCore.QObject):
                           ('zc', zc),
                           ('thetac', thetac)):
             object.__setattr__(self, attr, val)
-        self.blockSignals(True)
-        self.updateTransformationMatrix()
-        self.updateGeometry()
-        self.blockSignals(False)
+        object.__setattr__(self, '_optics', None)
+        self.backend = backend or NumpyBackend()
+        self._busy = False
+        self._next: tuple | None = None
+        self._thread = QtCore.QThread(self)
+        self._worker = QHologramWorker(self.backend)
+        self._worker.moveToThread(self._thread)
+        self._request.connect(self._worker.compute)
+        self._worker.done.connect(self._onDone)
+        self._worker.failed.connect(self._onFailed)
+        app = QtCore.QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self.stop)
 
     def __setattr__(self, key: str, value: object) -> None:
-        if key in self._matrix_attrs or key in self._geometry_attrs:
+        if key in self._fields:
             if getattr(self, key, None) == value:
                 return
-        super().__setattr__(key, value)
-        if key in self._matrix_attrs:
-            with self._lock:
-                self.updateTransformationMatrix()
-        elif key in self._geometry_attrs:
-            with self._lock:
-                self.updateGeometry()
+            super().__setattr__(key, value)
+            self._changed()
+        else:
+            super().__setattr__(key, value)
 
-    def updateTransformationMatrix(self) -> None:
-        '''Rebuild the camera-to-SLM transformation matrix.
-
-        Accounts for the position (xc, yc, zc) and orientation (thetac)
-        of the camera relative to the SLM. Clears only the field cache
-        (structure arrays are independent of the transformation) and
-        emits ``recalculate``.
-        '''
-        logger.debug('updating transformation matrix')
-        self.matrix.setToIdentity()
-        self.matrix.rotate(self.thetac, 0., 0., 1.)
-        self.matrix.translate(-self.rc)
-        self._field_cache.clear()
+    def _changed(self) -> None:
+        '''Forget the optics, which no longer describe the calibration,
+        and tell the interface.'''
+        object.__setattr__(self, '_optics', None)
         self.recalculate.emit()
 
-    def updateGeometry(self) -> None:
-        '''Recompute position-dependent phase factors in the SLM plane.
+    @property
+    def optics(self) -> Optics:
+        '''The calibration as an immutable value.
 
-        Rebuilds ``iqx``, ``iqy``, ``iqxz``, ``iqyz``, ``theta``, and
-        ``qr`` from the current calibration parameters. Also resets the
-        accumulation ``field`` buffer, clears the field cache, and emits
-        ``recalculate``.
+        It does not change when the calibration does; ask again for the
+        new calibration.
         '''
-        logger.debug('updating geometry')
-        self.field = np.zeros(self.shape, dtype=self.dtype)
-        alpha = np.cos(np.radians(self.phis))
-        x = alpha*(np.arange(self.width) - self.xs)
-        y = np.arange(self.height) - self.ys
-        self.iqx = (1j * self.qprp * x).astype(self.dtype)
-        self.iqy = (-1j * self.qprp * y).astype(self.dtype)
-        self.iqxz = (1j * self.qpar * x * x).astype(self.dtype)
-        self.iqyz = (1j * self.qpar * y * y).astype(self.dtype)
-        self.theta = np.arctan2.outer(y, x).astype(np.float32)
-        self.qr = np.hypot.outer(
-            self.qprp * y, self.qprp * x).astype(np.float32)
-        self._clearCache()
-        self.recalculate.emit()
-
-    def _clearCache(self) -> None:
-        '''Discard all cached per-trap and per-group fields and structures.
-
-        Called automatically when CGH geometry is updated. All entries
-        will be recomputed on the next call to ``fieldOf`` or ``compute``.
-        '''
-        self._field_cache.clear()
-        self._structure_cache.clear()
-
-    def _invalidateField(self, trap_ref: weakref.ref) -> None:
-        '''Discard the cached displacement field for one trap or group.
-
-        Connected to ``trap.changed`` so that position, amplitude, or
-        phase changes are reflected in the next computation.  If the
-        trap belongs to a group, the group's structure cache is also
-        invalidated up the full ancestor chain.
-
-        Parameters
-        ----------
-        trap_ref : weakref.ref
-            Weak reference to the trap whose field cache entry should be
-            removed.
-        '''
-        trap = trap_ref()
-        if trap is None:
-            return
-        self._field_cache.pop(trap, None)
-        parent = trap.parent()
-        if isinstance(parent, QTrapGroup):
-            self._invalidateStructureChain(parent)
-
-    def _invalidateStructure(self, trap_ref: weakref.ref) -> None:
-        '''Discard the cached structure field for one trap.
-
-        Connected to ``trap.structureChanged`` so that changes to
-        structural parameters (e.g. topological charge) are reflected
-        in the next computation without discarding the displacement field.
-        Also clears the structure cache of all ancestor groups.
-
-        Parameters
-        ----------
-        trap_ref : weakref.ref
-            Weak reference to the trap whose structure cache entry should
-            be removed.
-        '''
-        trap = trap_ref()
-        if trap is not None:
-            self._structure_cache.pop(trap, None)
-            parent = trap.parent()
-            if isinstance(parent, QTrapGroup):
-                self._invalidateStructureChain(parent)
-
-    def _invalidateStructureChain(self, group: QTrapGroup) -> None:
-        '''Discard the structure cache for a group and all its ancestors.
-
-        Parameters
-        ----------
-        group : QTrapGroup
-            The group at which to begin the upward invalidation walk.
-        '''
-        while isinstance(group, QTrapGroup):
-            self._structure_cache.pop(group, None)
-            group = group.parent()
+        if self._optics is None:
+            object.__setattr__(
+                self, '_optics', Optics.from_settings(self.settings))
+        return self._optics
 
     @property
     def properties(self) -> list[str]:
@@ -349,9 +199,8 @@ class CGH(QtCore.QObject):
     def settings(self, settings: dict[str, object]) -> None:
         '''Apply calibration settings from a dictionary.
 
-        Updates all recognized attributes first, then calls
-        ``updateTransformationMatrix`` and/or ``updateGeometry`` once
-        each as needed, rather than once per attribute.
+        Updates all recognized attributes first and emits ``recalculate``
+        once, if anything changed.
 
         Parameters
         ----------
@@ -359,23 +208,16 @@ class CGH(QtCore.QObject):
             Mapping of attribute name to value. Unknown keys are ignored
             with a warning.
         '''
-        needs_geometry = False
-        needs_matrix = False
+        changed = False
         for key, value in settings.items():
             if key in self._fields:
                 if getattr(self, key, None) != value:
                     object.__setattr__(self, key, value)
-                    if key in self._geometry_attrs:
-                        needs_geometry = True
-                    elif key in self._matrix_attrs:
-                        needs_matrix = True
+                    changed = True
             else:
                 logger.warning(f'Unsupported property: {key}')
-        with self._lock:
-            if needs_matrix:
-                self.updateTransformationMatrix()
-            if needs_geometry:
-                self.updateGeometry()
+        if changed:
+            self._changed()
 
     @property
     def height(self) -> int:
@@ -400,45 +242,26 @@ class CGH(QtCore.QObject):
 
     @property
     def wavenumber(self) -> float:
-        '''Wavenumber of trapping light in the medium [radians/μm].
-
-        Returns
-        -------
-        float
-            2π n_m / wavelength.
-        '''
-        return 2.*np.pi*self.n_m/self.wavelength
+        '''Wavenumber of trapping light in the medium [radians/um].'''
+        return self.optics.wavenumber
 
     @property
     def qprp(self) -> float:
-        '''In-plane displacement factor [radians/(pixel·phixel)].
-
-        Returns
-        -------
-        float
-            Lateral phase gradient per unit displacement.
-        '''
-        cfactor = self.camerapitch/self.magnification  # [um/pixel]
-        sfactor = self.slmpitch/self.scale             # [um/phixel]
-        return (self.wavenumber/self.focallength)*cfactor*sfactor
+        '''In-plane displacement factor [radians/(pixel*phixel)].'''
+        return self.optics.qprp
 
     @property
     def qpar(self) -> float:
-        '''Axial displacement factor [radians/(pixel·phixel²)].
+        '''Axial displacement factor [radians/(pixel*phixel^2)].'''
+        return self.optics.qpar
 
-        Returns
-        -------
-        float
-            Axial phase gradient per unit displacement.
-        '''
-        sfactor = self.slmpitch/self.scale             # [um/phixel]
-        return self.qprp * sfactor / (2.*self.focallength)
-
-    # Slots for threaded operation
+    # Computing holograms
 
     @QtCore.Slot()
     def start(self) -> 'CGH':
-        '''Initialize the CGH pipeline and return self.
+        '''Start the thread that computes holograms and return self.
+
+        Requests made before it starts are computed when it does.
 
         Returns
         -------
@@ -446,314 +269,61 @@ class CGH(QtCore.QObject):
             This instance, for chaining.
         '''
         logger.info('starting CGH pipeline')
-        self.blockSignals(True)
-        with self._lock:
-            self.updateGeometry()
-            self.updateTransformationMatrix()
-        self.blockSignals(False)
+        self._busy = False
+        self._thread.start()
         self.recalculate.emit()
+        self._dispatch()
         return self
 
     @QtCore.Slot()
     def stop(self) -> None:
-        '''Shut down the CGH pipeline.'''
+        '''Stop the thread that computes holograms.
+
+        A hologram that is being computed is finished and lost.
+        '''
         logger.info('stopping CGH pipeline')
+        self._thread.quit()
+        self._thread.wait()
 
-    # Slots for the replicas of the traps in an overlay
+    @QtCore.Slot(object)
+    def compute(self, pattern: Iterable[TrapSpec]) -> None:
+        '''Ask for the hologram of a pattern of traps.
 
-    @QtCore.Slot(object, object)
-    def addReplica(self, node: dict, parentKey: int | None = None) -> None:
-        '''Add the replica of a trap or group and of all that it contains.
+        Returns at once.  The hologram arrives as ``hologramReady``, or
+        the reason that there is none as ``computeFailed``.  The pattern
+        and the calibration are captured now: what happens to the traps
+        or the calibration afterwards does not affect this hologram.
+
+        If a hologram is being computed, this request waits for it, and
+        replaces any request that was already waiting.
 
         Parameters
         ----------
-        node : dict
-            Description of the trap, as ``QTrapSync`` sends it.
-        parentKey : int or None
-            Key of the group that contains the trap, or ``None`` for a
-            top-level trap.
+        pattern : iterable of TrapSpec
+            The top-level traps and groups, as
+            :meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.pattern`
+            returns them.
         '''
-        replica = replicas.build(node, self._replicas)
-        parent = self._replicas.get(parentKey)
-        if isinstance(parent, QTrapGroup):
-            parent.addTrap(replica)
-            self._invalidateStructureChain(parent)
+        self._next = (tuple(pattern), self.optics)
+        self._dispatch()
 
-    @QtCore.Slot(int)
-    def removeReplica(self, key: int) -> None:
-        '''Remove a replica and all that it contains.'''
-        trap = self._replicas.get(key)
-        if trap is None:
+    def _dispatch(self) -> None:
+        '''Send the waiting request to the thread, if it is idle.'''
+        if self._busy or self._next is None:
             return
-        for member in replicas.walk(trap):
-            self._replicas.pop(member._syncKey, None)
-        parent = trap.parent()
-        trap.setParent(None)
-        if isinstance(parent, QTrapGroup):
-            self._invalidateStructureChain(parent)
+        pattern, optics = self._next
+        self._next = None
+        self._busy = True
+        self._request.emit(pattern, optics)
 
-    @QtCore.Slot(int, object)
-    def updateReplica(self, key: int, state: dict) -> None:
-        '''Apply a change of position or of a property to a replica.
+    @QtCore.Slot(object)
+    def _onDone(self, hologram: np.ndarray) -> None:
+        self._busy = False
+        self.hologramReady.emit(hologram)
+        self._dispatch()
 
-        A group moves all that it contains without a signal from each, so
-        its state is the ``positions`` of them all; the state of a trap
-        is its ``settings``.  The replica emits ``changed`` afterwards,
-        which discards what was cached for it.
-
-        The fields that were cached for the members of a moved group are
-        discarded too.  The group keeps its cached structure, so the move
-        itself costs one outer product, but if a later change makes the
-        engine recompute that structure it must not build it from fields
-        of the members at the places that they have left.
-        '''
-        trap = self._replicas.get(key)
-        if trap is None:
-            return
-        if 'positions' in state:
-            for member, r in state['positions'].items():
-                if member in self._replicas:
-                    moved = self._replicas[member]
-                    moved._r[:] = r
-                    if moved is not trap:
-                        self._field_cache.pop(moved, None)
-        else:
-            replicas.apply(trap, state['settings'])
-        trap.changed.emit()
-
-    @QtCore.Slot(int, object)
-    def updateReplicaStructure(self, key: int, state: dict) -> None:
-        '''Apply a change of structure to a replica.
-
-        The replica emits ``structureChanged`` afterwards, which discards
-        the structure that was cached for it.
-        '''
-        trap = self._replicas.get(key)
-        if trap is None:
-            return
-        replicas.apply(trap, state['settings'])
-        trap.structureChanged.emit()
-
-    @QtCore.Slot(list)
-    def computeKeys(self, keys: list[int]) -> None:
-        '''Compute the hologram for the replicas with the given keys.
-
-        Emits ``hologramReady`` with the result, or ``computeFailed`` if
-        the computation raises an exception.
-
-        Parameters
-        ----------
-        keys : list[int]
-            Keys of the traps, as ``QTrapSync.keysOf`` gives them.
-        '''
-        traps = [self._replicas[key] for key in keys
-                 if key in self._replicas]
-        try:
-            with self._lock:
-                self.compute(traps)
-        except Exception as ex:
-            logger.error(f'hologram computation failed: {ex}')
-            self.computeFailed.emit(str(ex))
-
-    # Methods for computing holograms
-
-    @staticmethod
-    def quantize(field: Field) -> Hologram:
-        '''Scale the phase of a complex field to an 8-bit integer array.
-
-        Parameters
-        ----------
-        field : Field
-            Complex-valued field array.
-
-        Returns
-        -------
-        Hologram
-            Phase encoded as uint8 in the range [0, 255].
-        '''
-        return ((128./np.pi)*np.angle(field) + 127.).astype(np.uint8)
-
-    def window(self, r: QtGui.QVector3D) -> float:
-        '''Compute the sinc-aperture amplitude correction for a trap position.
-
-        Parameters
-        ----------
-        r : QtGui.QVector3D
-            Trap position in SLM coordinates.
-
-        Returns
-        -------
-        float
-            Amplitude correction factor, clamped to a maximum of 100.
-        '''
-        x = 0.5 * np.pi * np.array([r.x() / self.width,
-                                    r.y() / self.height])
-        fac = 1. / np.prod(np.sinc(x))
-        return np.min((np.abs(fac), 100.))
-
-    def transform(self, r: QtGui.QVector3D) -> QtGui.QVector3D:
-        '''Map camera-plane coordinates to SLM-plane coordinates.
-
-        Applies the calibrated rotation/translation matrix and the
-        axial splay correction.
-
-        Parameters
-        ----------
-        r : QtGui.QVector3D
-            Position in camera coordinates.
-
-        Returns
-        -------
-        QtGui.QVector3D
-            Position in SLM coordinates.
-        '''
-        r = self.matrix * r
-        fac = 1. / (1. + self.splay*r.z())
-        r *= QtGui.QVector3D(fac, fac, 1.)
-        return r
-
-    @staticmethod
-    def _topLevel(trap: QTrap) -> QTrap:
-        '''Return the topmost ancestor, walking up through QTrapGroup parents.
-
-        Parameters
-        ----------
-        trap : QTrap
-            Starting trap or group.
-
-        Returns
-        -------
-        QTrap
-            The highest ancestor that is not itself a child of a
-            ``QTrapGroup``, i.e. the top-level item registered with
-            the overlay.
-        '''
-        while isinstance(trap.parent(), QTrapGroup):
-            trap = trap.parent()
-        return trap
-
-    def _connectTrap(self, trap: QTrap) -> None:
-        '''Connect cache-invalidation slots for a trap if not already done.
-
-        Called once per trap the first time ``fieldOf`` sees it.
-        Uses a weak reference so that the trap can be garbage-collected
-        without keeping the CGH alive.
-
-        Parameters
-        ----------
-        trap : QTrap
-            The trap to connect.
-        '''
-        if trap in self._connected_traps:
-            return
-        trap_ref = weakref.ref(trap)
-        trap.changed.connect(partial(self._invalidateField, trap_ref))
-        if (not isinstance(trap, QTrapGroup)
-                and hasattr(trap, 'structureChanged')):
-            trap.structureChanged.connect(
-                partial(self._invalidateStructure, trap_ref))
-        self._connected_traps.add(trap)
-
-    def fieldOf(self, trap: QTrap) -> Field:
-        '''Compute the complex field contribution of a trap or group.
-
-        For leaf traps the displacement field and structure field are
-        cached separately.  ``trap.changed`` invalidates the displacement
-        cache; ``trap.structureChanged`` (if present) invalidates only
-        the structure cache.
-
-        For groups the displacement field is the phase ramp evaluated at
-        the group center and the structure is the position-independent
-        sum of child fields (each computed recursively via ``fieldOf``).
-        Translating a group invalidates only its displacement cache, so
-        the cost of a group move is one outer product regardless of the
-        number of leaves.
-
-        Parameters
-        ----------
-        trap : QTrap
-            The trap or group to compute the field for.
-
-        Returns
-        -------
-        Field
-            Complex field array with shape equal to ``self.shape``.
-        '''
-        self._connectTrap(trap)
-        if trap not in self._field_cache:
-            r = self.transform(QtGui.QVector3D(*trap.r))
-            rx = np.float32(r.x())
-            ry = np.float32(r.y())
-            rz = np.float32(r.z())
-            ex = np.exp(self.iqx * rx + self.iqxz * rz)
-            ey = np.exp(self.iqy * ry + self.iqyz * rz)
-            if isinstance(trap, QTrapGroup):
-                self._field_cache[trap] = np.outer(ey, ex).astype(self.dtype)
-            else:
-                amplitude = np.dtype(self.dtype).type(
-                    trap.amplitude * np.exp(1j * trap.phase))
-                self._field_cache[trap] = np.outer(amplitude * ey, ex)
-        if trap not in self._structure_cache:
-            if isinstance(trap, QTrapGroup):
-                child_sum = sum(
-                    (self.fieldOf(child) for child in trap),
-                    np.zeros(self.shape, dtype=self.dtype))
-                self._structure_cache[trap] = (
-                    child_sum * self._field_cache[trap].conj())
-            elif hasattr(trap, 'structure'):
-                self._structure_cache[trap] = trap.structure(self)
-            else:
-                self._structure_cache[trap] = 1.
-        return self._field_cache[trap] * self._structure_cache[trap]
-
-    @QtCore.Slot(list)
-    def compute(self, traps: list[QTrap]) -> Hologram:
-        '''Compute the phase hologram for a list of traps.
-
-        Each trap is resolved to its topmost ancestor (a group or an
-        ungrouped leaf) and deduplicated before calling ``fieldOf``,
-        so groups are processed as a single unit regardless of how many
-        leaves appear in ``traps``.
-
-        Parameters
-        ----------
-        traps : list[QTrap]
-            Traps (or group members) to include in the hologram.
-
-        Returns
-        -------
-        Hologram
-            Quantized phase hologram as a uint8 array.
-        '''
-        logger.debug(f'computing hologram for {len(traps)} traps')
-        try:
-            self.field.fill(0j)
-            seen: set = set()
-            for trap in traps:
-                item = self._topLevel(trap)
-                if item not in seen:
-                    self.field += self.fieldOf(item)
-                    seen.add(item)
-            self.phase = self.quantize(self.field)
-            self.hologramReady.emit(self.phase)
-            return self.phase
-        except Exception:
-            logger.exception('hologram computation failed')
-            raise
-
-    def bless(self, field: Field | None) -> Field | None:
-        '''Cast a field array to ``self.dtype``, or return None.
-
-        Parameters
-        ----------
-        field : Field or None
-            Array to cast, or None.
-
-        Returns
-        -------
-        Field or None
-            Field cast to ``self.dtype``, or None if input is None.
-        '''
-        if field is None:
-            return None
-        return field.astype(self.dtype)
+    @QtCore.Slot(str)
+    def _onFailed(self, reason: str) -> None:
+        self._busy = False
+        self.computeFailed.emit(reason)
+        self._dispatch()

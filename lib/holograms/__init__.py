@@ -3,6 +3,7 @@ from .CGH import CGH
 from .NumpyBackend import NumpyBackend
 from .Optics import Geometry, Optics
 from .QCGHTree import QCGHTree
-from .QTrapSync import QTrapSync
+from .QHologramWorker import QHologramWorker
 
-__all__ = 'Backend CGH Geometry NumpyBackend Optics QCGHTree QTrapSync'.split()
+__all__ = ('Backend CGH Geometry NumpyBackend Optics QCGHTree '
+           'QHologramWorker').split()

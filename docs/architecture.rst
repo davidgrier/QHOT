@@ -12,7 +12,7 @@ layers below it.
    │  QCGHTree        │  QHOTScreen  QSLMWidget        │  UI layer
    │                  │  QSaveFile   QSLM              │
    ├──────────────────┴───────────────────────────────┤
-   │  CGH  (QThread)                                  │  computation layer
+   │  CGH  (calibration, thread)  Backend             │  computation layer
    ├──────────────────────────────────────────────────┤
    │  QTrap / QTrapGroup / QTrapOverlay               │  trap layer
    └──────────────────────────────────────────────────┘
@@ -28,11 +28,18 @@ silently ignores move, scroll, and rotate gestures on that trap.
 
 :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` provides recursive grouping.
 Translating a group moves all contained traps together and emits ``changed``
-once on the group, so the CGH can update only the group's displacement cache
-(one outer product) without recomputing every leaf individually.
-Rotating a group updates every child position in place and calls
-``_broadcastChanged()`` to emit ``changed`` from each descendant in turn,
-ensuring that all per-trap and per-group CGH caches are invalidated correctly.
+once on the group.  Rotating a group updates every child position in place and
+calls ``_broadcastChanged()`` to emit ``changed`` from each descendant in turn.
+
+A group is a way to handle traps together, not a trap with an amplitude of its
+own: a member means the same in a group as alone.  A *composite*, a group that
+is used as a single trap, sets ``composite = True`` and has an amplitude and a
+phase of its own.
+
+:class:`~QHOT.lib.traps.TrapSpec.TrapSpec` is a snapshot of a trap, or of a
+group with all it contains, as a plain, hashable value.
+``QTrapOverlay.pattern()`` returns the specs of all the traps.  Every hologram
+is computed from such a pattern, never from the live traps.
 
 :class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is a
 ``pyqtgraph.ScatterPlotItem`` that renders each trap as a colored spot and
@@ -82,23 +89,39 @@ which inserts every subclass into ``QTrap._registry`` at class-definition time.
 classes are supported without any changes to the overlay — they just need to be
 imported before ``load()`` is called.
 
-Computation layer — ``QHOT.lib.holograms.CGH``
------------------------------------------------
+Computation layer — ``QHOT.lib.holograms``
+--------------------------------------------
 
-:class:`~QHOT.lib.holograms.CGH.CGH` computes phase holograms in a
-``QThread``.  Calibration attributes (pixel pitch, wavelength, focal length,
-camera rotation, etc.) are set via ``__setattr__``, which automatically
-triggers ``updateGeometry`` or ``updateTransformationMatrix`` and emits
-``recalculate``.
+The hologram is the phase of the sum of the fields of the traps (linear
+superposition).  The field of a trap is its complex amplitude times its
+*displacement*, the phase ramp that moves the focus to the trap's position,
+times its *structuring field*, which shapes the focus and does not depend on
+where the trap is: 1 for a tweezer, a helical phase for a vortex.  The
+structuring field of a group is the superposition of those of its members,
+recursively.  :mod:`QHOT.lib.holograms.reference` states this as plainly as
+possible, and every faster implementation is tested against it.
 
-Per-trap complex displacement fields are cached in a ``WeakKeyDictionary``
-and invalidated selectively when a trap's position or structure changes,
-so only modified traps are recomputed on each frame.  Trap groups share a
-single accumulated field that is updated in place by a phase-shift broadcast
-on each group translation.
+A trap makes its own structuring field with
+:meth:`~QHOT.lib.traps.QTrap.QTrap.structuringField`, from a
+:class:`~QHOT.lib.holograms.Optics.Geometry` (the coordinates of the SLM plane)
+and its own parameters, and nothing else.
 
-When the field accumulation is complete, :meth:`~QHOT.lib.holograms.CGH.CGH.compute`
-quantizes the phase to uint8 and emits ``hologramReady``.
+:class:`~QHOT.lib.holograms.Optics.Optics` is the calibration as an immutable
+value.  :class:`~QHOT.lib.holograms.Backend.Backend` computes holograms from a
+pattern and the optics.  The displacement is the outer product of a factor for
+each row and a factor for each column, so the fields of ``n`` plain tweezers
+add up to one matrix product.  Traps that share a structure are summed first
+and the structure applied once; structuring fields are kept by value (kind of
+trap and parameters), so a cache cannot go stale.  Nothing else is remembered
+between holograms.  ``NumpyBackend`` computes on the CPU and ``TorchBackend``
+on an Apple GPU, CUDA or the CPU, quantizing on the device.
+
+:class:`~QHOT.lib.holograms.CGH.CGH` holds the calibration (assigning an
+attribute emits ``recalculate``) and runs a worker thread with a backend.
+``CGH.compute(pattern)`` returns at once.  It captures the pattern and the
+current ``CGH.optics``, both plain values, so the worker never reads anything
+that the interface is editing.  One hologram is computed at a time and only the
+newest waiting request is kept.  The result arrives as ``hologramReady``.
 
 UI layer
 --------
@@ -333,26 +356,16 @@ existing File and Tasks actions:
 
 **Central signal flow:**
 
-1. ``QTrapOverlay`` emits ``trapAdded`` / ``trapRemoved`` → the group's
-   ``changed`` signal and each leaf's ``changed`` signal are connected to
-   ``_scheduleCompute``, and
-   :class:`~QHOT.lib.holograms.QTrapSync.QTrapSync` describes the trap
-   to the CGH engine and follows its changes.
-2. ``QTrapSync`` sends the engine a message for every change, with plain
-   data only.  The engine, which runs in a ``QThread``, keeps private
-   replicas of the traps and never reads the traps of the GUI.  Qt
-   delivers the messages in order, so the engine is always up to date
-   when it is asked for a hologram.
-3. A timer (``COMPUTE_INTERVAL``, 15 ms) emits ``_computeRequested``
-   with the keys of the traps if traps have changed and no compute is
-   pending.  The timer is independent of the video, so the hologram
-   keeps up with the traps however slowly the camera delivers frames.
-4. ``CGH.computeKeys`` computes from the replicas and emits
-   ``hologramReady`` (or ``computeFailed``).
-5. ``hologramReady`` updates ``QSLM``, the ``QSLMWidget`` preview, and
-   clears the pending flag so that the next change may trigger another
-   compute.  Changes that arrive meanwhile are not lost: they are all in
-   the replicas when the next compute runs.
+1. A trap changes (``changed``, ``structureChanged``) or the calibration
+   changes (``recalculate``): ``QHOT._scheduleCompute`` notes that the
+   hologram is out of date.
+2. A timer (``COMPUTE_INTERVAL``, 15 ms), independent of the video, calls
+   ``CGH.compute(overlay.pattern())`` if something changed.  The hologram
+   therefore keeps up with the traps however slowly the camera delivers
+   frames.
+3. The worker thread computes the hologram with the backend.
+4. ``hologramReady`` updates ``QSLM`` and the ``QSLMWidget`` preview.  A
+   failure arrives as ``computeFailed`` and appears in the status bar.
 
 Tasks are still driven by the video: ``QTaskManager`` advances once for
 each ``QHOTScreen.rendered``.

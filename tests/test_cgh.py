@@ -1,23 +1,24 @@
-'''Unit tests for CGH.'''
+'''Unit tests for CGH: the calibration and the pipeline.'''
+import threading
+import time
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets, QtTest
+from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
+
 import importlib as _importlib
+from QHOT.lib.holograms import NumpyBackend, Optics
+from QHOT.lib.holograms import reference as ref
 from QHOT.lib.holograms.CGH import CGH
 _cgh_mod = _importlib.import_module('QHOT.lib.holograms.CGH')
-from QHOT.lib.traps.QTrap import QTrap
+
+try:
+    from patterns import SHAPE, levels, optics, tweezer
+except ImportError:  # run from the root of the repository
+    from tests.patterns import SHAPE, levels, optics, tweezer
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-
-
-def make_trap():
-    '''Return a minimal mock QTrap suitable for use with CGH.'''
-    trap = MagicMock(spec=QTrap)
-    trap.amplitude = 1.0
-    trap.phase = 0.0
-    trap.r = np.array([0., 0., 0.])
-    return trap
 
 
 class TestInit(unittest.TestCase):
@@ -71,7 +72,7 @@ class TestInit(unittest.TestCase):
         self.assertAlmostEqual(CGH().thetac, 0.)
 
     def test_custom_shape(self):
-        self.assertEqual(CGH(shape=(256, 128)).shape, (256, 128))
+        self.assertEqual(CGH(shape=(256, 256)).shape, (256, 256))
 
     def test_custom_wavelength(self):
         self.assertAlmostEqual(CGH(wavelength=0.532).wavelength, 0.532)
@@ -79,15 +80,22 @@ class TestInit(unittest.TestCase):
     def test_custom_xc(self):
         self.assertAlmostEqual(CGH(xc=100.).xc, 100.)
 
-    def test_matrix_initialized(self):
-        self.assertIsInstance(CGH().matrix, QtGui.QMatrix4x4)
-
-    def test_field_initialized(self):
-        cgh = CGH()
-        self.assertEqual(cgh.field.shape, cgh.shape)
-
     def test_no_parent_by_default(self):
         self.assertIsNone(CGH().parent())
+
+    def test_building_it_emits_nothing(self):
+        cgh = CGH.__new__(CGH)
+        QtCore.QObject.__init__(cgh)
+        spy = QtTest.QSignalSpy(cgh.recalculate)
+        cgh.__init__(xc=1.)
+        self.assertEqual(len(spy), 0)
+
+    def test_default_backend_is_numpy(self):
+        self.assertIsInstance(CGH().backend, NumpyBackend)
+
+    def test_given_backend_is_used(self):
+        backend = NumpyBackend()
+        self.assertIs(CGH(backend=backend).backend, backend)
 
 
 class TestSetattr(unittest.TestCase):
@@ -133,52 +141,6 @@ class TestSetattr(unittest.TestCase):
         self.assertEqual(len(self.spy), 0)
 
 
-class TestUpdateTransformationMatrix(unittest.TestCase):
-
-    def setUp(self):
-        self.cgh = CGH()
-
-    def test_emits_recalculate(self):
-        spy = QtTest.QSignalSpy(self.cgh.recalculate)
-        self.cgh.updateTransformationMatrix()
-        self.assertEqual(len(spy), 1)
-
-    def test_matrix_is_qmatrix4x4(self):
-        self.cgh.updateTransformationMatrix()
-        self.assertIsInstance(self.cgh.matrix, QtGui.QMatrix4x4)
-
-
-class TestUpdateGeometry(unittest.TestCase):
-
-    def setUp(self):
-        self.cgh = CGH()
-
-    def test_emits_recalculate(self):
-        spy = QtTest.QSignalSpy(self.cgh.recalculate)
-        self.cgh.updateGeometry()
-        self.assertEqual(len(spy), 1)
-
-    def test_field_shape(self):
-        self.assertEqual(self.cgh.field.shape, self.cgh.shape)
-
-    def test_field_dtype(self):
-        self.assertEqual(self.cgh.field.dtype, np.complex64)
-
-    def test_field_zeros(self):
-        self.cgh.updateGeometry()
-        np.testing.assert_array_equal(self.cgh.field, 0j)
-
-    def test_iqx_shape(self):
-        self.assertEqual(self.cgh.iqx.shape, (self.cgh.width,))
-
-    def test_iqy_shape(self):
-        self.assertEqual(self.cgh.iqy.shape, (self.cgh.height,))
-
-    def test_shape_change_rebuilds_field(self):
-        self.cgh.shape = (256, 256)
-        self.assertEqual(self.cgh.field.shape, (256, 256))
-
-
 class TestProperties(unittest.TestCase):
 
     def setUp(self):
@@ -222,6 +184,16 @@ class TestSettings(unittest.TestCase):
         self.cgh.settings = {'xc': 100., 'yc': 200.}
         self.assertAlmostEqual(self.cgh.xc, 100.)
         self.assertAlmostEqual(self.cgh.yc, 200.)
+
+    def test_setter_emits_recalculate_once(self):
+        spy = QtTest.QSignalSpy(self.cgh.recalculate)
+        self.cgh.settings = {'xc': 100., 'yc': 200., 'wavelength': 0.5}
+        self.assertEqual(len(spy), 1)
+
+    def test_setter_with_nothing_new_emits_nothing(self):
+        spy = QtTest.QSignalSpy(self.cgh.recalculate)
+        self.cgh.settings = self.cgh.settings
+        self.assertEqual(len(spy), 0)
 
     def test_setter_unknown_key_does_not_raise(self):
         try:
@@ -275,343 +247,269 @@ class TestDerivedProperties(unittest.TestCase):
         cgh = CGH()
         self.assertLess(cgh.qpar, cgh.qprp)
 
-
-class TestStart(unittest.TestCase):
-
-    def setUp(self):
-        self.cgh = CGH()
-
-    def test_returns_self(self):
-        self.assertIs(self.cgh.start(), self.cgh)
-
-    def test_emits_recalculate(self):
-        spy = QtTest.QSignalSpy(self.cgh.recalculate)
-        self.cgh.start()
-        self.assertEqual(len(spy), 1)  # one consolidated signal
+    def test_follow_the_calibration(self):
+        before = self.cgh.qprp
+        self.cgh.magnification = 50.
+        self.assertAlmostEqual(self.cgh.qprp, 2. * before)
 
 
-class TestStop(unittest.TestCase):
+class TestOptics(unittest.TestCase):
 
-    def test_does_not_raise(self):
+    def test_is_the_optics_of_the_calibration(self):
+        cgh = CGH(thetac=12., xc=33.)
+        self.assertIsInstance(cgh.optics, Optics)
+        self.assertEqual(cgh.optics.settings, cgh.settings)
+
+    def test_is_the_same_value_until_the_calibration_changes(self):
+        cgh = CGH()
+        first = cgh.optics
+        self.assertIs(cgh.optics, first)
+        cgh.xc = 99.
+        self.assertIsNot(cgh.optics, first)
+        self.assertEqual(cgh.optics.xc, 99.)
+
+    def test_a_taken_snapshot_does_not_change(self):
+        cgh = CGH(xc=10.)
+        snapshot = cgh.optics
+        cgh.xc = 20.
+        cgh.settings = {'wavelength': 0.5}
+        self.assertEqual(snapshot.xc, 10.)
+        self.assertAlmostEqual(snapshot.wavelength, 1.064)
+
+
+class SlowBackend(NumpyBackend):
+
+    '''A backend that takes its time and says what it did.'''
+
+    def __init__(self, delay=0.15, fail=0):
+        super().__init__()
+        self.delay, self.fail = delay, int(fail)
+        self.threads, self.patterns, self.optics = [], [], []
+        self.running = self.most_running = 0
+        self.lock = threading.Lock()
+
+    def hologram(self, pattern, optics):
+        with self.lock:
+            self.running += 1
+            self.most_running = max(self.most_running, self.running)
         try:
-            CGH().stop()
-        except Exception as e:
-            self.fail(f'stop() raised unexpectedly: {e}')
+            self.threads.append(threading.current_thread())
+            self.patterns.append(pattern)
+            self.optics.append(optics)
+            time.sleep(self.delay)
+            if self.fail > 0:
+                self.fail -= 1
+                raise RuntimeError('no hologram today')
+            return super().hologram(pattern, optics)
+        finally:
+            with self.lock:
+                self.running -= 1
 
 
-class TestQuantize(unittest.TestCase):
-
-    def test_zero_field_gives_midpoint(self):
-        field = np.zeros((4, 4), dtype=complex)
-        np.testing.assert_array_equal(CGH.quantize(field), 127)
-
-    def test_positive_imaginary(self):
-        # angle(1j) = π/2 → (128/π)*(π/2) + 127 = 64 + 127 = 191
-        field = np.full((1, 1), 1j)
-        self.assertEqual(CGH.quantize(field)[0, 0], 191)
-
-    def test_negative_real(self):
-        # angle(-1) = π → (128/π)*π + 127 = 128 + 127 = 255
-        field = np.full((1, 1), -1.+0j)
-        self.assertEqual(CGH.quantize(field)[0, 0], 255)
-
-    def test_negative_imaginary(self):
-        # angle(-1j) = -π/2 → (128/π)*(-π/2) + 127 = -64 + 127 = 63
-        field = np.full((1, 1), -1j)
-        self.assertEqual(CGH.quantize(field)[0, 0], 63)
-
-    def test_output_dtype(self):
-        self.assertEqual(CGH.quantize(np.ones((4, 4), dtype=complex)).dtype,
-                         np.uint8)
-
-    def test_output_shape(self):
-        field = np.ones((3, 5), dtype=complex)
-        self.assertEqual(CGH.quantize(field).shape, (3, 5))
+def wait_for(spy, count, timeout=5000):
+    '''Run the event loop until the spy has caught ``count`` signals.'''
+    waited = 0
+    while len(spy) < count and waited < timeout:
+        QtTest.QTest.qWait(10)
+        waited += 10
+    return len(spy) >= count
 
 
-class TestWindow(unittest.TestCase):
+class PipelineCase(unittest.TestCase):
 
-    def setUp(self):
-        self.cgh = CGH()
+    def make(self, backend=None, **kwargs):
+        cgh = CGH(**{**dict(shape=SHAPE, xc=32., yc=24.), **kwargs},
+                  backend=backend)
+        self.addCleanup(cgh.stop)
+        self.ready = QtTest.QSignalSpy(cgh.hologramReady)
+        self.failed = QtTest.QSignalSpy(cgh.computeFailed)
+        return cgh
 
-    def test_on_axis_returns_one(self):
-        r = QtGui.QVector3D(0., 0., 0.)
-        self.assertAlmostEqual(self.cgh.window(r), 1.0)
-
-    def test_returns_float(self):
-        r = QtGui.QVector3D(10., 10., 0.)
-        self.assertIsInstance(float(self.cgh.window(r)), float)
-
-    def test_clamped_to_max(self):
-        # Near the edge where sinc → 0 the correction blows up
-        r = QtGui.QVector3D(self.cgh.width / 2., 0., 0.)
-        self.assertLessEqual(self.cgh.window(r), 100.)
+    def pattern(self, *xs):
+        return tuple(tweezer(x, 20 + x % 7).spec() for x in xs)
 
 
-class TestTransform(unittest.TestCase):
+class TestPipeline(PipelineCase):
 
-    def setUp(self):
-        # Identity-like calibration: no offset, no rotation, no splay
-        self.cgh = CGH(xc=0., yc=0., zc=0., thetac=0., splay=0.)
+    def test_computes_the_hologram_of_a_pattern(self):
+        cgh = self.make().start()
+        pattern = self.pattern(10, 30, 50)
+        cgh.compute(pattern)
+        self.assertTrue(wait_for(self.ready, 1))
+        h = np.array(self.ready[0][0])
+        self.assertEqual(h.dtype, np.uint8)
+        expected = ref.hologram(pattern, cgh.optics)
+        self.assertLessEqual(levels(h, expected).max(), 1)
 
-    def test_returns_qvector3d(self):
-        r = QtGui.QVector3D(5., 3., 0.)
-        self.assertIsInstance(self.cgh.transform(r), QtGui.QVector3D)
+    def test_an_empty_pattern(self):
+        cgh = self.make().start()
+        cgh.compute(())
+        self.assertTrue(wait_for(self.ready, 1))
+        self.assertTrue((np.array(self.ready[0][0]) == 127).all())
 
-    def test_identity_calibration_preserves_position(self):
-        result = self.cgh.transform(QtGui.QVector3D(5., 3., 0.))
-        self.assertAlmostEqual(result.x(), 5., places=5)
-        self.assertAlmostEqual(result.y(), 3., places=5)
+    def test_computes_in_a_thread_of_its_own(self):
+        backend = SlowBackend(delay=0.01)
+        cgh = self.make(backend).start()
+        cgh.compute(self.pattern(10))
+        self.assertTrue(wait_for(self.ready, 1))
+        self.assertIsNot(backend.threads[0], threading.main_thread())
 
-    def test_translation_by_optical_axis(self):
-        cgh = CGH(xc=10., yc=20., zc=0., thetac=0., splay=0.)
-        result = cgh.transform(QtGui.QVector3D(10., 20., 0.))
-        self.assertAlmostEqual(result.x(), 0., places=5)
-        self.assertAlmostEqual(result.y(), 0., places=5)
+    def test_returns_before_the_hologram_is_done(self):
+        cgh = self.make(SlowBackend(delay=0.3)).start()
+        t0 = time.perf_counter()
+        cgh.compute(self.pattern(10))
+        self.assertLess(time.perf_counter() - t0, 0.1)
+        self.assertEqual(len(self.ready), 0)
+        self.assertTrue(wait_for(self.ready, 1))
 
+    def test_holograms_arrive_in_the_thread_that_asked(self):
+        cgh = self.make().start()
+        where = []
+        cgh.hologramReady.connect(
+            lambda *_: where.append(threading.current_thread()))
+        cgh.compute(self.pattern(10))
+        wait_for(self.ready, 1)
+        self.assertIs(where[0], threading.main_thread())
 
-class TestFieldOf(unittest.TestCase):
+    def test_requests_before_start_wait_for_it(self):
+        cgh = self.make()
+        cgh.compute(self.pattern(10))
+        QtTest.QTest.qWait(100)
+        self.assertEqual(len(self.ready), 0)
+        cgh.start()
+        self.assertTrue(wait_for(self.ready, 1))
 
-    def setUp(self):
-        self.cgh = CGH(xc=0., yc=0., zc=0., thetac=0., splay=0.)
-        self.trap = make_trap()
+    def test_can_be_restarted(self):
+        cgh = self.make().start()
+        cgh.compute(self.pattern(10))
+        wait_for(self.ready, 1)
+        cgh.stop()
+        cgh.stop()
+        cgh.start()
+        cgh.compute(self.pattern(20))
+        self.assertTrue(wait_for(self.ready, 2))
 
-    def test_returns_ndarray(self):
-        result = self.cgh.fieldOf(self.trap)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_output_shape(self):
-        result = self.cgh.fieldOf(self.trap)
-        self.assertEqual(result.shape, self.cgh.shape)
-
-    def test_result_is_cached(self):
-        self.cgh.fieldOf(self.trap)
-        cached = self.cgh._field_cache[self.trap]
-        self.cgh.fieldOf(self.trap)
-        self.assertIs(self.cgh._field_cache[self.trap], cached)
-
-    def test_geometry_change_invalidates_cache(self):
-        first = self.cgh.fieldOf(self.trap)
-        self.cgh.wavelength = 0.532
-        second = self.cgh.fieldOf(self.trap)
-        self.assertIsNot(first, second)
-
-    def test_matrix_change_preserves_structure_cache(self):
-        trap = make_trap()
-        trap.structure = lambda cgh: cgh.theta
-        self.cgh.fieldOf(trap)
-        structure_before = self.cgh._structure_cache[trap]
-        self.cgh.xc = 50.  # matrix attr: clears field cache, not structure cache
-        self.assertNotIn(trap, self.cgh._field_cache)
-        self.assertIn(trap, self.cgh._structure_cache)
-        self.assertIs(self.cgh._structure_cache[trap], structure_before)
-
-    def test_trap_change_invalidates_cache(self):
-        from QHOT.traps.QTweezer import QTweezer
-        trap = QTweezer(r=(0., 0., 0.), phase=0.)
-        first = self.cgh.fieldOf(trap)
-        trap.x = 10.
-        second = self.cgh.fieldOf(trap)
-        self.assertIsNot(first, second)
-
-    def test_changed_does_not_invalidate_structure_cache(self):
-        from QHOT.traps.QVortex import QVortex
-        trap = QVortex(r=(0., 0., 0.), phase=0., ell=1)
-        self.cgh.fieldOf(trap)
-        structure_before = self.cgh._structure_cache[trap]
-        trap.x = 5.  # emits changed, not structureChanged
-        self.assertNotIn(trap, self.cgh._field_cache)
-        self.assertIn(trap, self.cgh._structure_cache)
-        self.assertIs(self.cgh._structure_cache[trap], structure_before)
-
-    def test_structure_changed_invalidates_only_structure_cache(self):
-        from QHOT.traps.QVortex import QVortex
-        trap = QVortex(r=(0., 0., 0.), phase=0., ell=1)
-        self.cgh.fieldOf(trap)
-        self.assertIn(trap, self.cgh._field_cache)
-        self.assertIn(trap, self.cgh._structure_cache)
-        trap.ell = 2  # emits structureChanged
-        self.assertIn(trap, self.cgh._field_cache)
-        self.assertNotIn(trap, self.cgh._structure_cache)
-
-    def test_field_of_connects_structure_changed(self):
-        from QHOT.traps.QVortex import QVortex
-        trap = QVortex(r=(0., 0., 0.), phase=0., ell=0)
-        self.cgh.fieldOf(trap)
-        trap.ell = 3
-        self.assertNotIn(trap, self.cgh._structure_cache)
-
-
-class TestCompute(unittest.TestCase):
-
-    def setUp(self):
-        self.cgh = CGH()
-        self.trap = make_trap()
-
-    def test_returns_ndarray(self):
-        self.assertIsInstance(self.cgh.compute([self.trap]), np.ndarray)
-
-    def test_output_dtype(self):
-        self.assertEqual(self.cgh.compute([self.trap]).dtype, np.uint8)
-
-    def test_output_shape(self):
-        self.assertEqual(self.cgh.compute([self.trap]).shape, self.cgh.shape)
-
-    def test_emits_hologram_ready(self):
-        spy = QtTest.QSignalSpy(self.cgh.hologramReady)
-        self.cgh.compute([self.trap])
+    def test_start_returns_itself_and_emits_recalculate_once(self):
+        cgh = self.make()
+        spy = QtTest.QSignalSpy(cgh.recalculate)
+        self.assertIs(cgh.start(), cgh)
         self.assertEqual(len(spy), 1)
 
-    def test_empty_traps_gives_midpoint(self):
-        result = self.cgh.compute([])
-        np.testing.assert_array_equal(result, 127)
-
-    def test_multiple_traps(self):
-        traps = [make_trap() for _ in range(3)]
-        result = self.cgh.compute(traps)
-        self.assertEqual(result.shape, self.cgh.shape)
+    def test_stop_does_not_raise_without_start(self):
+        CGH().stop()
 
 
-class TestBless(unittest.TestCase):
+class TestLatestWins(PipelineCase):
 
-    def setUp(self):
-        self.cgh = CGH()
+    def test_one_hologram_at_a_time(self):
+        backend = SlowBackend(delay=0.05)
+        cgh = self.make(backend).start()
+        for n in range(6):
+            cgh.compute(self.pattern(10 + n))
+            QtTest.QTest.qWait(5)
+        wait_for(self.ready, 2)
+        QtTest.QTest.qWait(200)
+        self.assertEqual(backend.most_running, 1)
 
-    def test_none_returns_none(self):
-        self.assertIsNone(self.cgh.bless(None))
+    def test_only_the_newest_of_the_waiting_requests_is_computed(self):
+        backend = SlowBackend(delay=0.2)
+        cgh = self.make(backend).start()
+        patterns = [self.pattern(10 + n) for n in range(6)]
+        for pattern in patterns:
+            cgh.compute(pattern)
+        self.assertTrue(wait_for(self.ready, 2))
+        QtTest.QTest.qWait(300)
+        self.assertEqual(len(self.ready), 2)
+        self.assertEqual(backend.patterns, [patterns[0], patterns[-1]])
 
-    def test_casts_to_dtype(self):
-        field = np.ones((4, 4), dtype=np.float32)
-        result = self.cgh.bless(field)
-        self.assertEqual(result.dtype, np.complex64)
+    def test_the_last_hologram_is_of_the_last_pattern(self):
+        cgh = self.make(SlowBackend(delay=0.1)).start()
+        patterns = [self.pattern(10 + 8 * n) for n in range(4)]
+        for pattern in patterns:
+            cgh.compute(pattern)
+        wait_for(self.ready, 2)
+        QtTest.QTest.qWait(300)
+        last = np.array(self.ready[len(self.ready) - 1][0])
+        self.assertLessEqual(
+            levels(last, ref.hologram(patterns[-1], cgh.optics)).max(), 1)
 
-    def test_preserves_values(self):
-        field = np.ones((4, 4), dtype=np.float64)
-        result = self.cgh.bless(field)
-        np.testing.assert_array_almost_equal(result.real, field)
-
-
-class TestDtype(unittest.TestCase):
-
-    def test_default_dtype(self):
-        self.assertEqual(CGH.dtype, np.complex64)
-
-    def test_field_uses_dtype(self):
-        self.assertEqual(CGH().field.dtype, np.complex64)
-
-    def test_subclass_dtype_override(self):
-        class SubCGH(CGH):
-            dtype = np.complex128
-        cgh = SubCGH()
-        self.assertEqual(cgh.field.dtype, np.complex128)
-
-    def test_subclass_bless_uses_dtype(self):
-        class SubCGH(CGH):
-            dtype = np.complex128
-        cgh = SubCGH()
-        result = cgh.bless(np.ones((4, 4), dtype=np.float64))
-        self.assertEqual(result.dtype, np.complex128)
+    def test_a_request_while_idle_is_computed_at_once(self):
+        backend = SlowBackend(delay=0.01)
+        cgh = self.make(backend).start()
+        for n in range(3):
+            cgh.compute(self.pattern(10 + n))
+            self.assertTrue(wait_for(self.ready, n + 1))
+        self.assertEqual(len(backend.patterns), 3)
 
 
-class TestGroupField(unittest.TestCase):
+class TestSnapshots(PipelineCase):
 
-    def setUp(self):
-        from QHOT.lib.traps.QTrapGroup import QTrapGroup
-        from QHOT.traps.QTweezer import QTweezer
-        self.cgh = CGH(xc=0., yc=0., zc=0., thetac=0., splay=0.)
-        self.group = QTrapGroup(r=(0., 0., 0.))
-        self.t1 = QTweezer(r=(0., 0., 0.), phase=0.)
-        self.t2 = QTweezer(r=(10., 0., 0.), phase=0.)
-        self.group.addTrap([self.t1, self.t2])
+    def test_the_calibration_is_captured_when_it_is_asked_for(self):
+        backend = SlowBackend(delay=0.2)
+        cgh = self.make(backend).start()
+        pattern = self.pattern(10, 30)
+        old = cgh.optics
+        cgh.compute(pattern)
+        cgh.xc = 20.
+        cgh.thetac = 15.
+        self.assertTrue(wait_for(self.ready, 1))
+        self.assertIs(backend.optics[0], old)
+        self.assertEqual(backend.optics[0].xc, 32.)
 
-    def test_fieldof_group_returns_ndarray(self):
-        result = self.cgh.fieldOf(self.group)
-        self.assertIsInstance(result, np.ndarray)
+    def test_a_waiting_request_keeps_the_calibration_it_was_made_with(self):
+        backend = SlowBackend(delay=0.2)
+        cgh = self.make(backend).start()
+        cgh.compute(self.pattern(10))
+        QtTest.QTest.qWait(30)
+        cgh.xc = 40.
+        cgh.compute(self.pattern(20))
+        cgh.xc = 50.
+        wait_for(self.ready, 2)
+        self.assertEqual(backend.optics[1].xc, 40.)
 
-    def test_fieldof_group_correct_shape(self):
-        result = self.cgh.fieldOf(self.group)
-        self.assertEqual(result.shape, self.cgh.shape)
+    def test_the_new_calibration_reaches_the_next_hologram(self):
+        cgh = self.make(SlowBackend(delay=0.01)).start()
+        pattern = self.pattern(10, 30)
+        cgh.compute(pattern)
+        wait_for(self.ready, 1)
+        cgh.thetac = 20.
+        cgh.compute(pattern)
+        wait_for(self.ready, 2)
+        a, b = (np.array(self.ready[n][0]) for n in (0, 1))
+        self.assertGreater(levels(a, b).max(), 1)
+        self.assertLessEqual(
+            levels(b, ref.hologram(pattern, cgh.optics)).max(), 1)
 
-    def test_group_field_cache_populated(self):
-        self.cgh.fieldOf(self.group)
-        self.assertIn(self.group, self.cgh._field_cache)
 
-    def test_group_structure_cache_populated(self):
-        self.cgh.fieldOf(self.group)
-        self.assertIn(self.group, self.cgh._structure_cache)
+class TestFailure(PipelineCase):
 
-    def test_toplevel_ungrouped_returns_trap(self):
-        from QHOT.traps.QTweezer import QTweezer
-        solo = QTweezer(r=(5., 5., 0.), phase=0.)
-        self.assertIs(CGH._topLevel(solo), solo)
+    def test_the_reason_is_reported(self):
+        cgh = self.make(SlowBackend(delay=0.01, fail=1)).start()
+        cgh.compute(self.pattern(10))
+        self.assertTrue(wait_for(self.failed, 1))
+        self.assertEqual(self.failed[0][0], 'no hologram today')
+        self.assertEqual(len(self.ready), 0)
 
-    def test_toplevel_group_member_returns_group(self):
-        self.assertIs(CGH._topLevel(self.t1), self.group)
+    def test_a_failure_does_not_block_the_next_request(self):
+        cgh = self.make(SlowBackend(delay=0.01, fail=1)).start()
+        cgh.compute(self.pattern(10))
+        wait_for(self.failed, 1)
+        cgh.compute(self.pattern(20))
+        self.assertTrue(wait_for(self.ready, 1))
 
-    def test_toplevel_nested_member_returns_outer(self):
-        from QHOT.lib.traps.QTrapGroup import QTrapGroup
-        from QHOT.traps.QTweezer import QTweezer
-        outer = QTrapGroup(r=(0., 0., 0.))
-        inner = QTrapGroup(r=(1., 0., 0.))
-        leaf = QTweezer(r=(2., 0., 0.), phase=0.)
-        inner.addTrap(leaf)
-        outer.addTrap(inner)
-        self.assertIs(CGH._topLevel(leaf), outer)
+    def test_a_waiting_request_is_computed_after_a_failure(self):
+        cgh = self.make(SlowBackend(delay=0.1, fail=1)).start()
+        cgh.compute(self.pattern(10))
+        cgh.compute(self.pattern(20))
+        self.assertTrue(wait_for(self.ready, 1))
+        self.assertEqual(len(self.failed), 1)
 
-    def test_group_translation_invalidates_field_cache_only(self):
-        self.cgh.fieldOf(self.group)
-        self.assertIn(self.group, self.cgh._field_cache)
-        self.assertIn(self.group, self.cgh._structure_cache)
-        self.group.r = (5., 0., 0.)
-        self.assertNotIn(self.group, self.cgh._field_cache)
-        self.assertIn(self.group, self.cgh._structure_cache)
-
-    def test_leaf_change_invalidates_leaf_field_and_group_structure(self):
-        self.cgh.fieldOf(self.group)
-        self.assertIn(self.t1, self.cgh._field_cache)
-        self.assertIn(self.group, self.cgh._structure_cache)
-        self.t1.x = 20.
-        self.assertNotIn(self.t1, self.cgh._field_cache)
-        self.assertNotIn(self.group, self.cgh._structure_cache)
-
-    def test_invalidate_structure_chain_propagates_upward(self):
-        from QHOT.lib.traps.QTrapGroup import QTrapGroup
-        from QHOT.traps.QTweezer import QTweezer
-        outer = QTrapGroup(r=(0., 0., 0.))
-        inner = QTrapGroup(r=(1., 0., 0.))
-        leaf = QTweezer(r=(2., 0., 0.), phase=0.)
-        inner.addTrap(leaf)
-        outer.addTrap(inner)
-        self.cgh.fieldOf(outer)
-        self.assertIn(inner, self.cgh._structure_cache)
-        self.assertIn(outer, self.cgh._structure_cache)
-        self.cgh._invalidateStructureChain(inner)
-        self.assertNotIn(inner, self.cgh._structure_cache)
-        self.assertNotIn(outer, self.cgh._structure_cache)
-
-    def test_compute_with_group_leaves_deduplicates(self):
-        from unittest.mock import patch
-        with patch.object(self.cgh, 'fieldOf',
-                          wraps=self.cgh.fieldOf) as mock_fo:
-            self.cgh.compute([self.t1, self.t2])
-            group_calls = [c for c in mock_fo.call_args_list
-                           if c.args[0] is self.group]
-            self.assertEqual(len(group_calls), 1)
-
-    def test_compute_with_group_and_solo_trap(self):
-        from QHOT.traps.QTweezer import QTweezer
-        solo = QTweezer(r=(50., 50., 0.), phase=0.)
-        result = self.cgh.compute([self.t1, self.t2, solo])
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(result.dtype, np.uint8)
-
-    def test_geometry_change_clears_group_caches(self):
-        self.cgh.fieldOf(self.group)
-        self.assertIn(self.group, self.cgh._field_cache)
-        self.assertIn(self.group, self.cgh._structure_cache)
-        self.cgh.wavelength = 0.532
-        self.assertNotIn(self.group, self.cgh._field_cache)
-        self.assertNotIn(self.group, self.cgh._structure_cache)
+    def test_an_unknown_kind_is_reported_not_raised(self):
+        from QHOT.lib.traps import TrapSpec
+        cgh = self.make().start()
+        cgh.compute((TrapSpec(kind='NoSuchTrap', r=(0., 0., 0.)),))
+        self.assertTrue(wait_for(self.failed, 1))
+        self.assertIn('NoSuchTrap', self.failed[0][0])
 
 
 if __name__ == '__main__':

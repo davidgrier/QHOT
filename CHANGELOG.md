@@ -32,8 +32,7 @@
   Nothing is cached between holograms but the structuring fields, kept by
   value (kind of trap and parameters), so nothing can go stale.
   `TorchBackend` computes everything on the device, quantization included,
-  and works on Apple GPUs (MPS), CUDA and the CPU.  They are not yet used
-  by the application.
+  and works on Apple GPUs (MPS), CUDA and the CPU.
 - `QTrapOverlay.pattern()`: a snapshot of the traps as a tuple of specs,
   safe to hand to another thread.  `TrapSpec.weighted()` yields the traps
   of a spec with their complex weights, and `Optics.transform` accepts
@@ -44,23 +43,36 @@
   `QRingTrap` define it; their `structure(cgh)` now defers to it.
 
 ### Changed
-- The CGH engine no longer reads the traps of the GUI.  It computes from
-  private replicas of the traps, which the new `QTrapSync` keeps up to date
-  with ordered messages of plain data (`lib/holograms/QTrapSync.py`,
-  `lib/holograms/replicas.py`).  Before, the engine thread read live traps
-  and its caches were invalidated from the GUI thread, a data race
-  whenever a trap changed during a computation (no failure was
-  observed).  New slots of `CGH`: `addReplica`,
-  `removeReplica`, `updateReplica`, `updateReplicaStructure` and
-  `computeKeys`; the signal `computeFailed` reports an exception.
+- **The hologram pipeline is rebuilt.**  `CGH` now holds the calibration
+  and runs the compute thread itself; the computing is done by a
+  `Backend`.  `CGH.compute(pattern)` returns at once and takes the
+  pattern of an overlay (`QTrapOverlay.pattern()`); the hologram arrives
+  as `hologramReady`, or the reason there is none as `computeFailed`.
+  One hologram is computed at a time and only the newest waiting request
+  is kept.  The pattern and the calibration (`CGH.optics`) are plain
+  values captured at the request, so the thread that computes never reads
+  anything that the interface edits: there are no locks, no replicas of
+  the traps and no caches to invalidate.  A hologram is computed from
+  scratch each time, which the matrix-product backends do faster than the
+  old engine summed its caches.
 - Holograms are requested by a timer of their own
   (`QHOT.COMPUTE_INTERVAL`, 15 ms), not by the video.  A trap now takes
   effect at once however slowly the camera delivers frames, and with the
   video stopped.  `QHOTScreen.rendered` still drives the tasks.
-- Assigning a calibration attribute of `CGH` from another thread waits for
-  a hologram in progress, so the geometry never changes under it.
+- `choose_cgh` and the command line choose a backend: `-t` PyTorch, `-n`
+  NumPy, `-u` CuPy (not yet written; it falls back with a warning).  By
+  default PyTorch is used if it is installed, even without a GPU, and
+  NumPy otherwise.  `choose_backend` returns just the backend.
 - A hologram that cannot be computed no longer stops all later holograms:
-  `QHOT` allows the next request and shows the reason in the status bar.
+  the status bar shows the reason, and the next change asks again.
+
+### Removed
+- `TorchCGH` and `cupyCGH` (replaced by `TorchBackend`; a CuPy backend
+  will follow), `QTrapSync` and the replicas, the per-trap caches and
+  their invalidation, and `CGH.compute(traps)` on live traps, `fieldOf`,
+  `transform`, `window`, `quantize`, `bless` and the geometry arrays.
+- `QVortex.structure(cgh)` and `QRingTrap.structure(cgh)`: use
+  `structuringField(geometry, **params)`.
 
 - `Record`, `StartRecording` and `StopRecording` drive the recorder of the
   DVR widget (`dvr.recorder`) instead of clicking its buttons.  A click
@@ -90,10 +102,7 @@
 - Moving a group and then changing one of its members (or a nested
   group) recomputed the structure of the group from cached fields of the
   other members at their old places, giving phase errors of tens of
-  levels.  A group still moves with one outer product.
-- The above two are fixed in the new replica path.  A `CGH` used directly
-  on live traps (`CGH.compute(traps)`, as the tests and scripts do) keeps
-  the old behavior.
+  levels.  Both are gone with the caches: nothing can go stale.
 
 ## [1.5.0] — 2026-10-27
 

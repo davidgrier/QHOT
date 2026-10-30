@@ -53,14 +53,16 @@ QHOT is a holographic optical trapping system. It uses a spatial light modulator
 qhot.py (QHOTWindow)
   ├── QHOTScreen      — live video display with interactive trap overlay
   ├── QSLM            — SLM display window (secondary screen, shows phase pattern)
-  ├── CGH             — hologram computation engine (runs in QThread)
+  ├── CGH             — calibration and hologram pipeline (computes in a QThread)
   ├── QCGHTree        — Qt parameter tree for CGH calibration
   └── QSaveFile       — TOML config and image file I/O
 ```
 
-**Signal flow:** trap changes → `QTrapOverlay` emits → `QTrapSync` sends the CGH engine a message → a timer (`QHOT.COMPUTE_INTERVAL`, independent of the video) emits `_computeRequested` → `CGH.computeKeys()` computes in the worker thread → `CGH.hologramReady` → `QSLM.setData()` updates SLM display.
+**Signal flow:** trap or calibration changes → `QHOT._scheduleCompute` → a timer (`QHOT.COMPUTE_INTERVAL`, independent of the video) calls `CGH.compute(overlay.pattern())` → the worker thread computes with a `Backend` → `CGH.hologramReady` → `QSLM.setData()` updates SLM display.
 
-**Threading rule:** the CGH engine lives in its own thread and must never read live traps. It computes from private replicas (`lib/holograms/replicas.py`) that `QTrapSync` keeps current with ordered messages of plain data. Anything that changes a trap's state in a way the engine must see needs a signal that `QTrapSync` forwards (`changed`, `structureChanged`). Assigning a CGH calibration attribute from another thread is safe: it waits for a hologram in progress.
+**Threading rule:** the compute thread must never touch anything the interface edits. `CGH.compute` captures two plain values at the request: the pattern (`QTrapOverlay.pattern()`, a tuple of immutable `TrapSpec`) and the calibration (`CGH.optics`, an immutable `Optics`). Anything a hologram depends on must therefore be in the `TrapSpec` or the `Optics`. There are no locks and no caches to invalidate: a hologram is computed from scratch, and the only thing kept between holograms is the structuring fields, keyed by value.
+
+**The algorithm** is stated in `lib/holograms/reference.py` (slow, literal, float64). Backends are tested against it, so change the reference and its tests first, then make a backend agree. A trap's field is `amplitude * exp(i phase) * D(r) * S`, where `D` is the displacement and `S` the structuring field (`QTrap.structuringField(geometry, **params)`, a function of values, given only a `Geometry`). A group's structure is the superposition of its members', recursively. A plain group has no amplitude of its own; a composite (`QTrapGroup.composite = True`) does.
 
 **Trap hierarchy:**
 - `lib/traps/QTrap.py` — base class; all traps have a 3D position and phase profile
@@ -69,8 +71,10 @@ qhot.py (QHOTWindow)
 - `traps/` — concrete trap types: `QTweezer`, `QVortex`, `QRingTrap`, `QTrapArray`, `QLetterArray`, `QTextArray`
 
 **Hologram computation** (`lib/holograms/`):
-- `CGH.py` — CPU-based iterative CGH algorithm; calibration parameters (pixel pitch, wavelength, focal length, etc.)
-- `cupyCGH.py` — GPU-accelerated variant (excluded from coverage)
+- `CGH.py` — calibration parameters (pixel pitch, wavelength, focal length, etc.) and the pipeline: `compute(pattern)`, `hologramReady`, `computeFailed`
+- `Optics.py` — the calibration as an immutable value; `Geometry` is all a trap is given
+- `reference.py` — the algorithm stated plainly; the standard for the backends
+- `Backend.py`, `NumpyBackend.py`, `TorchBackend.py` — compute holograms from a pattern (matrix product of the phase ramps; PyTorch runs on Apple GPU, CUDA or CPU). A CuPy backend is still to be written.
 
 ## Testing
 
@@ -90,16 +94,9 @@ qhot.py (QHOTWindow)
 - Use split-string style for `__all__`: `__all__ = 'Foo Bar Baz'.split()`
 - Keep all lines within 79 columns, including comments and docstrings.
 
-## Circular imports
+## Imports
 
-`CGH` → `lib/traps` → `QTrapOverlay` → `traps/` → `QVortex`/`QRingTrap` forms a cycle. Annotate `cgh` parameters in trap subclasses with `TYPE_CHECKING`:
-
-```python
-from __future__ import annotations
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from QHOT.lib.holograms.CGH import CGH
-```
+Traps do not import the hologram pipeline: they are given a `Geometry`. `reference.py` and `Backend.py` import `QHOT.traps` lazily, inside the function that needs it, to register the trap classes without a cycle.
 
 ## Naming conventions
 

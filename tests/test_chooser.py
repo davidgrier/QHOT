@@ -1,4 +1,5 @@
 '''Unit tests for QHOT CGH backend chooser.'''
+import sys
 import unittest
 from argparse import ArgumentParser
 from unittest.mock import patch, MagicMock
@@ -7,8 +8,9 @@ import importlib as _importlib
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
-from QHOT.lib.chooser import (build_parser, cgh_parser, choose_cgh,
-                               choose_slm, _CGH_BACKENDS)
+from QHOT.lib.chooser import (build_parser, cgh_parser, choose_backend,
+                               choose_cgh, choose_slm, _CGH_BACKENDS)
+from QHOT.lib.holograms import Backend, NumpyBackend
 from QHOT.lib.holograms.CGH import CGH
 from QHOT.lib.QSLM import QSLM
 _chooser_mod = _importlib.import_module('QHOT.lib.chooser')
@@ -66,10 +68,16 @@ class TestCghParser(unittest.TestCase):
         self.assertFalse(args.torch)
         self.assertTrue(args.cupy)
 
+    def test_parse_numpy_flag(self):
+        args, _ = cgh_parser().parse_known_args(['-n'])
+        self.assertTrue(args.numpy)
+        self.assertFalse(args.torch)
+
     def test_no_flags_defaults_false(self):
         args, _ = cgh_parser().parse_known_args([])
         self.assertFalse(args.torch)
         self.assertFalse(args.cupy)
+        self.assertFalse(args.numpy)
 
 
 class TestChooseCghAutoDetect(unittest.TestCase):
@@ -85,47 +93,50 @@ class TestChooseCghAutoDetect(unittest.TestCase):
         self.assertIsInstance(result, CGH)
 
     def test_auto_selects_torch_when_available(self):
-        fake_torch_cgh = MagicMock(spec=CGH)
-        fake_cls = MagicMock(return_value=fake_torch_cgh)
+        fake_backend = MagicMock(spec=Backend)
         fake_module = MagicMock()
-        fake_module.TorchCGH = fake_cls
+        fake_module.TorchBackend = MagicMock(return_value=fake_backend)
         with patch.object(_chooser_mod, 'importlib') as mock_importlib:
             mock_importlib.import_module.return_value = fake_module
-            result = choose_cgh()
-        self.assertIs(result, fake_torch_cgh)
+            result = choose_backend()
+        self.assertIs(result, fake_backend)
 
-    def test_falls_back_to_cupy_when_torch_unavailable(self):
-        fake_cupy_cgh = MagicMock(spec=CGH)
-        fake_cupy_cls = MagicMock(return_value=fake_cupy_cgh)
-        fake_cupy_mod = MagicMock()
-        fake_cupy_mod.cupyCGH = fake_cupy_cls
+    def test_falls_back_to_numpy_when_torch_unavailable(self):
+        fake_backend = MagicMock(spec=Backend)
+        fake_module = MagicMock()
+        fake_module.NumpyBackend = MagicMock(return_value=fake_backend)
 
         def import_side_effect(name):
-            if 'TorchCGH' in name:
+            if 'TorchBackend' in name:
                 raise ImportError('no torch')
-            return fake_cupy_mod
+            return fake_module
 
         with patch.object(_chooser_mod, 'importlib') as mock_importlib:
             mock_importlib.import_module.side_effect = import_side_effect
-            result = choose_cgh()
-        self.assertIs(result, fake_cupy_cgh)
+            result = choose_backend()
+        self.assertIs(result, fake_backend)
 
-    def test_falls_back_to_cpu_when_all_fail(self):
+    def test_falls_back_to_numpy_when_all_fail(self):
         with patch.object(_chooser_mod, 'importlib') as mock_importlib:
             mock_importlib.import_module.side_effect = ImportError('none')
             result = choose_cgh()
-        self.assertIsInstance(result, CGH)
         self.assertEqual(type(result), CGH)
+        self.assertIsInstance(result.backend, NumpyBackend)
 
-    def test_kwargs_forwarded_to_backend(self):
-        fake_cgh = MagicMock(spec=CGH)
-        fake_cls = MagicMock(return_value=fake_cgh)
-        fake_mod = MagicMock()
-        fake_mod.TorchCGH = fake_cls
-        with patch.object(_chooser_mod, 'importlib') as mock_importlib:
-            mock_importlib.import_module.return_value = fake_mod
-            choose_cgh(shape=(256, 256))
-        fake_cls.assert_called_once_with(shape=(256, 256))
+    def test_choose_cgh_uses_the_chosen_backend(self):
+        fake_backend = MagicMock(spec=Backend)
+        with patch.object(_chooser_mod, 'choose_backend',
+                          return_value=fake_backend):
+            result = choose_cgh()
+        self.assertIs(result.backend, fake_backend)
+
+    def test_kwargs_forwarded_to_the_cgh(self):
+        result = choose_cgh(shape=(256, 256), xc=11.)
+        self.assertEqual(result.shape, (256, 256))
+        self.assertEqual(result.xc, 11.)
+
+    def test_a_real_backend_is_chosen(self):
+        self.assertIsInstance(choose_backend(), Backend)
 
 
 class TestChooseCghExplicit(unittest.TestCase):
@@ -173,10 +184,38 @@ class TestChooseCghExplicit(unittest.TestCase):
                         mock_logger.warning.called)
 
 
+class TestExplicitFlags(unittest.TestCase):
+
+    '''The flags of the command line, as the program is given them.'''
+
+    def choose(self, *flags):
+        with patch.object(sys, 'argv', ['qhot', *flags]):
+            return choose_backend(cgh_parser())
+
+    def test_n_chooses_numpy(self):
+        self.assertIsInstance(self.choose('-n'), NumpyBackend)
+
+    def test_t_chooses_torch_if_it_is_installed(self):
+        try:
+            import torch  # noqa: F401
+        except ImportError:
+            self.skipTest('torch is not installed')
+        self.assertEqual(self.choose('-t').name, 'torch')
+
+    def test_u_falls_back_with_a_warning_until_cupy_is_written(self):
+        with self.assertLogs('QHOT.lib.chooser', level='WARNING') as logs:
+            backend = self.choose('-u')
+        self.assertIsInstance(backend, Backend)
+        self.assertTrue(any('CuPy' in line for line in logs.output))
+
+
 class TestBackendRegistry(unittest.TestCase):
 
     def test_torch_entry_has_correct_flag(self):
         self.assertEqual(_CGH_BACKENDS['torch'].flag, '-t')
+
+    def test_numpy_entry_has_correct_flag(self):
+        self.assertEqual(_CGH_BACKENDS['numpy'].flag, '-n')
 
     def test_cupy_entry_has_correct_flag(self):
         self.assertEqual(_CGH_BACKENDS['cupy'].flag, '-u')
@@ -211,8 +250,8 @@ class TestBuildParser(unittest.TestCase):
             self.assertIn(flag, self.parser._option_string_actions)
 
     def test_cgh_flags_registered(self):
-        self.assertIn('-t', self.parser._option_string_actions)
-        self.assertIn('-u', self.parser._option_string_actions)
+        for flag in ('-t', '-n', '-u'):
+            self.assertIn(flag, self.parser._option_string_actions)
 
     def test_cameraid_registered(self):
         self.assertTrue(
@@ -229,6 +268,8 @@ class TestBuildParser(unittest.TestCase):
         # CGH flags are mutually exclusive with each other.
         with self.assertRaises(SystemExit):
             self.parser.parse_args(['-t', '-u'])
+        with self.assertRaises(SystemExit):
+            self.parser.parse_args(['-t', '-n'])
 
     def test_camera_and_cgh_flags_coexist(self):
         # A camera flag and a CGH flag can be used together.

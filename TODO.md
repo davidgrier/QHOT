@@ -8,12 +8,13 @@ Ideas for upgrades and extensions, in no particular order.
 
 Accelerate hologram computation for higher frame rates and larger SLMs.
 
-- ~~GPU-based CGH via CUDA/cupy (`lib/holograms/cupyCGH.py` is a starting point)~~  **Done** (cupyCGH exists)
+- GPU-based CGH via CuPy: write `CupyBackend` (the old `cupyCGH` was removed; NumPy-compatible, so it should be small)
 - ~~PyTorch-based CGH for cross-platform GPU acceleration (CUDA, MPS, CPU fallback)~~  **Done** (v1.1.0, `TorchCGH`)
 - ~~Automatically select the most performant CGH implementation available on the platform~~  **Done** (v1.1.0, `choose_cgh()`)
 - Investigate OpenCL for portability across GPU vendors
 - Benchmark CPU vs GPU for typical SLM resolutions
-- Improve efficiency of trap group motion (reduce redundant CGH recomputation on bulk moves)
+- Many distinct structured traps: keep a running sum and update only the traps that changed (compare successive patterns by value)
+- A numba backend: fuse the structured term and the quantization into one pass over memory on the CPU
 
 ---
 
@@ -217,7 +218,7 @@ Improve the interactive experience during experiments.
 Structural improvements to the codebase.
 
 - Plugin system for custom trap types so users can add new traps without modifying core code
-- ~~Decouple CGH computation rate from display frame rate — separate the two update loops~~  **Done** (hologram timer, `QHOT.COMPUTE_INTERVAL`; `QTrapSync` replicas)
+- ~~Decouple CGH computation rate from display frame rate — separate the two update loops~~  **Done** (hologram timer, `QHOT.COMPUTE_INTERVAL`; the worker computes from immutable snapshots)
 - Event bus or signal log for debugging signal/slot chains
 
 ---

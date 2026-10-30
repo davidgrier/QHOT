@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from pyqtgraph.Qt import QtWidgets, QtTest
 from QHOT.traps.QRingTrap import QRingTrap
-from QHOT.lib.holograms.CGH import CGH
+from QHOT.lib.holograms import Optics
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -113,42 +113,42 @@ class TestEllProperty(unittest.TestCase):
         self.assertAlmostEqual(self.trap.ell, -2.)
 
 
-class TestStructureMethod(unittest.TestCase):
+class TestStructuringField(unittest.TestCase):
 
     def setUp(self):
-        self.cgh = CGH(shape=(32, 32), xc=0., yc=0., zc=0.,
-                       thetac=0., splay=0.)
+        self.geometry = Optics(shape=(32, 32), xc=0., yc=0., zc=0.,
+                               thetac=0., splay=0.).geometry
 
     def test_returns_ndarray(self):
         trap = QRingTrap(radius=10., ell=0., phase=0.)
-        result = trap.structure(self.cgh)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
         self.assertIsInstance(result, np.ndarray)
 
     def test_output_shape(self):
         trap = QRingTrap(radius=10., ell=0., phase=0.)
-        result = trap.structure(self.cgh)
-        self.assertEqual(result.shape, self.cgh.shape)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
+        self.assertEqual(result.shape, self.geometry.shape)
 
     def test_zero_ell_is_real(self):
         from scipy.special import jv
         trap = QRingTrap(radius=10., ell=0., phase=0.)
-        result = trap.structure(self.cgh)
-        expected = jv(0., 10. * self.cgh.qr)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
+        expected = jv(0., 10. * self.geometry.qr)
         np.testing.assert_array_almost_equal(result.real, expected)
         np.testing.assert_array_almost_equal(result.imag, 0.)
 
     def test_nonzero_ell_has_helical_phase(self):
         from scipy.special import jv
         trap = QRingTrap(radius=10., ell=1., phase=0.)
-        result = trap.structure(self.cgh)
-        expected = jv(1., 10. * self.cgh.qr) * np.exp(1j * self.cgh.theta)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
+        expected = jv(1., 10. * self.geometry.qr) * np.exp(1j * self.geometry.theta)
         np.testing.assert_array_almost_equal(result, expected)
 
     def test_structure_depends_on_radius(self):
         trap1 = QRingTrap(radius=5., ell=0., phase=0.)
         trap2 = QRingTrap(radius=20., ell=0., phase=0.)
-        r1 = trap1.structure(self.cgh)
-        r2 = trap2.structure(self.cgh)
+        r1 = trap1.structuringField(self.geometry, **trap1.spec().parameters())
+        r2 = trap2.structuringField(self.geometry, **trap2.spec().parameters())
         self.assertFalse(np.allclose(r1, r2))
 
 

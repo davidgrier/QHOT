@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from pyqtgraph.Qt import QtWidgets, QtTest
 from QHOT.traps.QVortex import QVortex
-from QHOT.lib.holograms.CGH import CGH
+from QHOT.lib.holograms import Optics
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -78,36 +78,36 @@ class TestEllProperty(unittest.TestCase):
         self.assertEqual(self.trap.ell, -3)
 
 
-class TestStructureMethod(unittest.TestCase):
+class TestStructuringField(unittest.TestCase):
 
     def setUp(self):
-        self.cgh = CGH(shape=(32, 32), xc=0., yc=0., zc=0.,
-                       thetac=0., splay=0.)
+        self.geometry = Optics(shape=(32, 32), xc=0., yc=0., zc=0.,
+                               thetac=0., splay=0.).geometry
 
     def test_returns_ndarray(self):
         trap = QVortex(ell=1, phase=0.)
-        result = trap.structure(self.cgh)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
         self.assertIsInstance(result, np.ndarray)
 
     def test_output_shape(self):
         trap = QVortex(ell=1, phase=0.)
-        result = trap.structure(self.cgh)
-        self.assertEqual(result.shape, self.cgh.shape)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
+        self.assertEqual(result.shape, self.geometry.shape)
 
     def test_zero_ell_gives_ones(self):
         trap = QVortex(ell=0, phase=0.)
-        result = trap.structure(self.cgh)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
         np.testing.assert_array_almost_equal(np.abs(result), 1.)
 
     def test_unit_magnitude(self):
         trap = QVortex(ell=2, phase=0.)
-        result = trap.structure(self.cgh)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
         np.testing.assert_array_almost_equal(np.abs(result), 1.)
 
     def test_helical_phase(self):
         trap = QVortex(ell=1, phase=0.)
-        result = trap.structure(self.cgh)
-        expected = np.exp(1j * self.cgh.theta)
+        result = trap.structuringField(self.geometry, **trap.spec().parameters())
+        expected = np.exp(1j * self.geometry.theta)
         np.testing.assert_array_almost_equal(result, expected)
 
 

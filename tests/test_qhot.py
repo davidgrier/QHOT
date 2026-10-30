@@ -11,7 +11,7 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
@@ -455,6 +455,92 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
         self.assertIsNotNone(self.window.videoTab.layout())
         viewport = self.window.videoTab.parent()
         self.assertIs(viewport.parent(), self.window.videoScroll)
+
+
+class QGenicamCamera:
+
+    '''Stands in for the base of the GenICam backends, by name.'''
+
+
+class AFlirLikeCamera(QGenicamCamera):
+    pass
+
+
+class ANoiseLikeCamera:
+    pass
+
+
+class TestTheThreadsShareTheInterpreter(unittest.TestCase):
+
+    '''The interface stays quick with a camera that holds the interpreter.
+
+    The binding that reads GenICam cameras keeps the interpreter while it
+    waits for a frame, and the traps lag; the threads take turns every
+    0.5 ms (measured with a Flir: the holograms went from 3.4 to 9.7 a
+    second, as with an OpenCV camera).  The setting is of the whole
+    process, so only a GenICam camera gets it.
+    '''
+
+    def setUp(self):
+        self.interval = sys.getswitchinterval()
+        self.addCleanup(sys.setswitchinterval, self.interval)
+        sys.setswitchinterval(0.005)
+
+    def test_the_interval_is_shorter_than_pythons(self):
+        self.assertEqual(qhot.SWITCH_INTERVAL, 0.0005)
+        self.assertLess(qhot.SWITCH_INTERVAL, 0.005)
+
+    def test_a_camera_of_a_genicam_class_is_recognized(self):
+        self.assertTrue(qhot.readsGenicam(AFlirLikeCamera()))
+        self.assertTrue(qhot.readsGenicam(QGenicamCamera()))
+
+    def test_any_other_camera_is_not(self):
+        self.assertFalse(qhot.readsGenicam(ANoiseLikeCamera()))
+
+    def test_the_backends_of_qvideo_are_recognized_as_they_are(self):
+        # the classes themselves, where their libraries are installed
+        for module, name, genicam in (
+                ('QVideo.cameras.Flir', 'QFlirCamera', True),
+                ('QVideo.cameras.Basler', 'QBaslerCamera', True),
+                ('QVideo.cameras.MV', 'QMVCamera', True),
+                ('QVideo.cameras.Noise', 'QNoiseCamera', False)):
+            with self.subTest(name):
+                try:
+                    cls = getattr(importlib.import_module(module), name)
+                except ImportError:
+                    self.skipTest(f'{module} is not installed')
+                camera = cls.__new__(cls)       # not opened: only its class
+                self.assertEqual(qhot.readsGenicam(camera), genicam)
+
+    def test_a_genicam_camera_gets_the_short_interval(self):
+        qhot.shareTheInterpreter(AFlirLikeCamera())
+        self.assertEqual(sys.getswitchinterval(), qhot.SWITCH_INTERVAL)
+
+    def test_another_camera_keeps_the_interval_that_it_had(self):
+        qhot.shareTheInterpreter(ANoiseLikeCamera())
+        self.assertEqual(sys.getswitchinterval(), 0.005)
+
+    def run_main_with(self, camera):
+        '''Run main() as far as the interface, which is made to stop.'''
+        opener = MagicMock()
+        opener.waitForCamera.return_value = True
+        opener.camera, opener.key = camera, 'fake'
+        slm = MagicMock(shape=(8, 8))
+        stop = RuntimeError('stop here')
+        with patch.object(qhot, 'QCameraOpener', return_value=opener), \
+                patch.object(qhot, 'choose_slm', return_value=slm), \
+                patch.object(qhot, 'choose_cgh'), \
+                patch.object(qhot.chooser, 'make_tree', side_effect=stop):
+            with self.assertRaises(RuntimeError):
+                qhot.main()
+
+    def test_main_does_it_for_a_genicam_camera_before_the_interface(self):
+        self.run_main_with(AFlirLikeCamera())
+        self.assertEqual(sys.getswitchinterval(), qhot.SWITCH_INTERVAL)
+
+    def test_main_leaves_the_interval_for_any_other_camera(self):
+        self.run_main_with(ANoiseLikeCamera())
+        self.assertEqual(sys.getswitchinterval(), 0.005)
 
 
 if __name__ == '__main__':

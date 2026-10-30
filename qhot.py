@@ -351,6 +351,42 @@ class QHOT(QtWidgets.QMainWindow):
         super().closeEvent(event)
 
 
+#: How long a Python thread may keep the interpreter before another gets
+#: its turn [s]; Python's own is 5 ms.  The ``genicam`` binding that reads
+#: GenICam cameras holds the interpreter while it waits for a frame, and
+#: every small step of the interface, drawing the traps most of all, then
+#: waits for a whole interval.  Measured with a Flir camera: the traps got
+#: 3.4 holograms a second and a median wait of 28 ms with 5 ms, and 9.7 a
+#: second and 6 ms with this (an OpenCV camera: 9.8 and 5 ms).
+#:
+#: This is a stopgap.  It goes when QVideo reads GenICam cameras without
+#: holding the interpreter (genicam/harvesters issue 508; see the TODO of
+#: QVideo).
+SWITCH_INTERVAL = 0.0005
+
+
+def readsGenicam(camera) -> bool:
+    '''Whether the camera is read through the GenICam binding.
+
+    The Basler, Flir, IDS, MATRIX VISION and VimbaX cameras of QVideo are.
+    This looks at the classes of the camera, and does not import the
+    GenICam backend, which needs libraries that not everyone installs.
+    '''
+    return any(cls.__name__ == 'QGenicamCamera'
+               for cls in type(camera).__mro__)
+
+
+def shareTheInterpreter(camera) -> None:
+    '''Let the threads take turns at the shorter interval, if it is needed.
+
+    Only a camera that is read through the GenICam binding needs it, and
+    the interval is a setting of the whole process, so the others keep
+    Python's.
+    '''
+    if readsGenicam(camera):
+        sys.setswitchinterval(SWITCH_INTERVAL)
+
+
 def main() -> None:
     '''Launch the QHOT application.
 
@@ -382,6 +418,7 @@ def main() -> None:
     if not opener.waitForCamera():
         screen.close()
         sys.exit(f'Error: {opener.reason}')
+    shareTheInterpreter(opener.camera)
     say(screen, 'Building the interface...')
     tree = chooser.make_tree(opener.key, opener.camera).start()
     opener.camera = None  # the interface has it now

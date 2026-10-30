@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The traps responded slowly with a GenICam camera such as the Flir: 3.4
+  holograms a second and a median wait of 28 ms for the interface, against
+  9.8 and 5 ms with an OpenCV camera.  The `genicam` binding that reads
+  these cameras holds the interpreter while it waits for a frame, so every
+  small step of the interface waits for a whole 5 ms turn.  When a GenICam
+  camera is opened, the threads now take turns every 0.5 ms
+  (`SWITCH_INTERVAL`): with a Flir the holograms are made 9.7 times a second
+  and the interface waits 6 ms.  Other cameras keep Python's interval.  This
+  is a stopgap until QVideo reads GenICam cameras without holding the
+  interpreter (genicam/harvesters issue 508).
+
 ## [2.1.0] — 2026-10-30
 
 What matters if you use QHOT:

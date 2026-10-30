@@ -43,7 +43,7 @@ class Optics:
     another.  A changed calibration is a new ``Optics``.
 
     A trap at ``r`` in the camera plane has the phase ramp that moves the
-    focus there (:meth:`displacement`).  The ramp is the product of a
+    focus there (:meth:`phasors`).  The ramp is the product of a
     factor along x and a factor along y, which is what makes a hologram of
     many traps cheap to compute.
 
@@ -159,7 +159,7 @@ class Optics:
         qr = np.hypot.outer(self.qprp * self.y, self.qprp * self.x)
         return Geometry(self.shape, theta, qr)
 
-    def transform(self, r) -> np.ndarray:
+    def toSLM(self, r) -> np.ndarray:
         '''Map a position in the camera plane to the SLM plane.
 
         Translates to the optical axis, rotates by ``thetac`` and corrects
@@ -188,7 +188,7 @@ class Optics:
         fac = 1. / (1. + self.splay * dz)
         return np.stack([x * fac, y * fac, dz], axis=-1)
 
-    def displacement(self, r) -> tuple[np.ndarray, np.ndarray]:
+    def phasors(self, r) -> tuple[np.ndarray, np.ndarray]:
         '''Return the phase ramps that move a focus to ``r``.
 
         The field of a focus at ``r`` is the outer product of the two
@@ -205,7 +205,7 @@ class Optics:
             The factor of each row (length ``height``) and of each column
             (length ``width``).
         '''
-        rx, ry, rz = self.transform(r)
+        rx, ry, rz = self.toSLM(r)
         ex = np.exp(1j * (self.qx * rx + self.qpar * self.x**2 * rz))
         ey = np.exp(1j * (-self.qy * ry + self.qpar * self.y**2 * rz))
         return ey, ex

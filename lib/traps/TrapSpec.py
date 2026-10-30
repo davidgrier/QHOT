@@ -58,7 +58,7 @@ class TrapSpec:
         '''Return the parameters of the structuring field as a dict.'''
         return dict(self.params)
 
-    def weighted(self, weight: complex = 1.
+    def components(self, envelope: complex = 1.
                  ) -> Iterator[tuple['TrapSpec', complex]]:
         '''Yield each trap that is not a group, with its complex weight.
 
@@ -75,10 +75,10 @@ class TrapSpec:
         weight : complex
             The weight of what contains this spec.  Default: 1.
         '''
-        mine = weight * self.amplitude * cmath.exp(1j * self.phase)
+        mine = envelope * self.amplitude * cmath.exp(1j * self.phase)
         if self.isGroup:
             for child in self.children:
-                yield from child.weighted(mine)
+                yield from child.components(mine)
         else:
             yield self, mine
 

@@ -24,7 +24,7 @@ class NumpyBackend(Backend):
 
     name = 'numpy'
 
-    def prepare(self, optics: Optics) -> SimpleNamespace:
+    def calibrate(self, optics: Optics) -> SimpleNamespace:
         f32 = np.float32
         return SimpleNamespace(
             shape=optics.shape,
@@ -35,19 +35,19 @@ class NumpyBackend(Backend):
     def zeros(self, c: SimpleNamespace) -> np.ndarray:
         return np.zeros(c.shape, dtype=np.complex64)
 
-    def ramps(self, c: SimpleNamespace, R: np.ndarray,
-              weights: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def phasors(self, c: SimpleNamespace, R: np.ndarray,
+              amplitudes: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         R = R.astype(np.float32)
         px = c.qx * R[:, 0:1] + c.qpar * c.x2 * R[:, 2:3]    # n x width
         py = -c.qy * R[:, 1:2] + c.qpar * c.y2 * R[:, 2:3]   # n x height
         ex = np.exp(1j * px).astype(np.complex64)
         ey = np.exp(1j * py).astype(np.complex64)
-        ey *= weights.astype(np.complex64)[:, None]
+        ey *= amplitudes.astype(np.complex64)[:, None]
         return ey.T, ex
 
-    def accumulate(self, psi: np.ndarray, ramps: tuple,
+    def superpose(self, psi: np.ndarray, phasors: tuple,
                    structure: np.ndarray | None = None) -> np.ndarray:
-        rows, columns = ramps
+        rows, columns = phasors
         if rows.shape[1] == 1:                       # one trap: an outer
             term = rows * columns                    # product, no BLAS
         else:

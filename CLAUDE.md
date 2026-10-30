@@ -74,7 +74,7 @@ qhot.py (QHOTWindow)
 - `CGH.py` — calibration parameters (pixel pitch, wavelength, focal length, etc.) and the pipeline: `compute(pattern)`, `hologramReady`, `computeFailed`
 - `Optics.py` — the calibration as an immutable value; `Geometry` is all a trap is given
 - `reference.py` — the algorithm stated plainly; the standard for the backends
-- `Backend.py`, `NumpyBackend.py`, `TorchBackend.py` — compute holograms from a pattern (matrix product of the phase ramps; PyTorch runs on Apple GPU, CUDA or CPU). A CuPy backend is still to be written.
+- `Backend.py`, `NumpyBackend.py`, `TorchBackend.py` — compute holograms from a pattern (matrix product of the phasors; PyTorch runs on Apple GPU, CUDA or CPU). A CuPy backend is still to be written.
 
 ## Testing
 

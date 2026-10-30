@@ -53,7 +53,7 @@ __all__ = ('displacement structuringField structure field quantize '
 
 def displacement(r, optics: Optics) -> Field:
     '''Return the phase ramp ``D(r)`` that moves a focus to ``r``.'''
-    ey, ex = optics.displacement(r)
+    ey, ex = optics.phasors(r)
     return np.outer(ey, ex)
 
 
@@ -87,8 +87,8 @@ def structure(spec: TrapSpec, optics: Optics) -> Field | float:
 
 def field(spec: TrapSpec, optics: Optics) -> Field:
     '''Return the field of a trap or group.'''
-    weight = spec.amplitude * np.exp(1j * spec.phase)
-    return weight * displacement(spec.r, optics) * structure(spec, optics)
+    amplitude = spec.amplitude * np.exp(1j * spec.phase)
+    return amplitude * displacement(spec.r, optics) * structure(spec, optics)
 
 
 def quantize(psi: Field) -> Hologram:

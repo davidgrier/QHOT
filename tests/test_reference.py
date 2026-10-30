@@ -57,33 +57,33 @@ class TestOptics(unittest.TestCase):
         for zc in (0., 7., -4.):
             with self.subTest(zc=zc):
                 o = optics(zc=zc, splay=0.05)
-                x, y, z = o.transform((o.xc + 10., o.yc, zc + 5.))
+                x, y, z = o.toSLM((o.xc + 10., o.yc, zc + 5.))
                 self.assertAlmostEqual(x, 10. / (1. + 0.05 * 5.))
                 self.assertAlmostEqual(z, 5.)
 
     def test_the_camera_rotates_counterclockwise(self):
         '''A quarter turn takes the x axis to the y axis.'''
         o = optics(thetac=90., splay=0.)
-        x, y, z = o.transform((o.xc + 10., o.yc, o.zc))
+        x, y, z = o.toSLM((o.xc + 10., o.yc, o.zc))
         self.assertAlmostEqual(x, 0.)
         self.assertAlmostEqual(y, 10.)
         self.assertAlmostEqual(z, 0.)
 
     def test_the_origin_of_the_camera_is_the_optical_axis(self):
         o = optics(thetac=33., zc=4.)
-        self.assertTrue(np.allclose(o.transform((o.xc, o.yc, o.zc)), 0.))
+        self.assertTrue(np.allclose(o.toSLM((o.xc, o.yc, o.zc)), 0.))
 
     def test_depth_is_measured_from_the_focal_plane(self):
         o = optics(zc=4., splay=0.)
-        self.assertAlmostEqual(o.transform((o.xc, o.yc, 9.))[2], 5.)
+        self.assertAlmostEqual(o.toSLM((o.xc, o.yc, 9.))[2], 5.)
 
     def test_displacement_has_unit_modulus(self):
-        ey, ex = optics().displacement((10., 20., 3.))
+        ey, ex = optics().phasors((10., 20., 3.))
         self.assertTrue(np.allclose(np.abs(ey), 1.))
         self.assertTrue(np.allclose(np.abs(ex), 1.))
 
     def test_displacement_shape(self):
-        ey, ex = optics().displacement((10., 20., 3.))
+        ey, ex = optics().phasors((10., 20., 3.))
         self.assertEqual(ey.shape, (SHAPE[0],))
         self.assertEqual(ex.shape, (SHAPE[1],))
 

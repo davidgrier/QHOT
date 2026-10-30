@@ -68,7 +68,7 @@ class TorchBackend(Backend):
         array = np.ascontiguousarray(array, dtype=dtype)
         return torch.as_tensor(array, device=self.device)
 
-    def prepare(self, optics: Optics) -> SimpleNamespace:
+    def calibrate(self, optics: Optics) -> SimpleNamespace:
         return SimpleNamespace(
             shape=optics.shape, qpar=float(optics.qpar),
             qx=self._tensor(optics.qx), qy=self._tensor(optics.qy),
@@ -78,20 +78,20 @@ class TorchBackend(Backend):
         return torch.zeros(c.shape, dtype=torch.complex64,
                            device=self.device)
 
-    def ramps(self, c: SimpleNamespace, R: np.ndarray,
-              weights: np.ndarray) -> tuple:
+    def phasors(self, c: SimpleNamespace, R: np.ndarray,
+              amplitudes: np.ndarray) -> tuple:
         R = self._tensor(R)
-        w = self._tensor(weights, np.complex64)[:, None]
+        w = self._tensor(amplitudes, np.complex64)[:, None]
         px = c.qx * R[:, 0:1] + c.qpar * c.x2 * R[:, 2:3]    # n x width
         py = -c.qy * R[:, 1:2] + c.qpar * c.y2 * R[:, 2:3]   # n x height
         ex = torch.complex(torch.cos(px), torch.sin(px))
         ey = torch.complex(torch.cos(py), torch.sin(py)) * w
         return ey.T, ex
 
-    def accumulate(self, psi: 'torch.Tensor', ramps: tuple,
+    def superpose(self, psi: 'torch.Tensor', phasors: tuple,
                    structure: 'torch.Tensor | None' = None
                    ) -> 'torch.Tensor':
-        rows, columns = ramps
+        rows, columns = phasors
         if rows.shape[1] == 1:                       # one trap: an outer
             if structure is None:                    # product, fused with
                 return psi.addcmul_(rows, columns)   # the addition

@@ -38,8 +38,8 @@ class Backend:
     moves, because a hologram is computed from scratch in the time that
     the cache used to take to sum.
 
-    A subclass supplies the array operations: :meth:`prepare`,
-    :meth:`zeros`, :meth:`ramps`, :meth:`accumulate`, :meth:`quantize`
+    A subclass supplies the array operations: :meth:`calibrate`,
+    :meth:`zeros`, :meth:`phasors`, :meth:`superpose`, :meth:`quantize`
     and :meth:`upload`.  A backend is used by one thread
     at a time.
 
@@ -73,14 +73,14 @@ class Backend:
         Hologram
             The phase of the sum of the fields, as ``uint8``.
         '''
-        context = self._prepare(optics)
+        context = self._context_for(optics)
         batches = self._batches(pattern, optics)
         psi = self.zeros(context)
-        for key, (positions, weights) in batches.items():
-            R = optics.transform(np.array(positions, dtype=float))
-            ramps = self.ramps(context, R, np.array(weights, dtype=complex))
+        for key, (positions, amplitudes) in batches.items():
+            R = optics.toSLM(np.array(positions, dtype=float))
+            phasors = self.phasors(context, R, np.array(amplitudes, dtype=complex))
             structure = None if key is None else self._structure(key, optics)
-            psi = self.accumulate(psi, ramps, structure)
+            psi = self.superpose(psi, phasors, structure)
         return self.quantize(psi)
 
     def _batches(self, pattern: Iterable[TrapSpec], optics: Optics) -> dict:
@@ -89,26 +89,26 @@ class Backend:
         Returns
         -------
         dict
-            Maps the structure to the positions and the weights of the
+            Maps the structure to the positions and the amplitudes of the
             traps that have it.  The key ``None`` is for plain tweezers.
         '''
         batches: dict = {}
         for top in pattern:
-            for spec, weight in top.weighted():
+            for spec, amplitude in top.components():
                 key = (spec.kind, spec.params)
                 if self._structure(key, optics) is None:
                     key = None
-                positions, weights = batches.setdefault(key, ([], []))
+                positions, amplitudes = batches.setdefault(key, ([], []))
                 positions.append(spec.r)
-                weights.append(weight)
+                amplitudes.append(amplitude)
         return batches
 
-    def _prepare(self, optics: Optics):
+    def _context_for(self, optics: Optics):
         '''Return what the backend keeps of the optics, remaking it only
         when the calibration has changed.'''
         calibration = tuple(optics.settings.items())
         if calibration != self._calibration:
-            self._context = self.prepare(optics)
+            self._context = self.calibrate(optics)
             self._calibration = calibration
             self._structures.clear()
         return self._context
@@ -136,7 +136,7 @@ class Backend:
 
     # The array operations that a backend provides.
 
-    def prepare(self, optics: Optics):
+    def calibrate(self, optics: Optics):
         '''Return the vectors of the optics, in the form that this backend
         computes with.'''
         raise NotImplementedError
@@ -145,27 +145,27 @@ class Backend:
         '''Return an empty field.'''
         raise NotImplementedError
 
-    def ramps(self, context, R: np.ndarray, weights: np.ndarray):
-        '''Return the phase ramps of ``n`` traps, weights included.
+    def phasors(self, context, R: np.ndarray, amplitudes: np.ndarray):
+        '''Return the phase phasors of ``n`` traps, amplitudes included.
 
         The field of the traps is the product of two matrices, the first
         with a column for each trap and a row for each row of the
         hologram and the second with a row for each trap and a column for
         each column of the hologram.  They are returned as a pair, so
-        that :meth:`accumulate` can choose how to multiply them.
+        that :meth:`superpose` can choose how to multiply them.
 
         Parameters
         ----------
         context
-            What :meth:`prepare` returned.
+            What :meth:`calibrate` returned.
         R : np.ndarray
             Positions of the traps in the SLM plane, shape ``(n, 3)``.
-        weights : np.ndarray
-            Complex weight of each trap, shape ``(n,)``.
+        amplitudes : np.ndarray
+            Complex amplitude of each trap, shape ``(n,)``.
         '''
         raise NotImplementedError
 
-    def accumulate(self, psi, ramps, structure=None):
+    def superpose(self, psi, phasors, structure=None):
         '''Add the field of traps to the field, shaped by a structure.
 
         This is ``psi + (rows @ columns) * structure``, or without the
@@ -176,8 +176,8 @@ class Backend:
         ----------
         psi
             The field so far.
-        ramps
-            What :meth:`ramps` returned.
+        phasors
+            What :meth:`phasors` returned.
         structure
             What :meth:`upload` returned for the structuring field, or
             ``None``.

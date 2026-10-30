@@ -191,17 +191,17 @@ class TestStructuresAreKeptByValue(unittest.TestCase):
 
 class TestOpticsInSupport(unittest.TestCase):
 
-    def test_transform_of_many_positions(self):
+    def test_toSLM_of_many_positions(self):
         o = optics(thetac=12., zc=2., splay=0.03)
         rng = np.random.default_rng(1)
         R = rng.uniform(-20, 60, size=(7, 3))
-        many = o.transform(R)
+        many = o.toSLM(R)
         self.assertEqual(many.shape, (7, 3))
         for r, m in zip(R, many):
-            self.assertTrue(np.allclose(o.transform(r), m))
+            self.assertTrue(np.allclose(o.toSLM(r), m))
 
-    def test_transform_of_one_position_is_still_a_vector(self):
-        self.assertEqual(optics().transform((1., 2., 3.)).shape, (3,))
+    def test_toSLM_of_one_position_is_still_a_vector(self):
+        self.assertEqual(optics().toSLM((1., 2., 3.)).shape, (3,))
 
 
 class TestPatternOfAnOverlay(unittest.TestCase):
@@ -251,25 +251,25 @@ class TestPatternOfAnOverlay(unittest.TestCase):
             levels(result[0], ref.hologram(pattern, o)).max(), 1)
 
 
-class TestWeightedLeaves(unittest.TestCase):
+class TestComponents(unittest.TestCase):
 
     def test_a_tweezer_is_its_own_leaf_with_its_weight(self):
         spec = tweezer(1, 1, phase=0.5, amplitude=2.).spec()
-        (leaf, weight), = spec.weighted()
+        (leaf, weight), = spec.components()
         self.assertIs(leaf, spec)
         self.assertAlmostEqual(weight, 2. * np.exp(0.5j))
 
     def test_a_plain_group_does_not_weight_its_members(self):
         g = group(tweezer(1, 1, phase=0., amplitude=2.),
                   tweezer(2, 2, phase=1., amplitude=3.))
-        weights = [w for _, w in g.spec().weighted()]
+        weights = [w for _, w in g.spec().components()]
         self.assertAlmostEqual(weights[0], 2.)
         self.assertAlmostEqual(weights[1], 3. * np.exp(1j))
 
     def test_a_composite_weights_all_its_members(self):
         c = Composite(r=(0., 0., 0.), amplitude=2., phase=0.5)
         c.addTrap([tweezer(1, 1, phase=0., amplitude=3.)])
-        (_, weight), = c.spec().weighted()
+        (_, weight), = c.spec().components()
         self.assertAlmostEqual(weight, 6. * np.exp(0.5j))
 
     def test_weights_multiply_through_nesting(self):
@@ -277,12 +277,12 @@ class TestWeightedLeaves(unittest.TestCase):
         inner.addTrap([tweezer(1, 1, phase=0.25, amplitude=1.5)])
         outer = Composite(r=(0., 0., 0.), amplitude=0.5, phase=1.)
         outer.addTrap([inner])
-        (_, weight), = outer.spec().weighted()
+        (_, weight), = outer.spec().components()
         self.assertAlmostEqual(weight, 1.5 * np.exp(1.5j))
 
     def test_an_empty_group_has_no_leaves(self):
         from QHOT.lib.traps import QTrapGroup
-        self.assertEqual(list(QTrapGroup(r=(0, 0, 0)).spec().weighted()), [])
+        self.assertEqual(list(QTrapGroup(r=(0, 0, 0)).spec().components()), [])
 
 
 @unittest.skipIf(TorchBackend is None, 'torch is not installed')

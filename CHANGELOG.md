@@ -10,8 +10,8 @@
   a group's structuring field is the superposition of its members',
   recursively.  It is the standard that the engines are tested against.
 - `Optics` and `Geometry` (`lib/holograms/Optics.py`): the calibration as
-  an immutable value, with the coordinate transform and the phase ramps
-  that move a focus; `Geometry` (the angle and radial wavenumber of the
+  an immutable value, with the map to the SLM plane (`toSLM`) and the
+  phasors that move a focus (`phasors`); `Geometry` (the angle and radial wavenumber of the
   SLM plane) is all that a trap is given to make its structure.
 - `TrapSpec` (`lib/traps/TrapSpec.py`) and `QTrap.spec()`: a snapshot of a
   trap, or of a group with all its members, as a plain, hashable value.
@@ -27,16 +27,16 @@
 - Backends that compute holograms from a pattern (`Backend`,
   `NumpyBackend`, `TorchBackend` in `lib/holograms/`), tested against the
   reference.  The fields of plain tweezers are summed as one matrix
-  product; traps with the same structure are summed first and the
-  structure applied once; groups are flattened by their weights.
+  product of phasors; traps with the same structure are summed first and
+  the structure applied once; groups are flattened by their amplitudes.
   Nothing is cached between holograms but the structuring fields, kept by
   value (kind of trap and parameters), so nothing can go stale.
   `TorchBackend` computes everything on the device, quantization included,
   and works on Apple GPUs (MPS), CUDA and the CPU.
 - `QTrapOverlay.pattern()`: a snapshot of the traps as a tuple of specs,
-  safe to hand to another thread.  `TrapSpec.weighted()` yields the traps
-  of a spec with their complex weights, and `Optics.transform` accepts
-  an array of positions.
+  safe to hand to another thread.  `TrapSpec.components()` yields the
+  traps of a spec with their complex amplitudes, and `Optics.toSLM`
+  accepts an array of positions.
 - `QTrap.structuringField(geometry, **params)`: a trap makes its own
   structuring field from the geometry and its parameters
   (`structureParams`), as a function of values.  `QVortex` and
@@ -93,7 +93,7 @@
 ### Fixed
 - The splay correction counted `zc` twice: it grew with the depth from
   the focal plane minus `zc` again.  It now follows the depth from the
-  focal plane, in `CGH.transform` and in `Optics.transform`.  Nothing
+  focal plane, in `CGH.transform` and in `Optics.toSLM`.  Nothing
   changes while `zc` is 0, its default.
 - A saved queue that contains a `StartRecording` task could not be
   loaded: the task wrote into the DVR widget before the queue gave it one.

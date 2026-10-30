@@ -11,6 +11,7 @@ traps in real time using a live camera feed.
 
    background
    architecture
+   queues
    api/lib
    api/holograms
    api/traps

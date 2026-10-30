@@ -56,7 +56,7 @@ qhot.py (QHOTWindow)
   ├── CGH             — calibration and hologram pipeline (computes in a QThread)
   ├── QCGHTree        — Qt parameter tree for CGH calibration
   ├── QSaveFile       — names and writes the files: images, JSON, TOML config
-  ├── QDocument       — traps and queue files: open, save, save as, with messages
+  ├── QDocument       — a file that is opened and saved, with messages: QJsonDocument (traps), QTomlDocument (queue: people write it by hand)
   └── QImageFile      — image and hologram files: save, save as
 ```
 

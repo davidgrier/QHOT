@@ -1,0 +1,43 @@
+# An example queue for QHOT.  Open it with File > Open Queue.
+#
+# Each [[tasks]] table is one task, and the tasks run in order, a frame
+# of video at a time.  "type" is the name of the task, and the other keys
+# are its parameters; a parameter that is left out has its default.
+
+# Start with no traps, and put one on the optical axis.
+[[tasks]]
+type = "ClearTraps"
+
+[[tasks]]
+type = "AddTweezer"
+
+# Wait 60 frames of video for the particle to be caught.
+[[tasks]]
+type = "Delay"
+frames = 60
+
+# Record the approach.
+[[tasks]]
+type = "StartRecording"
+filename = "approach.mkv"
+nframes = 600
+
+# Move the trap 10 pixels to the right, and save a frame, 20 times.
+[[tasks]]
+type = "BeginRepeat"
+
+[[tasks]]
+type = "MoveTraps"
+dx = 10.0
+step = 1.0
+
+[[tasks]]
+type = "Snapshot"
+prefix = "step"
+
+[[tasks]]
+type = "Repeat"
+n = 20
+
+[[tasks]]
+type = "StopRecording"

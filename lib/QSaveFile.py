@@ -6,6 +6,7 @@ from datetime import datetime
 import numpy as np
 import numpy.typing as npt
 import json
+import tomllib
 import tomlkit
 import logging
 
@@ -156,10 +157,10 @@ class QSaveFile(QtCore.QObject):
         image = QtGui.QImage(array.data, width, height, array.strides[0], fmt)
         return image.copy()             # the copy owns its pixels
 
-    def toJson(self,
-               data: object,
-               filename: str | None = None,
-               prefix: str = 'data') -> str:
+    def writeJson(self,
+                  data: object,
+                  filename: str | None = None,
+                  prefix: str = 'data') -> str:
         '''Write data to a JSON file.
 
         Parameters
@@ -188,7 +189,7 @@ class QSaveFile(QtCore.QObject):
         return filename
 
     @staticmethod
-    def fromJson(filename: str) -> object:
+    def readJson(filename: str) -> object:
         '''Read the data in a JSON file.
 
         Parameters
@@ -210,6 +211,73 @@ class QSaveFile(QtCore.QObject):
         '''
         with open(filename) as f:
             return json.load(f)
+
+    def writeToml(self,
+                  data: dict,
+                  filename: str | None = None,
+                  prefix: str = 'data',
+                  header: str = '') -> str:
+        '''Write a table to a TOML file, which a person can edit.
+
+        Parameters
+        ----------
+        data : dict
+            What to write.  A list of dicts is written as ``[[key]]``
+            tables.
+        filename : str or None
+            Destination path.  If ``None``, a timestamped ``.toml`` file
+            is created in the data directory.
+        prefix : str
+            Prefix for the auto-generated filename.  Default: ``'data'``.
+        header : str
+            Comment lines at the top of the file, to tell whoever opens it
+            what it is.
+
+        Returns
+        -------
+        str
+            Path of the file that was written.
+
+        Raises
+        ------
+        OSError
+            If the file cannot be written.
+        '''
+        filename = filename or self.filename(prefix=prefix, suffix='.toml')
+        doc = tomlkit.document()
+        for line in header.splitlines():
+            doc.add(tomlkit.comment(line))
+        if header:
+            doc.add(tomlkit.nl())
+        for key, value in data.items():
+            doc[key] = value
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(tomlkit.dumps(doc))
+        return filename
+
+    @staticmethod
+    def readToml(filename: str) -> dict:
+        '''Read the table in a TOML file.
+
+        Parameters
+        ----------
+        filename : str
+            Path of the file.
+
+        Returns
+        -------
+        dict
+            What the file holds.
+
+        Raises
+        ------
+        OSError
+            If the file cannot be read.
+        ValueError
+            If the file is not TOML; the message says where.
+        '''
+        with open(filename, 'rb') as f:
+            return tomllib.load(f)
 
     def toToml(self, qobj: QtCore.QObject) -> str:
         '''Save the settings of a QObject to a TOML configuration file.

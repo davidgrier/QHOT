@@ -4,8 +4,19 @@ from unittest.mock import MagicMock
 from pyqtgraph.Qt import QtCore
 
 from QHOT.lib.tasks import QTaskManager
+from QHOT.lib.tasks.QTask import QTask
 
 RESOURCES = 'overlay cgh dvr save image'.split()
+
+
+def program_tasks() -> dict:
+    '''The tasks of the program, by name.
+
+    Every subclass of ``QTask`` registers itself, the ones that the tests
+    define too, so the registry holds more than the program has.
+    '''
+    return {name: cls for name, cls in QTask._registry.items()
+            if cls.__module__.startswith('QHOT.tasks.')}
 
 
 class Screen(QtCore.QObject):

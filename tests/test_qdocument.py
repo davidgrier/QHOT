@@ -1,4 +1,4 @@
-'''Unit tests for QDocument.'''
+'''Unit tests for QDocument, as QJsonDocument makes it concrete.'''
 import json
 import unittest
 from unittest.mock import MagicMock
@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 from pyqtgraph.Qt import QtGui, QtTest
 
 from QHOT.lib.QDocument import QDocument
+from QHOT.lib.QJsonDocument import QJsonDocument
 
 try:
     from filefixtures import FileCase
@@ -19,7 +20,7 @@ class DocumentCase(FileCase):
         super().setUp()
         self.content = [{'type': 'QTweezer', 'x': 1.5}]
         self.loaded = []
-        self.document = QDocument(
+        self.document = QJsonDocument(
             'traps',
             'Trap Configuration',
             dump=lambda: self.content,
@@ -114,7 +115,7 @@ class TestSaveAs(DocumentCase):
 class TestOpen(DocumentCase):
 
     def test_it_loads_what_the_file_holds(self):
-        path = self.files.toJson(self.content, str(self.data / 'in.json'))
+        path = self.files.writeJson(self.content, str(self.data / 'in.json'))
         with self.answering('getOpenFileName', path):
             self.document.open()
         self.assertEqual(self.loaded, [self.content])
@@ -122,7 +123,7 @@ class TestOpen(DocumentCase):
         self.assertEqual(self.message(), f'Opened traps from {path}')
 
     def test_save_then_goes_to_the_file_that_was_opened(self):
-        path = self.files.toJson(self.content, str(self.data / 'in.json'))
+        path = self.files.writeJson(self.content, str(self.data / 'in.json'))
         with self.answering('getOpenFileName', path):
             self.document.open()
         self.content = ['edited']
@@ -157,7 +158,7 @@ class TestOpen(DocumentCase):
                 self.assertIsNone(self.document.filename)
 
     def test_content_that_the_program_cannot_use_is_reported(self):
-        failing = QDocument(
+        failing = QJsonDocument(
             'traps',
             'Trap Configuration',
             dump=list,
@@ -166,7 +167,7 @@ class TestOpen(DocumentCase):
             parent=self.window,
         )
         status = QtTest.QSignalSpy(failing.status)
-        path = self.files.toJson([{'type': 'Strange'}],
+        path = self.files.writeJson([{'type': 'Strange'}],
                                  str(self.data / 'in.json'))
         with self.answering('getOpenFileName', path):
             with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
@@ -184,12 +185,31 @@ class TestAsASlot(DocumentCase):
         self.assertEqual(len(self.written()), 1)
 
     def test_an_action_can_open_a_document(self):
-        path = self.files.toJson(self.content, str(self.data / 'in.json'))
+        path = self.files.writeJson(self.content, str(self.data / 'in.json'))
         action = QtGui.QAction('Open', self.window)
         action.triggered.connect(self.document.open)
         with self.answering('getOpenFileName', path):
             action.trigger()
         self.assertEqual(self.loaded, [self.content])
+
+
+class TestTheBase(DocumentCase):
+
+    def test_the_format_is_the_business_of_a_subclass(self):
+        bare = QDocument(
+            'traps',
+            'Trap Configuration',
+            dump=list,
+            load=list,
+            files=self.files,
+            parent=self.window,
+        )
+        with self.assertRaises(NotImplementedError):
+            bare.save()
+
+    def test_the_dialogs_offer_the_suffix_of_the_format(self):
+        self.assertEqual(self.document.SUFFIX, '.json')
+        self.assertEqual(self.document.filter, 'Trap Configuration (*.json)')
 
 
 if __name__ == '__main__':

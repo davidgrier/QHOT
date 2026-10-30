@@ -52,5 +52,11 @@ Files that the menu opens and saves
 .. automodule:: QHOT.lib.QDocument
    :members:
 
+.. automodule:: QHOT.lib.QJsonDocument
+   :members:
+
+.. automodule:: QHOT.lib.QTomlDocument
+   :members:
+
 .. automodule:: QHOT.lib.QImageFile
    :members:

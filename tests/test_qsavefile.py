@@ -350,44 +350,44 @@ class TestToJson(_Base):
 
     def test_writes_the_data(self):
         path = str(self.home / 'out.json')
-        self.save.toJson({'a': [1, 2.5, 'x']}, path)
+        self.save.writeJson({'a': [1, 2.5, 'x']}, path)
         self.assertEqual(json.loads(Path(path).read_text()),
                          {'a': [1, 2.5, 'x']})
 
     def test_returns_the_filename(self):
         path = str(self.home / 'out.json')
-        self.assertEqual(self.save.toJson([], path), path)
+        self.assertEqual(self.save.writeJson([], path), path)
 
     def test_auto_generates_filename_when_none(self):
-        result = self.save.toJson([1])
+        result = self.save.writeJson([1])
         self.assertTrue(result.endswith('.json'))
         self.assertEqual(Path(result).parent, self.save.datadir)
 
     def test_custom_prefix_in_auto_filename(self):
-        result = self.save.toJson([1], prefix='traps')
+        result = self.save.writeJson([1], prefix='traps')
         self.assertTrue(Path(result).name.startswith('traps_'))
 
     def test_a_file_that_cannot_be_written_is_an_error(self):
         with self.assertRaises(OSError):
-            self.save.toJson([], str(self.home / 'no' / 'such' / 'x.json'))
+            self.save.writeJson([], str(self.home / 'no' / 'such' / 'x.json'))
 
 
 class TestFromJson(_Base):
 
     def test_reads_what_was_written(self):
         data = {'traps': [{'x': 1.5, 'phase': 0.25}]}
-        path = self.save.toJson(data, str(self.home / 'rt.json'))
-        self.assertEqual(self.save.fromJson(path), data)
+        path = self.save.writeJson(data, str(self.home / 'rt.json'))
+        self.assertEqual(self.save.readJson(path), data)
 
     def test_a_file_that_is_missing_is_an_error(self):
         with self.assertRaises(OSError):
-            self.save.fromJson(str(self.home / 'missing.json'))
+            self.save.readJson(str(self.home / 'missing.json'))
 
     def test_a_file_that_is_not_json_is_an_error(self):
         path = self.home / 'bad.json'
         path.write_text('not json at all')
         with self.assertRaises(ValueError):
-            self.save.fromJson(str(path))
+            self.save.readJson(str(path))
 
 
 if __name__ == '__main__':

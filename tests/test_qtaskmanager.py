@@ -211,6 +211,16 @@ class TestQTaskManagerUserAdditions(unittest.TestCase):
         self.assertTrue(self.manager.paused)
         self.assertEqual(len(self.manager.scheduled), 1)
 
+    def test_a_queue_with_a_fault_in_it_takes_nothing_of_it(self):
+        good = {'type': 'Delay', 'frames': 5}
+        for name, bad in (('type', {'type': 'Dely'}),
+                          ('parameter', {'type': 'Delay', 'frame': 5}),
+                          ('no type', {'frames': 5})):
+            with self.subTest(name), self.assertRaises((ValueError, TypeError)):
+                self.manager.load([good, good, bad])
+            self.assertEqual(self.manager.scheduled, [])
+            self.assertFalse(self.manager.paused)
+
     def test_the_queue_is_a_list_that_load_reads(self):
         from QHOT.tasks import Delay
         self.manager.pause(True)

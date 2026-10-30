@@ -256,9 +256,12 @@ class QTask(QtCore.QObject):
         Raises
         ------
         ValueError
-            If the ``'type'`` key does not match any registered class.
+            If there is no ``'type'`` key, or it does not match any
+            registered class.
         '''
         d = dict(d)
+        if 'type' not in d:
+            raise ValueError("a task needs a 'type', such as type = 'Delay'")
         typename = d.pop('type')
         klass = cls._registry.get(typename)
         if klass is None:

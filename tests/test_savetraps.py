@@ -49,8 +49,8 @@ class TestSaveTrapsExecution(unittest.TestCase):
     def test_the_traps_of_the_overlay_are_written(self):
         task = attached(SaveTraps(), overlay=self.overlay, save=self.save)
         _run(task)
-        self.save.toJson.assert_called_once()
-        args, _ = self.save.toJson.call_args
+        self.save.writeJson.assert_called_once()
+        args, _ = self.save.writeJson.call_args
         self.assertIs(args[0], self.overlay.toList.return_value)
 
     def test_explicit_filename_passed(self):
@@ -60,7 +60,7 @@ class TestSaveTrapsExecution(unittest.TestCase):
             save=self.save,
         )
         _run(task)
-        args, _ = self.save.toJson.call_args
+        args, _ = self.save.writeJson.call_args
         self.assertEqual(args[1], '/tmp/traps.json')
 
     def test_empty_filename_passes_none(self):
@@ -70,7 +70,7 @@ class TestSaveTrapsExecution(unittest.TestCase):
             save=self.save,
         )
         _run(task)
-        args, _ = self.save.toJson.call_args
+        args, _ = self.save.writeJson.call_args
         self.assertIsNone(args[1])
 
     def test_completes_after_one_step(self):

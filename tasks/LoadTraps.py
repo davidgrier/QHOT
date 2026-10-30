@@ -15,7 +15,7 @@ class LoadTraps(QTask):
     ----------
     filename : str
         Path to a ``.json`` file previously written by
-        :class:`SaveTraps` or :meth:`~QHOT.lib.QSaveFile.QSaveFile.traps`.
+        :class:`SaveTraps` or by File > Save Traps.
         Required; an empty string is logged as an error and the task
         completes without changing the overlay.
     **kwargs

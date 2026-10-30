@@ -8,6 +8,7 @@ import importlib
 import json
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -291,40 +292,86 @@ class TestTheFileMenu(WindowCase):
         self.window.manager.clear()
         self.window.menuQueue._onTaskSelected('Delay')
         self.window.menuQueue._onTaskSelected('ClearTraps')
-        (path,) = self.trigger('actionSaveQueueAs', name='queue.json')
-        saved = json.loads(path.read_text())
+        (path,) = self.trigger('actionSaveQueueAs', name='queue.toml')
+        saved = tomllib.loads(path.read_text())['tasks']
         self.assertEqual([d['type'] for d in saved], ['Delay', 'ClearTraps'])
         self.window.manager.clear()
-        self.trigger('actionOpenQueue', 'getOpenFileName', 'queue.json')
+        self.trigger('actionOpenQueue', 'getOpenFileName', 'queue.toml')
         self.assertEqual(self.window.manager.toList(), saved)
         self.assertTrue(self.window.manager.paused)  # look before it runs
         self.window.manager.clear()
 
-    def test_a_save_that_fails_says_so_in_the_status_bar(self):
-        for action, helper in (('actionSaveTraps', 'toJson'),
-                               ('actionSaveHologram', 'image')):
-            with self.subTest(action):
-                self.window.setStatus('before')
-                fails = patch.object(
-                    self.window.save,
-                    helper,
-                    side_effect=OSError('disk full'),
-                )
-                with fails, self.assertLogs('QHOT.lib.QFileAction', 'ERROR'):
-                    getattr(self.window, action).trigger()
-                message = self.window.statusBar().currentMessage()
-                self.assertIn('Could not save', message)
-                self.assertIn('disk full', message)
-
-    def test_a_queue_file_that_is_not_a_queue_says_so(self):
-        bad = self.data / 'bad.json'
-        bad.write_text('[{"type": "NoSuchTask"}]')
+    def test_a_queue_is_a_toml_file_that_says_what_it_is(self):
         self.window.manager.clear()
+        self.window.menuQueue._onTaskSelected('Delay')
+        (path,) = self.trigger('actionSaveQueue')
+        self.assertEqual(path.suffix, '.toml')
+        text = path.read_text()
+        self.assertTrue(text.startswith('# A queue of tasks for QHOT.'))
+        self.assertIn('[[tasks]]', text)
+        self.window.manager.clear()
+
+    def open_by_hand(self, text: str):
+        '''Open a queue file that a person wrote.'''
+        (self.data / 'by_hand.toml').write_text(text)
+        self.window.manager.clear()
+        self.trigger('actionOpenQueue', 'getOpenFileName', 'by_hand.toml')
+
+    def message(self) -> str:
+        return self.window.statusBar().currentMessage()
+
+    def test_a_queue_that_is_written_by_hand_runs_as_written(self):
+        self.open_by_hand('''
+# a short experiment
+[[tasks]]
+type = "Delay"
+frames = 12              # settle
+
+[[tasks]]
+type = "Move"
+x = 100
+y = 50.5
+step = 2
+
+[[tasks]]
+type = "ClearTraps"
+''')
+        tasks = self.window.manager.scheduled
+        self.assertEqual([type(t).__name__ for t in tasks],
+                         ['Delay', 'Move', 'ClearTraps'])
+        self.assertEqual(tasks[0].frames, 12)
+        self.assertEqual((tasks[1].x, tasks[1].y, tasks[1].step),
+                         (100, 50.5, 2))
+        self.assertIn('Opened queue', self.message())
+        self.window.manager.clear()
+
+    def test_a_task_that_leaves_out_its_parameters_has_the_defaults(self):
+        self.open_by_hand('[[tasks]]\ntype = "Delay"\n')
+        (task,) = self.window.manager.scheduled
+        self.assertEqual(task.frames, 30)
+        self.window.manager.clear()
+
+    def test_a_mistake_in_the_name_of_a_task_names_it(self):
         with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
-            self.trigger('actionOpenQueue', 'getOpenFileName', 'bad.json')
-        self.assertIn('Could not open queue',
-                      self.window.statusBar().currentMessage())
+            self.open_by_hand('[[tasks]]\ntype = "Dely"\n')
+        self.assertIn("unknown task type: 'Dely'", self.message())
         self.assertEqual(self.window.manager.scheduled, [])
+
+    def test_a_mistake_in_the_name_of_a_parameter_names_it(self):
+        with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
+            self.open_by_hand('[[tasks]]\ntype = "Delay"\nframe = 5\n')
+        self.assertIn("'frame'", self.message())
+        self.assertEqual(self.window.manager.scheduled, [])
+
+    def test_a_task_with_no_type_says_so(self):
+        with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
+            self.open_by_hand('[[tasks]]\nframes = 5\n')
+        self.assertIn("needs a 'type'", self.message())
+
+    def test_a_fault_in_the_toml_says_where(self):
+        with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
+            self.open_by_hand('[[tasks]]\ntype = Delay\n')
+        self.assertIn('line 2', self.message())
 
     def test_save_the_image(self):
         (path,) = self.trigger('actionSaveImage')

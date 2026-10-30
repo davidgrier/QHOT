@@ -18,9 +18,14 @@ from QHOT.lib.tasks.QTaskTree import QTaskTree
 from QHOT.lib.tasks.QueueMenu import QueueMenu
 
 try:
-    from taskmanagers import RESOURCES, Screen, manager_for
+    from taskmanagers import RESOURCES, Screen, manager_for, program_tasks
 except ImportError:  # run from the root of the repository
-    from tests.taskmanagers import RESOURCES, Screen, manager_for
+    from tests.taskmanagers import (
+        RESOURCES,
+        Screen,
+        manager_for,
+        program_tasks,
+    )
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -43,16 +48,16 @@ class ContractCase(unittest.TestCase):
 
 class TestEveryTask(ContractCase):
 
-    def test_the_registry_holds_the_tasks_of_the_program(self):
-        self.assertGreaterEqual(len(QTask._registry), 10)
+    def test_the_program_has_its_tasks(self):
+        self.assertGreaterEqual(len(program_tasks()), 10)
 
     def test_it_can_be_queued_from_the_menu(self):
-        for name, cls in QTask._registry.items():
+        for name, cls in program_tasks().items():
             with self.subTest(name):
                 self.assertIsInstance(self.queue(name), cls)
 
     def test_it_is_given_everything_that_the_manager_has(self):
-        for name in QTask._registry:
+        for name in program_tasks():
             with self.subTest(name):
                 task = self.queue(name)
                 for resource in RESOURCES:
@@ -64,13 +69,13 @@ class TestEveryTask(ContractCase):
                 self.assertIs(task.manager, self.manager)
 
     def test_the_interface_can_show_it(self):
-        for name in QTask._registry:
+        for name in program_tasks():
             with self.subTest(name):
                 tree = QTaskTree(self.queue(name))
                 self.assertIsNotNone(tree.task)
 
     def test_it_survives_a_queue_file(self):
-        for name in QTask._registry:
+        for name in program_tasks():
             with self.subTest(name):
                 task = self.queue(name)
                 again = QTask.fromDict(task.toDict())
@@ -78,7 +83,7 @@ class TestEveryTask(ContractCase):
                 self.assertEqual(again.toDict(), task.toDict())
 
     def test_a_task_that_is_loaded_works_as_one_that_is_queued(self):
-        for name in QTask._registry:
+        for name in program_tasks():
             with self.subTest(name):
                 task = self.queue(name)
                 saved = [task.toDict()]
@@ -113,9 +118,9 @@ class TestWhatTheTasksDoWithTheirResources(ContractCase):
     def test_traps_are_saved_from_the_overlay_with_the_file_helper(self):
         task = self.queue('SaveTraps')
         task.initialize()
-        self.manager.save.toJson.assert_called_once()
+        self.manager.save.writeJson.assert_called_once()
         self.assertIs(
-            self.manager.save.toJson.call_args.args[0],
+            self.manager.save.writeJson.call_args.args[0],
             self.manager.overlay.toList.return_value,
         )
 

@@ -14,6 +14,11 @@
   may lack any.  The manager gives each task that it takes the ones that
   the task lacks.  It no longer takes the screen: its clock is the public
   slot `step()`, and the window connects `screen.rendered` to it.
+- A task queue is a TOML file (`queue_<time>.toml`), which a person can write
+  by hand, with comments, and not a JSON file: each task is a `[[tasks]]`
+  table with its `type` and parameters (see "Writing a task queue" in the
+  documentation).  Queue files that 2.0.0 saved as JSON are not read; the
+  traps are still JSON.
 - `QueueMenu` no longer has `overlay`, `cgh` and `dvr`: it needs only the
   manager.
 - A task no longer takes `overlay`, `cgh`, `dvr`, `save` or `image` when it
@@ -52,6 +57,10 @@
   and the file names that it kept are gone.  `QSaveFile` only names and
   writes files, with `toJson()` and `fromJson()`; its methods for traps,
   queues and Save As are gone.
+- A queue that is written by hand is checked as it is opened, and QHOT says
+  what is wrong, such as `unknown task type: 'Dely'`, a misspelled parameter,
+  a table with no `type`, or the line where the TOML is at fault.  Nothing of
+  the queue is taken if any of it is wrong.
 - A file that cannot be read or written is reported in the status bar, with
   the reason, and logged, and the program goes on.  An error in a menu action
   used to appear only in the terminal.

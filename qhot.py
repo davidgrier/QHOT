@@ -11,14 +11,23 @@ from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
 from QHOT.lib.QCameraOpener import QCameraOpener
-from QHOT.lib.QDocument import QDocument
 from QHOT.lib.QImageFile import QImageFile
+from QHOT.lib.QJsonDocument import QJsonDocument
+from QHOT.lib.QTomlDocument import QTomlDocument
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
 from QHOT.lib.traps import QTrap, QTrapMenu  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
+
+
+#: What a queue file says about itself, at the top.
+QUEUE_HEADER = (
+    'A queue of tasks for QHOT.  Open it with File > Open Queue.\n'
+    'Each [[tasks]] table is one task, and the tasks run in order.\n'
+    'The "type" is the name of the task; the other keys are its parameters.'
+)
 
 
 class QHOT(QtWidgets.QMainWindow):
@@ -100,7 +109,7 @@ class QHOT(QtWidgets.QMainWindow):
     def _setupFiles(self) -> None:
         '''Make the files that the File menu opens and saves, and wire it.'''
         overlay = self.screen.overlay
-        self.trapFile = QDocument(
+        self.trapFile = QJsonDocument(
             'traps',
             'Trap Configuration',
             dump=overlay.toList,
@@ -108,9 +117,11 @@ class QHOT(QtWidgets.QMainWindow):
             files=self.save,
             parent=self,
         )
-        self.queueFile = QDocument(
+        self.queueFile = QTomlDocument(
             'queue',
             'Task Queue',
+            root='tasks',
+            header=QUEUE_HEADER,
             dump=self.manager.toList,
             load=self.manager.load,
             files=self.save,

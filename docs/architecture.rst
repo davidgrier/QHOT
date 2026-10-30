@@ -289,8 +289,10 @@ together via Qt signals.
 
 **File menu.**  The File menu is organized into three groups:
 
-* **Open / Save / Save As** — the traps and the task queue (``.json``), each a
-  :class:`~QHOT.lib.QDocument.QDocument`.  Save writes to the file that the
+* **Open / Save / Save As** — the traps (JSON, a
+  :class:`~QHOT.lib.QJsonDocument.QJsonDocument`) and the task queue (TOML, a
+  :class:`~QHOT.lib.QTomlDocument.QTomlDocument`, which a person can write
+  by hand: see :doc:`queues`).  Save writes to the file that the
   document was opened from or last saved to, or to a new file with a
   timestamped name if there is none; Save As asks for a file.  The window
   connects each action to its document, and shows what the document says

@@ -51,14 +51,12 @@ class QHOT(QtWidgets.QMainWindow):
     #: Shortest time between requests for a hologram [ms].
     COMPUTE_INTERVAL = 15
 
-    def __init__(
-        self,
-        cameraTree: QCameraTree,
-        *args,
-        slm: QSLM | None = None,
-        cgh: CGH | None = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 cameraTree: QCameraTree,
+                 *args,
+                 slm: QSLM | None = None,
+                 cgh: CGH | None = None,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.cameraTree = cameraTree
         self.source = self.cameraTree.source

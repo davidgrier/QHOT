@@ -294,14 +294,12 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         self._manager.remove(task)
 
     @QtCore.Slot(QtCore.QModelIndex, int, int, QtCore.QModelIndex, int)
-    def _onRowsMoved(
-        self,
-        parent: QtCore.QModelIndex,
-        start: int,
-        end: int,
-        destination: QtCore.QModelIndex,
-        row: int,
-    ) -> None:
+    def _onRowsMoved(self,
+                     parent: QtCore.QModelIndex,
+                     start: int,
+                     end: int,
+                     destination: QtCore.QModelIndex,
+                     row: int) -> None:
         '''Forward a drag-reorder to the task manager.'''
         if self._manager is None:
             return

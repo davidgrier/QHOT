@@ -50,13 +50,11 @@ class QTextArray(QTrapGroup):
     #: Emitted when the text array has finished reshaping.
     reshaped = QtCore.Signal()
 
-    def __init__(
-        self,
-        *args,
-        text: str = 'NYU',
-        separation: float = 40.,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 text: str = 'NYU',
+                 separation: float = 40.,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._text = str(text)
         self._separation = max(1., float(separation))

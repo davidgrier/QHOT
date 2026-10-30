@@ -85,8 +85,9 @@
   limit, as in QVideo.  The 8 findings are fixed, and `main()` no longer
   describes the hologram backends that were removed.
 - Arguments of definitions and calls are laid out either all on one line or
-  one to a line, with a trailing comma, throughout the code, and a test
-  (`tests/test_style.py`) keeps them so.
+  one to a line, throughout the code, and a test (`tests/test_style.py`)
+  keeps them so.  As in QVideo, a definition aligns its parameters under
+  the first; a call aligns them or hangs them with a trailing comma.
 
 ### Removed
 - `TorchCGH` and `cupyCGH` (replaced by `TorchBackend` and

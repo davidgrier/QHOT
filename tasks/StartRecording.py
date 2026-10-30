@@ -44,15 +44,13 @@ class StartRecording(QTask):
         dict(name='overwrite', type='bool', value=False, default=False),
     ]
 
-    def __init__(
-        self,
-        *args,
-        filename: str = '',
-        nframes: int = 10_000,
-        nskip: int = 1,
-        overwrite: bool = False,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 filename: str = '',
+                 nframes: int = 10_000,
+                 nskip: int = 1,
+                 overwrite: bool = False,
+                 **kwargs) -> None:
         super().__init__(**kwargs)
         self.duration = 0
         self.filename = str(filename)

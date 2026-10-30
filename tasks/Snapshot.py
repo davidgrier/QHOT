@@ -36,14 +36,12 @@ class Snapshot(QTask):
         dict(name='prefix', type='str', value='snapshot', default='snapshot'),
     ]
 
-    def __init__(
-        self,
-        image,
-        *,
-        filename: str = '',
-        prefix: str = 'snapshot',
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 image,
+                 *,
+                 filename: str = '',
+                 prefix: str = 'snapshot',
+                 **kwargs) -> None:
         super().__init__(duration=0, **kwargs)
         self._image = image
         self.filename = filename

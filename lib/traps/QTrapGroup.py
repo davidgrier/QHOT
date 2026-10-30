@@ -144,13 +144,11 @@ class QTrapGroup(QTrap):
                 s.update(child._snapshot())
         return s
 
-    def _rotateSilently(
-        self,
-        angle: float,
-        cx: float,
-        cy: float,
-        snapshot: dict,
-    ) -> None:
+    def _rotateSilently(self,
+                        angle: float,
+                        cx: float,
+                        cy: float,
+                        snapshot: dict) -> None:
         '''Rotate all descendants around (cx, cy) using snapshot positions.
 
         Updates ``_r`` in place without emitting any signals.

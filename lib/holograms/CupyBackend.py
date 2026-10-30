@@ -81,12 +81,10 @@ class CupyBackend(Backend):
         '''Return an empty ``complex64`` field on the device.'''
         return cp.zeros(c.shape, dtype=cp.complex64)
 
-    def phasors(
-        self,
-        c: SimpleNamespace,
-        positions: np.ndarray,
-        amplitudes: np.ndarray,
-    ) -> tuple:
+    def phasors(self,
+                c: SimpleNamespace,
+                positions: np.ndarray,
+                amplitudes: np.ndarray) -> tuple:
         r'''Return :math:`(Y, X)` as ``complex64`` arrays on the device.'''
         r = cp.asarray(positions, dtype=cp.float32)
         a = cp.asarray(amplitudes, dtype=cp.complex64)[:, None]
@@ -96,12 +94,10 @@ class CupyBackend(Backend):
         y = cp.exp(1j * py).astype(cp.complex64) * a
         return y.T, x
 
-    def superpose(
-        self,
-        psi,
-        phasors: tuple,
-        structure=None,
-    ):
+    def superpose(self,
+                  psi,
+                  phasors: tuple,
+                  structure=None):
         '''Add the traps to ``psi`` in place and return it.
 
         One trap is an outer product; more are a matrix product.

@@ -121,14 +121,12 @@ class QTrapOverlay(ScatterPlotItem):
                              (('left', 'ctrl'), 'toggleMark'),
                              (('left', 'alt'), 'startRotation'))
 
-    def __init__(
-        self,
-        *args,
-        size: int = 16,
-        parent: QtCore.QObject | None = None,
-        descriptions: Descriptions = default,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 size: int = 16,
+                 parent: QtCore.QObject | None = None,
+                 descriptions: Descriptions = default,
+                 **kwargs) -> None:
         '''Initialize the overlay.
 
         Parameters
@@ -808,11 +806,9 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Event handlers (called by QHOTScreen)
 
-    def mousePress(
-        self,
-        event: QtGui.QMouseEvent,
-        pos: QtCore.QPointF,
-    ) -> bool:
+    def mousePress(self,
+                   event: QtGui.QMouseEvent,
+                   pos: QtCore.QPointF) -> bool:
         '''Handle a press event forwarded by QHOTScreen.
 
         Dispatches to the registered handler for the event's button/modifier

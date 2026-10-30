@@ -43,13 +43,11 @@ class AddTweezer(QTask):
         dict(name='y', type='float', value=0., default=0.),
     ]
 
-    def __init__(
-        self,
-        *args,
-        x: float | None = None,
-        y: float | None = None,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 x: float | None = None,
+                 y: float | None = None,
+                 **kwargs) -> None:
         super().__init__(*args, duration=0, **kwargs)
         if x is None:
             x = self.cgh.xc if self.cgh is not None else 0.

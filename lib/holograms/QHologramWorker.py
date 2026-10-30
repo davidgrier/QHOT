@@ -44,11 +44,9 @@ class QHologramWorker(QtCore.QObject):
     #: Emitted with the reason that a hologram could not be computed.
     failed = QtCore.Signal(str)
 
-    def __init__(
-        self,
-        backend: Backend,
-        parent: QtCore.QObject | None = None,
-    ) -> None:
+    def __init__(self,
+                 backend: Backend,
+                 parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
         self.backend = backend
 

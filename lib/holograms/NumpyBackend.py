@@ -40,12 +40,10 @@ class NumpyBackend(Backend):
         '''Return an empty ``complex64`` field.'''
         return np.zeros(c.shape, dtype=np.complex64)
 
-    def phasors(
-        self,
-        c: SimpleNamespace,
-        positions: np.ndarray,
-        amplitudes: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def phasors(self,
+                c: SimpleNamespace,
+                positions: np.ndarray,
+                amplitudes: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r'''Return :math:`(Y, X)` as ``complex64`` arrays.
 
         :math:`Y` is returned transposed from the array that is made, which
@@ -59,12 +57,10 @@ class NumpyBackend(Backend):
         y *= amplitudes.astype(np.complex64)[:, None]
         return y.T, x
 
-    def superpose(
-        self,
-        psi: np.ndarray,
-        phasors: tuple[np.ndarray, np.ndarray],
-        structure: np.ndarray | None = None,
-    ) -> np.ndarray:
+    def superpose(self,
+                  psi: np.ndarray,
+                  phasors: tuple[np.ndarray, np.ndarray],
+                  structure: np.ndarray | None = None) -> np.ndarray:
         '''Add the traps to ``psi`` in place and return it.
 
         One trap is an outer product and is made without BLAS; more are a

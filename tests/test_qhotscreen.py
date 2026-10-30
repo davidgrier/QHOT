@@ -17,11 +17,9 @@ def make_screen():
     return QHOTScreen()
 
 
-def make_press_event(
-    pos,
-    button=QtCore.Qt.MouseButton.LeftButton,
-    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
-):
+def make_press_event(pos,
+                     button=QtCore.Qt.MouseButton.LeftButton,
+                     modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseButtonPress,
         QtCore.QPointF(pos),
@@ -31,11 +29,9 @@ def make_press_event(
     )
 
 
-def make_move_event(
-    pos,
-    button=QtCore.Qt.MouseButton.LeftButton,
-    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
-):
+def make_move_event(pos,
+                    button=QtCore.Qt.MouseButton.LeftButton,
+                    modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseMove,
         QtCore.QPointF(pos),
@@ -45,11 +41,9 @@ def make_move_event(
     )
 
 
-def make_release_event(
-    pos,
-    button=QtCore.Qt.MouseButton.LeftButton,
-    modifiers=QtCore.Qt.KeyboardModifier.NoModifier,
-):
+def make_release_event(pos,
+                       button=QtCore.Qt.MouseButton.LeftButton,
+                       modifiers=QtCore.Qt.KeyboardModifier.NoModifier):
     return QtGui.QMouseEvent(
         QtCore.QEvent.Type.MouseButtonRelease,
         QtCore.QPointF(pos),

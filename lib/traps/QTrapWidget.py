@@ -43,14 +43,12 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
             cls._field_width = fm.boundingRect('12345.6').width()
         return cls._field_width
 
-    def __init__(
-        self,
-        name: str,
-        value: float,
-        *args,
-        decimals: int = 2,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 name: str,
+                 value: float,
+                 *args,
+                 decimals: int = 2,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.name = name
         self.decimals = decimals

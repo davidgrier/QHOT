@@ -40,13 +40,11 @@ class QRingTrap(QTrap):
 
     structureParams = ('ell', 'radius')
 
-    def __init__(
-        self,
-        *args,
-        radius: float = 10.,
-        ell: float = 10.,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 radius: float = 10.,
+                 ell: float = 10.,
+                 **kwargs) -> None:
         self._radius = float(radius)
         self._ell = float(ell)
         super().__init__(*args, **kwargs)
@@ -82,13 +80,11 @@ class QRingTrap(QTrap):
         self.structureChanged.emit()
 
     @classmethod
-    def structuringField(
-        cls,
-        geometry,
-        ell: float = 0.,
-        radius: float = 0.,
-        **params,
-    ) -> Field:
+    def structuringField(cls,
+                         geometry,
+                         ell: float = 0.,
+                         radius: float = 0.,
+                         **params) -> Field:
         r'''Return the Bessel profile and helical phase of a ring.
 
         .. math::

@@ -63,11 +63,9 @@ class TorchBackend(Backend):
         super().__init__(cache)
         self.device = torch.device(device) if device else select_device()
 
-    def _tensor(
-        self,
-        array: np.ndarray,
-        dtype=np.float32,
-    ) -> 'torch.Tensor':
+    def _tensor(self,
+                array: np.ndarray,
+                dtype=np.float32) -> 'torch.Tensor':
         '''Return an array as a tensor on the device.'''
         array = np.ascontiguousarray(array, dtype=dtype)
         return torch.as_tensor(array, device=self.device)
@@ -91,12 +89,10 @@ class TorchBackend(Backend):
             device=self.device,
         )
 
-    def phasors(
-        self,
-        c: SimpleNamespace,
-        positions: np.ndarray,
-        amplitudes: np.ndarray,
-    ) -> tuple:
+    def phasors(self,
+                c: SimpleNamespace,
+                positions: np.ndarray,
+                amplitudes: np.ndarray) -> tuple:
         r'''Return :math:`(Y, X)` as ``complex64`` tensors on the device.
 
         The phases are made with ``cos`` and ``sin`` of real tensors,
@@ -110,12 +106,10 @@ class TorchBackend(Backend):
         y = torch.complex(torch.cos(py), torch.sin(py)) * a
         return y.T, x
 
-    def superpose(
-        self,
-        psi: 'torch.Tensor',
-        phasors: tuple,
-        structure: 'torch.Tensor | None' = None,
-    ) -> 'torch.Tensor':
+    def superpose(self,
+                  psi: 'torch.Tensor',
+                  phasors: tuple,
+                  structure: 'torch.Tensor | None' = None) -> 'torch.Tensor':
         '''Add the traps to ``psi`` in place and return it.
 
         One trap is an outer product, fused with the addition into a

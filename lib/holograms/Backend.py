@@ -78,11 +78,9 @@ class Backend:
         self._context = None
         self._structures: OrderedDict = OrderedDict()
 
-    def hologram(
-        self,
-        pattern: Iterable[TrapSpec],
-        optics: Optics,
-    ) -> Hologram:
+    def hologram(self,
+                 pattern: Iterable[TrapSpec],
+                 optics: Optics) -> Hologram:
         r'''Return the hologram of a pattern of traps.
 
         The phase of the superposition :math:`\psi` of the fields of the
@@ -189,12 +187,10 @@ class Backend:
         '''
         raise NotImplementedError
 
-    def phasors(
-        self,
-        context,
-        positions: np.ndarray,
-        amplitudes: np.ndarray,
-    ):
+    def phasors(self,
+                context,
+                positions: np.ndarray,
+                amplitudes: np.ndarray):
         r'''Return the phasors of :math:`n` traps, amplitudes included.
 
         The field of the traps is the product of two matrices: :math:`Y`,

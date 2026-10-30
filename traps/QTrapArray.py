@@ -65,15 +65,13 @@ class QTrapArray(QTrapGroup):
     #: Emitted when the array has finished reshaping.
     reshaped = QtCore.Signal()
 
-    def __init__(
-        self,
-        *args,
-        shape: Shape = (4, 4),
-        separation: float = 50.,
-        mask: npt.ArrayLike | None = None,
-        fuzz: float = 0.,
-        **kwargs,
-    ) -> None:
+    def __init__(self,
+                 *args,
+                 shape: Shape = (4, 4),
+                 separation: float = 50.,
+                 mask: npt.ArrayLike | None = None,
+                 fuzz: float = 0.,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._nx, self._ny = (max(1, int(n)) for n in shape)
         self._separation = max(1., float(separation))

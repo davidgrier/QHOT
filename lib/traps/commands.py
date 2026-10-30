@@ -44,13 +44,11 @@ class AddTrapCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        overlay: QTrapOverlay,
-        x: float,
-        y: float,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 overlay: QTrapOverlay,
+                 x: float,
+                 y: float,
+                 parent: QUndoCommand | None = None) -> None:
         super().__init__('Add trap', parent)
         self._overlay = overlay
         self._trap = QTweezer(r=(x, y, 0.))
@@ -78,12 +76,10 @@ class RemoveTrapCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        overlay: QTrapOverlay,
-        group: QTrap,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 overlay: QTrapOverlay,
+                 group: QTrap,
+                 parent: QUndoCommand | None = None) -> None:
         super().__init__('Remove trap', parent)
         self._overlay = overlay
         self._group = group
@@ -115,12 +111,10 @@ class MoveCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        group: QTrap,
-        origin,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 group: QTrap,
+                 origin,
+                 parent: QUndoCommand | None = None) -> None:
         super().__init__('Move trap', parent)
         self._group = group
         self._origin = origin.copy()
@@ -158,12 +152,10 @@ class RotateCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        group: QTrapGroup,
-        snapshot_before: dict,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 group: QTrapGroup,
+                 snapshot_before: dict,
+                 parent: QUndoCommand | None = None) -> None:
         super().__init__('Rotate group', parent)
         self._group = group
         self._before = snapshot_before
@@ -204,12 +196,10 @@ class WheelCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        group: QTrap,
-        dz: float,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 group: QTrap,
+                 dz: float,
+                 parent: QUndoCommand | None = None) -> None:
         super().__init__('Scroll trap z', parent)
         self._group = group
         self._dz = dz
@@ -272,12 +262,10 @@ class LockCommand(QUndoCommand):
         Optional parent command.
     '''
 
-    def __init__(
-        self,
-        overlay: QTrapOverlay,
-        group: QTrap,
-        parent: QUndoCommand | None = None,
-    ) -> None:
+    def __init__(self,
+                 overlay: QTrapOverlay,
+                 group: QTrap,
+                 parent: QUndoCommand | None = None) -> None:
         text = 'Unlock trap' if group.locked else 'Lock trap'
         super().__init__(text, parent)
         self._overlay = overlay

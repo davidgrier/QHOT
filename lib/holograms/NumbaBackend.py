@@ -161,12 +161,10 @@ class NumbaBackend(NumpyBackend):
         _add_structured(psi, s, s)
         _quantize(psi, np.zeros((height, width), dtype=np.uint8))
 
-    def phasors(
-        self,
-        c,
-        positions: np.ndarray,
-        amplitudes: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def phasors(self,
+                c,
+                positions: np.ndarray,
+                amplitudes: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         r'''Return :math:`(Y, X)` as ``complex64`` arrays.
 
         Each is made in one parallel pass, with the amplitudes in
@@ -186,12 +184,10 @@ class NumbaBackend(NumpyBackend):
         _phasors(c.qy, c.y2, c.qpar, np.float32(-1.), ry, rz, a, y)
         return y.T, x
 
-    def superpose(
-        self,
-        psi: np.ndarray,
-        phasors: tuple[np.ndarray, np.ndarray],
-        structure: np.ndarray | None = None,
-    ) -> np.ndarray:
+    def superpose(self,
+                  psi: np.ndarray,
+                  phasors: tuple[np.ndarray, np.ndarray],
+                  structure: np.ndarray | None = None) -> np.ndarray:
         '''Add the traps to ``psi`` in place and return it.
 
         A few traps are added by a kernel in one pass.  Many are a matrix

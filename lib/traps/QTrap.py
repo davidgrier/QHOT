@@ -236,12 +236,10 @@ class QTrap(QtCore.QObject):
 
     # Methods for editing properties with QTrapWidget
 
-    def registerProperty(
-        self,
-        name: str,
-        decimals: int = 2,
-        tooltip: bool = False,
-    ) -> None:
+    def registerProperty(self,
+                         name: str,
+                         decimals: int = 2,
+                         tooltip: bool = False) -> None:
         '''Make a property of the trap editable in the trap panel.
 
         Parameters

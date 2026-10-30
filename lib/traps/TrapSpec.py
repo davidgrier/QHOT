@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 __all__ = ['TrapSpec']
 
+#: A trap that is not a group, and its complex amplitude in a pattern.
+Component = tuple['TrapSpec', complex]
+
 
 @dataclass(frozen=True)
 class TrapSpec:
@@ -58,10 +61,8 @@ class TrapSpec:
         '''Return the parameters of the structuring field as a dict.'''
         return dict(self.params)
 
-    def components(
-        self,
-        envelope: complex = 1.,
-    ) -> Iterator[tuple['TrapSpec', complex]]:
+    def components(self,
+                   envelope: complex = 1.) -> Iterator[Component]:
         r'''Yield the components of the superposition, with their amplitudes.
 
         The field of a group is the sum of the fields of its members, so

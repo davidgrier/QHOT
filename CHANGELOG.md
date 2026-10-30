@@ -1,6 +1,21 @@
 # Changelog
 
-## [Unreleased]
+## [2.1.0] — 2026-10-30
+
+What matters if you use QHOT:
+
+* **A task queue is a TOML file**, which you can write by hand, with
+  comments (see "Writing a task queue" in the documentation).  Queue files
+  that 2.0.0 saved as JSON are not read.  The traps are still JSON.
+* **Save Hologram works.**  It wrote nothing before, and the error appeared
+  only in the terminal.  Files saved in the same second no longer replace
+  each other, and a file that cannot be read or written is reported in the
+  status bar with the reason.
+* **The image has no bars at any window size**: the panels of controls
+  scroll.
+* **The API that Qt classes have is `camelCase`**, as in QVideo (see the
+  breaking changes below), and the task manager gives each task the
+  resources that it works with.
 
 ### Breaking
 - Public methods and properties of Qt classes are `camelCase`, as in QVideo

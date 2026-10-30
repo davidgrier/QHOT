@@ -12,6 +12,11 @@
   `step()`, and the window connects `screen.rendered` to it.  The overlay
   is therefore a plain argument of the manager, and not also a property of
   the screen that it was given.
+- `QTaskManager.enqueue(tasks)` adds what the user has chosen, and pauses a
+  manager that was idle so that it can be looked at before it runs.  The
+  Queue menu and `load()` use it: the window used to repeat that rule for
+  opening a queue file, in a slightly different form.  `toList()` is the
+  queue that `load()` reads, as the overlay's is for traps.
 - `QueueMenu` no longer has `overlay`, `cgh` and `dvr`: it needs only the
   manager, which owns the resources that tasks work with.
 - All the resources of `QTaskManager` are required (`overlay`, `cgh`, `dvr`,

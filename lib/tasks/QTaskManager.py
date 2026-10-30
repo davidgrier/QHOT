@@ -217,11 +217,39 @@ class QTaskManager(QtCore.QObject):
             self._paused = state
             self.changed.emit()
 
-    def load(self, task_dicts: list[dict]) -> None:
-        '''Deserialise a list of task dicts and append them to the queue.
+    def toList(self) -> list[dict]:
+        '''Return the tasks that wait to run, as a list that ``load`` reads.
 
-        Dependencies (overlay, cgh, dvr) held by the manager are
-        injected into each reconstructed task before registration.
+        The active task and the background tasks are not included.
+
+        Returns
+        -------
+        list[dict]
+            The ``QTask.toDict()`` of each queued task, in order.
+        '''
+        return [task.toDict() for task in self.queued]
+
+    def enqueue(self, tasks: list[QTask]) -> None:
+        '''Add the tasks that the user has chosen to the queue.
+
+        A manager that is idle is paused, so that the user can look at
+        what has been added before it runs.
+
+        Parameters
+        ----------
+        tasks : list[QTask]
+            The tasks to register, in order.
+        '''
+        idle = self._current is None and not self._background
+        for task in tasks:
+            self.register(task)
+        if idle:
+            self.pause(True)
+
+    def load(self, task_dicts: list[dict]) -> None:
+        '''Deserialise a list of task dicts and enqueue the tasks.
+
+        Each task is given the resources of the manager as it is taken.
 
         ``QHOT.tasks`` is imported lazily here to ensure all concrete
         subclasses have registered themselves via ``__init_subclass__``
@@ -230,11 +258,11 @@ class QTaskManager(QtCore.QObject):
         Parameters
         ----------
         task_dicts : list[dict]
-            Dicts previously produced by ``QTask.toDict()``.
+            Dicts previously produced by ``QTask.toDict()``, such as
+            :meth:`toList` returns.
         '''
         import QHOT.tasks  # noqa: F401 -- fills QTask._registry
-        for d in task_dicts:
-            self.register(QTask.fromDict(d))
+        self.enqueue([QTask.fromDict(d) for d in task_dicts])
 
     def stop(self) -> None:
         '''Rewind the schedule to the beginning and pause.

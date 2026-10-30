@@ -88,10 +88,5 @@ class QueueMenu(QtWidgets.QMenu):
         if cls is None:
             logger.warning(f'Unknown task type: {name!r}')
             return
-        was_idle = (self._manager.activeRaw is None
-                    and not self._manager.background)
-        task = cls()
-        self._manager.register(task)
-        if was_idle:
-            self._manager.pause(True)
+        self._manager.enqueue([cls()])
         logger.debug(f'Queued {name}')

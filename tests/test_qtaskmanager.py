@@ -185,6 +185,62 @@ class TestQTaskManagerResources(unittest.TestCase):
         self.assertEqual(task._frame, 2)
 
 
+class TestQTaskManagerUserAdditions(unittest.TestCase):
+
+    '''What the user adds is looked at before it runs.'''
+
+    def setUp(self):
+        self.screen = MockScreen()
+        self.manager = manager_for(self.screen)
+
+    def test_tasks_that_are_enqueued_are_registered_in_order(self):
+        a, b = QTask(), QTask()
+        self.manager.enqueue([a, b])
+        self.assertEqual(self.manager.scheduled, [a, b])
+
+    def test_an_idle_manager_is_paused_by_what_is_enqueued(self):
+        self.manager.enqueue([QTask()])
+        self.assertTrue(self.manager.paused)
+
+    def test_a_manager_that_is_running_a_task_is_not_paused(self):
+        self.manager.register(QTask(duration=5))
+        self.manager.enqueue([QTask()])
+        self.assertFalse(self.manager.paused)
+
+    def test_a_manager_with_a_background_task_is_not_paused(self):
+        self.manager.register(QTask(duration=5), blocking=False)
+        self.manager.enqueue([QTask()])
+        self.assertFalse(self.manager.paused)
+
+    def test_enqueueing_nothing_pauses_an_idle_manager_harmlessly(self):
+        self.manager.enqueue([])
+        self.assertEqual(self.manager.scheduled, [])
+
+    def test_a_loaded_queue_is_paused_when_the_manager_was_idle(self):
+        from QHOT.tasks import Delay
+        self.manager.load([Delay(frames=2).toDict()])
+        self.assertTrue(self.manager.paused)
+        self.assertEqual(len(self.manager.scheduled), 1)
+
+    def test_the_queue_is_a_list_that_load_reads(self):
+        from QHOT.tasks import Delay
+        self.manager.pause(True)
+        self.manager.register(Delay(frames=3))
+        self.manager.register(Delay(frames=7))
+        saved = self.manager.toList()
+        self.assertEqual([d['type'] for d in saved], ['Delay', 'Delay'])
+        other = manager_for(MockScreen())
+        other.load(saved)
+        self.assertEqual(other.toList(), saved)
+
+    def test_the_queue_leaves_out_what_is_running(self):
+        from QHOT.tasks import Delay
+        self.manager.register(Delay(frames=5))
+        self.manager.register(Delay(frames=6))
+        self.screen.rendered.emit()                  # the first is running
+        self.assertEqual(len(self.manager.toList()), 1)
+
+
 class TestQTaskManagerFrameDispatch(unittest.TestCase):
 
     def setUp(self):

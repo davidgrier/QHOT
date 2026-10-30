@@ -1,6 +1,7 @@
 r'''The hologram of a pattern of traps, stated as plainly as possible.
 
-This is the algorithm of linear superposition [1]_, written to be read.
+This is the algorithm of linear superposition
+(:cite:p:`dufresne2001,curtis2002`), written to be read.
 It is slow and keeps nothing between calls, which is the point: it is the
 standard that every faster implementation is tested against.  The
 engines of QHOT are this, made quick.
@@ -43,12 +44,6 @@ traps in the pattern, quantized to 8 bits (:func:`quantize`),
 
     H = \left\lfloor \frac{128}{\pi} \arg \sum_j \psi_j + 127
         \right\rfloor.
-
-References
-----------
-.. [1] J. E. Curtis, B. A. Koss, and D. G. Grier, "Dynamic holographic
-   optical tweezers," *Opt. Commun.* **207**, 169 (2002).
-   https://doi.org/10.1016/S0030-4018(02)01524-9
 '''
 from __future__ import annotations
 

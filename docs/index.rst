@@ -9,11 +9,13 @@ traps in real time using a live camera feed.
    :maxdepth: 2
    :caption: Contents
 
+   background
    architecture
    api/lib
    api/holograms
    api/traps
    api/tasks
+   references
 
 Indices
 -------

@@ -32,7 +32,13 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
+    'sphinxcontrib.bibtex',
 ]
+
+# The peer-reviewed literature that the documentation cites, with DOIs.
+bibtex_bibfiles = ['references.bib']
+bibtex_default_style = 'plain'
+bibtex_reference_style = 'author_year'
 
 # Optional accelerators (torch) are not installed on the documentation
 # host, so the annotations that name them cannot be resolved.  The

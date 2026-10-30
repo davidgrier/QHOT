@@ -41,7 +41,12 @@ pyqt5 = ["PyQt5>=5.15"]
 pyqt6 = ["PyQt6"]
 pyside6 = ["PySide6>=6.7"]
 dev = ["pytest", "pytest-cov"]
-docs = ["pydata-sphinx-theme", "sphinx", "sphinx-autodoc-typehints"]
+docs = [
+    "pydata-sphinx-theme",
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinxcontrib-bibtex",
+]
 torch = ["torch>=2.0"]
 numba = ["numba>=0.60"]
 

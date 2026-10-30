@@ -12,10 +12,17 @@ if TYPE_CHECKING:
 
 class QVortex(QTrap):
 
-    '''Optical vortex trap.
+    r'''Optical vortex trap.
 
     Applies a helical phase ramp ``exp(i ell θ)`` to the trapping beam,
     producing a ring-shaped focus with a phase singularity at the center.
+
+    A beam with this phase carries an orbital angular momentum of
+    ``ell`` times :math:`\hbar` per photon (:cite:p:`allen1992`), which
+    it can transfer to the particles that it holds (:cite:p:`he1995`),
+    and the dark core can trap particles that the light would otherwise
+    push away (:cite:p:`gahagan1996`).  The structure of the holographic
+    vortex is described by :cite:t:`curtis2003a`.
 
     Parameters
     ----------

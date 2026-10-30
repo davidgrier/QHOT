@@ -53,7 +53,10 @@ class Optics:
             + q_\parallel (x^2 + y^2)\, r_z,
 
     with the gradient :math:`q_\perp` and the curvature :math:`q_\parallel`
-    that the calibration sets (:attr:`qprp`, :attr:`qpar`).  Because the
+    that the calibration sets (:attr:`qprp`, :attr:`qpar`).  The linear
+    term is the phase of a diffraction grating, which steers the beam, and
+    the quadratic term is the phase of a lens, which moves the focus along
+    the axis (:cite:p:`dufresne1998,dufresne2001`).  Because the
     phase is a sum of a function of :math:`x` and a function of :math:`y`,
     the phasor :math:`e^{i\varphi}` is the product of a factor for each
     column and a factor for each row (:meth:`phasors`), which is what makes

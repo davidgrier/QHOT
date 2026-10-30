@@ -13,10 +13,19 @@ if TYPE_CHECKING:
 
 class QRingTrap(QTrap):
 
-    '''Ring trap.
+    r'''Ring trap.
 
     Focuses light into a ring of radius ``radius`` using a Bessel-function
     amplitude profile combined with a helical phase ramp.
+
+    The field in the plane of the SLM is
+    :math:`J_\ell(R q_r) e^{i \ell \theta}`, where :math:`R` is the
+    radius of the ring, :math:`q_r` is the radial wavenumber and
+    :math:`\ell` is the topological charge.  This is the Fourier
+    transform of a thin ring, and is related to the diffraction-free
+    Bessel beam (:cite:p:`durnin1987`).  Holographic ring traps, and the
+    other extended shapes that can be projected the same way, are
+    described by :cite:t:`curtis2003b` and :cite:t:`roichman2006`.
 
     Parameters
     ----------

@@ -16,44 +16,19 @@ from QHOT.lib.traps import QTrap, QTrapGroup, TrapSpec
 from QHOT.traps import QRingTrap, QTweezer, QVortex
 
 try:
+    from patterns import (CALIBRATIONS, SHAPE, Composite, group, levels,
+                          optics, patterns, tweezer)
+except ImportError:  # run from the root of the repository
+    from tests.patterns import (CALIBRATIONS, SHAPE, Composite, group,
+                                levels, optics, patterns, tweezer)
+
+try:
     from QHOT.lib.holograms.TorchCGH import TorchCGH
     import torch  # noqa: F401
 except ImportError:
     TorchCGH = None
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-
-SHAPE = (48, 64)
-CALIBRATIONS = {
-    'default': dict(),
-    'rotated': dict(thetac=15.),
-    'offset': dict(xc=20., yc=30., xs=3., ys=-2.),
-    'tilted': dict(phis=20.),
-    'deep': dict(zc=3., splay=0.02),
-    'everything': dict(thetac=-10., zc=2., splay=0.03, phis=12.,
-                       xs=2., ys=1., xc=28., yc=26.),
-}
-
-
-def optics(**kwargs) -> Optics:
-    return Optics(**{**dict(shape=SHAPE, xc=32., yc=24.), **kwargs})
-
-
-def tweezer(x, y, z=0., phase=0.5, **kw):
-    return QTweezer(r=(x, y, z), phase=phase, **kw)
-
-
-def group(*members, r=(32., 24., 0.)):
-    g = QTrapGroup(r=r)
-    g.addTrap(list(members))
-    return g
-
-
-def levels(a, b):
-    '''Return the difference between two holograms, in levels of phase.'''
-    d = np.abs(a.astype(int) - b.astype(int))
-    return np.minimum(d, 256 - d)
-
 
 class TestOptics(unittest.TestCase):
 
@@ -314,13 +289,6 @@ class TestSuperposition(unittest.TestCase):
         self.assertTrue((ref.field(spec, self.o) == 0).all())
 
 
-class Composite(QTrapGroup):
-
-    '''A group that is used as a single trap, for the tests.'''
-
-    composite = True
-
-
 class TestPlainGroupsAndComposites(unittest.TestCase):
 
     '''Plain groups have no amplitude of their own; composites do.'''
@@ -443,19 +411,6 @@ class TestAgainstTheEngine(unittest.TestCase):
 
     ENGINE = CGH
 
-    def patterns(self):
-        yield 'tweezers', [tweezer(10, 12, 1., 0.1), tweezer(40, 30, -2., 1.),
-                           tweezer(25, 22, 3., 2.), tweezer(50, 10, 0., 3.)]
-        yield 'vortex', [QVortex(r=(30, 24, 0), ell=4, phase=0.3)]
-        yield 'ring', [QRingTrap(r=(30, 24, 0), radius=8., ell=3, phase=0.4)]
-        yield 'group', [group(tweezer(20, 20), tweezer(40, 28, 2.),
-                              QVortex(r=(30, 15, 1), ell=3, phase=0.2))]
-        yield 'nested', [group(group(tweezer(10, 10), tweezer(14, 12, 1.)),
-                               QRingTrap(r=(40, 30, 0), radius=5., ell=2,
-                                         phase=0.5),
-                               r=(30., 20., 0.)),
-                         tweezer(50, 40, 2., 1.2)]
-
     def check(self, name, settings, pattern):
         # A new engine has cached nothing, so it computes exactly what is
         # asked, however the traps of a group are spread in depth.
@@ -471,7 +426,9 @@ class TestAgainstTheEngine(unittest.TestCase):
 
     def test_every_pattern_and_calibration(self):
         for label, settings in CALIBRATIONS.items():
-            for name, pattern in self.patterns():
+            for name, pattern in patterns():
+                if name.startswith('composite'):
+                    continue  # this engine does not apply their weight
                 self.check(f'{name} / {label}', settings, pattern)
 
 

@@ -143,6 +143,16 @@ class Optics:
         return np.arange(self.height) - self.ys
 
     @cached_property
+    def qx(self) -> np.ndarray:
+        '''Phase gradient along x at each column [radians/pixel].'''
+        return self.qprp * self.x
+
+    @cached_property
+    def qy(self) -> np.ndarray:
+        '''Phase gradient along y at each row [radians/pixel].'''
+        return self.qprp * self.y
+
+    @cached_property
     def geometry(self) -> Geometry:
         '''The coordinates that a trap makes its structuring field from.'''
         theta = np.arctan2.outer(self.y, self.x)
@@ -158,12 +168,13 @@ class Optics:
         Parameters
         ----------
         r : array_like
-            Position (x, y, z) in the camera plane [pixels].
+            Position (x, y, z) in the camera plane [pixels], or an array
+            of them with the coordinates along the last axis.
 
         Returns
         -------
         np.ndarray
-            Position (x, y, z) in the SLM plane.
+            Position (x, y, z) in the SLM plane, in the shape of ``r``.
 
         Notes
         -----
@@ -171,10 +182,11 @@ class Optics:
         plane, and the splay grows with that depth.
         '''
         c, s = (f(np.radians(self.thetac)) for f in (np.cos, np.sin))
-        dx, dy, dz = np.asarray(r, dtype=float) - (self.xc, self.yc, self.zc)
+        d = np.asarray(r, dtype=float) - (self.xc, self.yc, self.zc)
+        dx, dy, dz = d[..., 0], d[..., 1], d[..., 2]
         x, y = c * dx - s * dy, s * dx + c * dy
         fac = 1. / (1. + self.splay * dz)
-        return np.array([x * fac, y * fac, dz])
+        return np.stack([x * fac, y * fac, dz], axis=-1)
 
     def displacement(self, r) -> tuple[np.ndarray, np.ndarray]:
         '''Return the phase ramps that move a focus to ``r``.
@@ -194,7 +206,6 @@ class Optics:
             (length ``width``).
         '''
         rx, ry, rz = self.transform(r)
-        qx, qy = self.qprp * self.x, self.qprp * self.y
-        ex = np.exp(1j * (qx * rx + self.qpar * self.x**2 * rz))
-        ey = np.exp(-1j * (qy * ry) + 1j * self.qpar * self.y**2 * rz)
+        ex = np.exp(1j * (self.qx * rx + self.qpar * self.x**2 * rz))
+        ey = np.exp(1j * (-self.qy * ry + self.qpar * self.y**2 * rz))
         return ey, ex

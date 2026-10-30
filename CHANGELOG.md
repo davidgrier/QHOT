@@ -24,6 +24,20 @@
   phase of its own, to mix it with other traps: a class of composites sets
   `composite = True`.  No class does yet, and the old engine does not apply
   a composite's weight; the reference does.
+- Backends that compute holograms from a pattern (`Backend`,
+  `NumpyBackend`, `TorchBackend` in `lib/holograms/`), tested against the
+  reference.  The fields of plain tweezers are summed as one matrix
+  product; traps with the same structure are summed first and the
+  structure applied once; groups are flattened by their weights.
+  Nothing is cached between holograms but the structuring fields, kept by
+  value (kind of trap and parameters), so nothing can go stale.
+  `TorchBackend` computes everything on the device, quantization included,
+  and works on Apple GPUs (MPS), CUDA and the CPU.  They are not yet used
+  by the application.
+- `QTrapOverlay.pattern()`: a snapshot of the traps as a tuple of specs,
+  safe to hand to another thread.  `TrapSpec.weighted()` yields the traps
+  of a spec with their complex weights, and `Optics.transform` accepts
+  an array of positions.
 - `QTrap.structuringField(geometry, **params)`: a trap makes its own
   structuring field from the geometry and its parameters
   (`structureParams`), as a function of values.  `QVortex` and

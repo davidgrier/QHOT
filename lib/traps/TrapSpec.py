@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import cmath
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -56,6 +57,30 @@ class TrapSpec:
     def parameters(self) -> dict[str, object]:
         '''Return the parameters of the structuring field as a dict.'''
         return dict(self.params)
+
+    def weighted(self, weight: complex = 1.
+                 ) -> Iterator[tuple['TrapSpec', complex]]:
+        '''Yield each trap that is not a group, with its complex weight.
+
+        The weight is the product of the complex amplitudes
+        ``amplitude * exp(i phase)`` of the trap and of every group that
+        contains it.  A plain group has a weight of 1, so a trap in one
+        has the weight that it has alone; a composite scales all of its
+        members.  The field of a group is the sum of the fields of its
+        members, so a hologram can be computed from these weights without
+        looking at the groups again.
+
+        Parameters
+        ----------
+        weight : complex
+            The weight of what contains this spec.  Default: 1.
+        '''
+        mine = weight * self.amplitude * cmath.exp(1j * self.phase)
+        if self.isGroup:
+            for child in self.children:
+                yield from child.weighted(mine)
+        else:
+            yield self, mine
 
     def leaves(self) -> Iterator['TrapSpec']:
         '''Yield the traps that are not groups, at any depth.'''

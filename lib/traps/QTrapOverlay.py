@@ -5,6 +5,7 @@ from pyqtgraph import mkBrush, mkPen
 from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.TrapSpec import TrapSpec
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
     MoveCommand, RotateCommand, WheelCommand, LockCommand)
@@ -167,6 +168,21 @@ class QTrapOverlay(ScatterPlotItem):
         for child in self.children():
             if isinstance(child, QTrap):
                 yield child
+
+    def pattern(self) -> tuple[TrapSpec, ...]:
+        '''Return a snapshot of the traps, as a pattern of specs.
+
+        The pattern is a tuple of the specs of the top-level traps and
+        groups, with all that the groups contain.  It is a plain value,
+        and nothing that happens to the traps afterwards changes it, so it
+        may be handed to the thread that computes the hologram.
+
+        Returns
+        -------
+        tuple[TrapSpec, ...]
+            The specs, in the order of the overlay.
+        '''
+        return tuple(trap.spec() for trap in self)
 
     def _setupUi(self) -> None:
         '''Set up UI elements.

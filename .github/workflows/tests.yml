@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Python ${{ matrix.python-version }} (${{ matrix.binding }})
+    name: Python ${{ matrix.python-version }} (${{ matrix.binding }}${{ matrix.extras }})
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -19,9 +19,14 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
         binding: ["pyqt6"]
+        extras: [""]
         include:
           - python-version: "3.12"
             binding: "pyqt5"
+          # one leg also tests the optional numba backend
+          - python-version: "3.12"
+            binding: "pyqt6"
+            extras: ",numba"
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +46,7 @@ jobs:
             libxkbcommon0
 
       - name: Install package and test dependencies
-        run: pip install -e ".[dev,${{ matrix.binding }}]"
+        run: pip install -e ".[dev,${{ matrix.binding }}${{ matrix.extras }}]"
 
       - name: Run tests
         run: python -m pytest --tb=short -q

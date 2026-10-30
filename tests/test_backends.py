@@ -4,6 +4,8 @@ Every backend must compute what the reference states.  The tests that
 follow are the same for each, and are run for each backend that is
 installed.
 '''
+import importlib
+import types
 import unittest
 from unittest.mock import patch
 
@@ -27,6 +29,42 @@ try:
     from QHOT.lib.holograms.TorchBackend import TorchBackend
 except ImportError:
     TorchBackend = None
+
+try:
+    import numba  # noqa: F401
+    from QHOT.lib.holograms.NumbaBackend import NumbaBackend
+    numba_module = importlib.import_module('QHOT.lib.holograms.NumbaBackend')
+except ImportError:
+    NumbaBackend = None
+
+from QHOT.lib.holograms.CupyBackend import CupyBackend
+cupy_module = importlib.import_module('QHOT.lib.holograms.CupyBackend')
+
+try:
+    import cupy  # noqa: F401
+    cupy.cuda.Device()
+    HAVE_CUPY = True
+except Exception:
+    HAVE_CUPY = False
+
+
+def numpy_as_cupy(device=lambda: None) -> types.SimpleNamespace:
+    '''Return NumPy dressed as the part of CuPy that CupyBackend uses.
+
+    It offers nothing else, so that a backend that reaches for something
+    that is not on this list fails here and not on the first GPU.
+    '''
+    return types.SimpleNamespace(
+        float32=np.float32,
+        complex64=np.complex64,
+        uint8=np.uint8,
+        asarray=np.asarray,
+        zeros=np.zeros,
+        exp=np.exp,
+        angle=np.angle,
+        asnumpy=np.asarray,
+        cuda=types.SimpleNamespace(Device=device),
+    )
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
@@ -296,10 +334,129 @@ class TestComponents(unittest.TestCase):
         self.assertEqual(list(QTrapGroup(r=(0, 0, 0)).spec().components()), [])
 
 
+@unittest.skipIf(NumbaBackend is None, 'numba is not installed')
+class TestNumbaBackend(TestBackend):
+
+    BACKEND = NumbaBackend
+
+    def families(self, count, structured):
+        '''A pattern of ``count`` traps, plain or all of one structure.'''
+        rng = np.random.default_rng(count)
+        if structured:
+            return [
+                QVortex(
+                    r=(rng.uniform(0, 64), rng.uniform(0, 48), 0.),
+                    ell=3,
+                    phase=rng.uniform(0, 6.28),
+                    amplitude=rng.uniform(0.5, 2.),
+                )
+                for _ in range(count)
+            ]
+        return [
+            tweezer(
+                rng.uniform(0, 64),
+                rng.uniform(0, 48),
+                rng.uniform(-3, 3),
+                rng.uniform(0, 6.28),
+            )
+            for _ in range(count)
+        ]
+
+    def test_either_side_of_the_limit_between_the_kernel_and_blas(self):
+        limit = numba_module.FUSED_LIMIT
+        for count in (1, 2, limit - 1, limit, limit + 1, 3 * limit):
+            for structured in (False, True):
+                with self.subTest(count=count, structured=structured):
+                    pattern = specs(self.families(count, structured))
+                    self.assertAgrees(
+                        self.backend.hologram(pattern, self.o),
+                        ref.hologram(pattern, self.o),
+                    )
+
+    def test_the_two_paths_agree_with_each_other(self):
+        pattern = specs(self.families(8, True) + self.families(5, False))
+        fused = self.backend.hologram(pattern, self.o)
+        with patch.object(numba_module, 'FUSED_LIMIT', 0):
+            blas = self.backend.hologram(pattern, self.o)
+        self.assertAgrees(fused, blas)
+
+    def test_the_quantization_matches_the_reference_at_the_edges(self):
+        '''Fields on the real axis, where the phase is 0 or pi.'''
+        psi = np.array([[1, -1], [1j, -1j]], dtype=np.complex64)
+        self.assertLessEqual(
+            levels(self.backend.quantize(psi), ref.quantize(psi)).max(),
+            1,
+        )
+
+    def test_a_missing_numba_is_reported_when_the_backend_is_made(self):
+        with patch.object(numba_module, 'njit', None):
+            with self.assertRaises(ImportError):
+                NumbaBackend()
+
+
+@unittest.skipIf(NumbaBackend is None, 'numba is not installed')
+class TestNumbaStructuresAreKeptByValue(TestStructuresAreKeptByValue):
+
+    BACKEND = NumbaBackend
+
+
 @unittest.skipIf(TorchBackend is None, 'torch is not installed')
 class TestTorchBackend(TestBackend):
 
     BACKEND = TorchBackend
+
+
+class TestCupyBackendOnTheCPU(TestBackend):
+
+    '''The logic of CupyBackend, with NumPy standing in for CuPy.
+
+    This does not test CUDA, only that the backend is right about the
+    shapes, the types and what it asks of the library.
+    '''
+
+    BACKEND = CupyBackend
+
+    def setUp(self):
+        patcher = patch.object(cupy_module, 'cp', numpy_as_cupy())
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        super().setUp()
+
+    def test_a_missing_cupy_is_reported_when_the_backend_is_made(self):
+        with patch.object(cupy_module, 'cp', None):
+            with self.assertRaises(ImportError):
+                CupyBackend()
+
+    def test_no_cuda_device_is_reported_when_the_backend_is_made(self):
+        def no_device():
+            raise RuntimeError('no device')
+
+        with patch.object(cupy_module, 'cp', numpy_as_cupy(no_device)):
+            with self.assertRaises(RuntimeError):
+                CupyBackend()
+
+
+class TestCupyStructuresOnTheCPU(TestStructuresAreKeptByValue):
+
+    BACKEND = CupyBackend
+
+    def setUp(self):
+        patcher = patch.object(cupy_module, 'cp', numpy_as_cupy())
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        super().setUp()
+
+
+@unittest.skipUnless(HAVE_CUPY, 'cupy and a CUDA device are not available')
+class TestCupyBackend(TestBackend):
+
+    BACKEND = CupyBackend
+
+
+@unittest.skipUnless(HAVE_CUPY, 'cupy and a CUDA device are not available')
+class TestCupyStructuresAreKeptByValue(TestStructuresAreKeptByValue):
+
+    BACKEND = CupyBackend
 
 
 @unittest.skipIf(TorchBackend is None, 'torch is not installed')

@@ -31,6 +31,12 @@ Backends
 .. automodule:: QHOT.lib.holograms.TorchBackend
    :members:
 
+.. automodule:: QHOT.lib.holograms.NumbaBackend
+   :members:
+
+.. automodule:: QHOT.lib.holograms.CupyBackend
+   :members:
+
 .. automodule:: QHOT.lib.holograms.QHologramWorker
    :members:
 

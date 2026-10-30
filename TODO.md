@@ -8,13 +8,12 @@ Ideas for upgrades and extensions, in no particular order.
 
 Accelerate hologram computation for higher frame rates and larger SLMs.
 
-- GPU-based CGH via CuPy: write `CupyBackend` (the old `cupyCGH` was removed; NumPy-compatible, so it should be small)
+- Try `CupyBackend` on an NVIDIA GPU (it is tested only against a NumPy stand-in), then fuse `psi += S * (YX)` with an `ElementwiseKernel` and consider choosing it automatically
 - ~~PyTorch-based CGH for cross-platform GPU acceleration (CUDA, MPS, CPU fallback)~~  **Done** (v1.1.0, `TorchCGH`)
 - ~~Automatically select the most performant CGH implementation available on the platform~~  **Done** (v1.1.0, `choose_cgh()`)
 - Investigate OpenCL for portability across GPU vendors
 - Benchmark CPU vs GPU for typical SLM resolutions
 - Many distinct structured traps: keep a running sum and update only the traps that changed (compare successive patterns by value)
-- A numba backend: fuse the structured term and the quantization into one pass over memory on the CPU
 
 ---
 

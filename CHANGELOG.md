@@ -33,6 +33,15 @@
   value (kind of trap and parameters), so nothing can go stale.
   `TorchBackend` computes everything on the device, quantization included,
   and works on Apple GPUs (MPS), CUDA and the CPU.
+- `NumbaBackend` (`-j`): CPU backend with compiled, parallel kernels that
+  add a few traps to the field and take the phase in one pass over memory
+  each; the matrix product of many traps is left to BLAS.  About four times
+  faster than NumPy at 1920x1080 and as accurate.  `pip install
+  "QHOT[numba]"`.
+- `CupyBackend` (`-u`): the same computation on an NVIDIA GPU with CuPy.
+  It has been tested against the reference only with a NumPy stand-in for
+  CuPy, which checks its logic but not CUDA, and so is never chosen
+  automatically.
 - `QTrapOverlay.pattern()`: a snapshot of the traps as a tuple of specs,
   safe to hand to another thread.  `TrapSpec.components()` yields the
   traps of a spec with their complex amplitudes, and `Optics.toSLM`
@@ -59,10 +68,11 @@
   (`QHOT.COMPUTE_INTERVAL`, 15 ms), not by the video.  A trap now takes
   effect at once however slowly the camera delivers frames, and with the
   video stopped.  `QHOTScreen.rendered` still drives the tasks.
-- `choose_cgh` and the command line choose a backend: `-t` PyTorch, `-n`
-  NumPy, `-u` CuPy (not yet written; it falls back with a warning).  By
-  default PyTorch is used if it is installed, even without a GPU, and
-  NumPy otherwise.  `choose_backend` returns just the backend.
+- `choose_cgh` and the command line choose a backend: `-t` PyTorch, `-j`
+  numba, `-n` NumPy, `-u` CuPy.  An unavailable one falls back with a
+  warning.  By default PyTorch is used if it is installed, even without a
+  GPU, then numba, and NumPy otherwise.  `choose_backend` returns just the
+  backend.
 - A hologram that cannot be computed no longer stops all later holograms:
   the status bar shows the reason, and the next change asks again.
 
@@ -76,8 +86,8 @@
   (`tests/test_style.py`) keeps them so.
 
 ### Removed
-- `TorchCGH` and `cupyCGH` (replaced by `TorchBackend`; a CuPy backend
-  will follow), `QTrapSync` and the replicas, the per-trap caches and
+- `TorchCGH` and `cupyCGH` (replaced by `TorchBackend` and
+  `CupyBackend`), `QTrapSync` and the replicas, the per-trap caches and
   their invalidation, and `CGH.compute(traps)` on live traps, `fieldOf`,
   `transform`, `window`, `quantize`, `bless` and the geometry arrays.
 - `QVortex.structure(cgh)` and `QRingTrap.structure(cgh)`: use

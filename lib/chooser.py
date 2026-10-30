@@ -52,6 +52,13 @@ _CGH_BACKENDS: dict[str, _CGHEntry] = {
         'PyTorch',
         'PyTorch backend (auto-selects MPS, CUDA/ROCm, or CPU)',
     ),
+    'numba': _CGHEntry(
+        '-j',
+        'QHOT.lib.holograms.NumbaBackend',
+        'NumbaBackend',
+        'Numba',
+        'Numba backend (CPU, compiled, all cores)',
+    ),
     'numpy': _CGHEntry(
         '-n',
         'QHOT.lib.holograms.NumpyBackend',
@@ -64,18 +71,18 @@ _CGH_BACKENDS: dict[str, _CGHEntry] = {
         'QHOT.lib.holograms.CupyBackend',
         'CupyBackend',
         'CuPy',
-        'CuPy CUDA backend (NVIDIA only; not yet written)',
+        'CuPy CUDA backend (NVIDIA only)',
     ),
 }
 
-_AUTO_DETECT_ORDER = ('torch', 'numpy')
+_AUTO_DETECT_ORDER = ('torch', 'numba', 'numpy')
 
 
 def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     '''Return a parser extended with a titled CGH backend option group.
 
-    Adds ``-t`` (PyTorch), ``-n`` (NumPy) and ``-u`` (CuPy) as a mutually
-    exclusive group under a ``CGH backend`` section heading.  If
+    Adds ``-t`` (PyTorch), ``-j`` (numba), ``-n`` (NumPy) and ``-u``
+    (CuPy) as a mutually exclusive group under a ``CGH backend`` section heading.  If
     the first flag is already registered on ``parser``, the group is
     left unchanged.
 
@@ -90,11 +97,12 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
         Parser with a ``CGH backend`` section containing::
 
             -t  PyTorch (MPS / CUDA / ROCm / CPU auto-select)
+            -j  numba (CPU, compiled, all cores)
             -n  NumPy (CPU)
-            -u  CuPy CUDA (NVIDIA only; not yet written)
+            -u  CuPy CUDA (NVIDIA only; never automatic)
 
         When no flag is given, ``choose_backend`` tries PyTorch, then
-        NumPy.
+        numba, then NumPy.
     '''
     parser = parser or ArgumentParser()
     first_flag = next(iter(_CGH_BACKENDS.values())).flag
@@ -176,9 +184,10 @@ def choose_backend(parser: ArgumentParser | None = None) -> Backend:
     warning is logged and the function falls through to auto-detection.
 
     When no flag is given the function probes backends in priority
-    order (PyTorch, then NumPy) and returns the first that succeeds.
+    order (PyTorch, numba, NumPy) and returns the first that succeeds.
     PyTorch is preferred even without a GPU, since it uses all the cores
-    of the CPU.
+    of the CPU; numba is the compiled alternative when PyTorch is not
+    installed.
 
     Parameters
     ----------

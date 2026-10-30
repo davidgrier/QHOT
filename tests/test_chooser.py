@@ -68,6 +68,11 @@ class TestCghParser(unittest.TestCase):
         self.assertFalse(args.torch)
         self.assertTrue(args.cupy)
 
+    def test_parse_numba_flag(self):
+        args, _ = cgh_parser().parse_known_args(['-j'])
+        self.assertTrue(args.numba)
+        self.assertFalse(args.numpy)
+
     def test_parse_numpy_flag(self):
         args, _ = cgh_parser().parse_known_args(['-n'])
         self.assertTrue(args.numpy)
@@ -78,6 +83,7 @@ class TestCghParser(unittest.TestCase):
         self.assertFalse(args.torch)
         self.assertFalse(args.cupy)
         self.assertFalse(args.numpy)
+        self.assertFalse(args.numba)
 
 
 class TestChooseCghAutoDetect(unittest.TestCase):
@@ -101,18 +107,35 @@ class TestChooseCghAutoDetect(unittest.TestCase):
             result = choose_backend()
         self.assertIs(result, fake_backend)
 
-    def test_falls_back_to_numpy_when_torch_unavailable(self):
-        fake_backend = MagicMock(spec=Backend)
+    def unavailable(self, *names):
+        """Return a stand-in for import_module that cannot import some."""
         fake_module = MagicMock()
-        fake_module.NumpyBackend = MagicMock(return_value=fake_backend)
 
         def import_side_effect(name):
-            if 'TorchBackend' in name:
-                raise ImportError('no torch')
+            if any(n in name for n in names):
+                raise ImportError(f'no {name}')
             return fake_module
 
+        return fake_module, import_side_effect
+
+    def test_falls_back_to_numba_when_torch_unavailable(self):
+        fake_backend = MagicMock(spec=Backend)
+        fake_module, side_effect = self.unavailable('TorchBackend')
+        fake_module.NumbaBackend = MagicMock(return_value=fake_backend)
         with patch.object(_chooser_mod, 'importlib') as mock_importlib:
-            mock_importlib.import_module.side_effect = import_side_effect
+            mock_importlib.import_module.side_effect = side_effect
+            result = choose_backend()
+        self.assertIs(result, fake_backend)
+
+    def test_falls_back_to_numpy_when_torch_and_numba_unavailable(self):
+        fake_backend = MagicMock(spec=Backend)
+        fake_module, side_effect = self.unavailable(
+            'TorchBackend',
+            'NumbaBackend',
+        )
+        fake_module.NumpyBackend = MagicMock(return_value=fake_backend)
+        with patch.object(_chooser_mod, 'importlib') as mock_importlib:
+            mock_importlib.import_module.side_effect = side_effect
             result = choose_backend()
         self.assertIs(result, fake_backend)
 
@@ -198,6 +221,25 @@ class TestExplicitFlags(unittest.TestCase):
     def test_n_chooses_numpy(self):
         self.assertIsInstance(self.choose('-n'), NumpyBackend)
 
+    def test_j_chooses_numba_if_it_is_installed(self):
+        try:
+            import numba  # noqa: F401
+        except ImportError:
+            self.skipTest('numba is not installed')
+        self.assertEqual(self.choose('-j').name, 'numba')
+
+    def test_j_falls_back_with_a_warning_without_numba(self):
+        fake_module, side_effect = TestChooseCghAutoDetect.unavailable(
+            None,
+            'NumbaBackend',
+        )
+        with patch.object(_chooser_mod, 'importlib') as mock_importlib:
+            mock_importlib.import_module.side_effect = side_effect
+            with self.assertLogs('QHOT.lib.chooser', level='WARNING') as logs:
+                backend = self.choose('-j')
+        self.assertTrue(any('Numba' in line for line in logs.output))
+        self.assertIs(backend, fake_module.TorchBackend.return_value)
+
     def test_t_chooses_torch_if_it_is_installed(self):
         try:
             import torch  # noqa: F401
@@ -205,9 +247,13 @@ class TestExplicitFlags(unittest.TestCase):
             self.skipTest('torch is not installed')
         self.assertEqual(self.choose('-t').name, 'torch')
 
-    def test_u_falls_back_with_a_warning_until_cupy_is_written(self):
-        with self.assertLogs('QHOT.lib.chooser', level='WARNING') as logs:
-            backend = self.choose('-u')
+    def test_u_falls_back_with_a_warning_without_cupy(self):
+        cupy_module = _importlib.import_module(
+            'QHOT.lib.holograms.CupyBackend',
+        )
+        with patch.object(cupy_module, 'cp', None):
+            with self.assertLogs('QHOT.lib.chooser', level='WARNING') as logs:
+                backend = self.choose('-u')
         self.assertIsInstance(backend, Backend)
         self.assertTrue(any('CuPy' in line for line in logs.output))
 
@@ -216,6 +262,9 @@ class TestBackendRegistry(unittest.TestCase):
 
     def test_torch_entry_has_correct_flag(self):
         self.assertEqual(_CGH_BACKENDS['torch'].flag, '-t')
+
+    def test_numba_entry_has_correct_flag(self):
+        self.assertEqual(_CGH_BACKENDS['numba'].flag, '-j')
 
     def test_numpy_entry_has_correct_flag(self):
         self.assertEqual(_CGH_BACKENDS['numpy'].flag, '-n')
@@ -253,7 +302,7 @@ class TestBuildParser(unittest.TestCase):
             self.assertIn(flag, self.parser._option_string_actions)
 
     def test_cgh_flags_registered(self):
-        for flag in ('-t', '-n', '-u'):
+        for flag in ('-t', '-j', '-n', '-u'):
             self.assertIn(flag, self.parser._option_string_actions)
 
     def test_cameraid_registered(self):
@@ -273,6 +322,8 @@ class TestBuildParser(unittest.TestCase):
             self.parser.parse_args(['-t', '-u'])
         with self.assertRaises(SystemExit):
             self.parser.parse_args(['-t', '-n'])
+        with self.assertRaises(SystemExit):
+            self.parser.parse_args(['-j', '-n'])
 
     def test_camera_and_cgh_flags_coexist(self):
         # A camera flag and a CGH flag can be used together.

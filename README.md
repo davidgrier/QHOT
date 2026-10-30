@@ -40,6 +40,18 @@ in real time using a live camera feed.
 pip install "QHOT[pyqt6]"   # or QHOT[pyqt5], QHOT[pyside6]
 ```
 
+Holograms are computed by a backend.  The default needs nothing more than
+NumPy, and each of these is faster, so install the one that suits the
+machine:
+
+```bash
+pip install "QHOT[torch]"   # PyTorch: Apple GPU, NVIDIA GPU, or all cores
+pip install "QHOT[numba]"   # numba: compiled, all the cores of the CPU
+```
+
+QHOT uses PyTorch if it is installed, then numba, then NumPy.  Choose one
+on the command line with `-t`, `-j` or `-n`.
+
 QHOT does not install a Qt binding by default: choose one with an extra, or
 install one yourself.
 

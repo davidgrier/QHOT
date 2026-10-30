@@ -113,8 +113,14 @@ each row and a factor for each column, so the fields of ``n`` plain tweezers
 add up to one matrix product.  Traps that share a structure are summed first
 and the structure applied once; structuring fields are kept by value (kind of
 trap and parameters), so a cache cannot go stale.  Nothing else is remembered
-between holograms.  ``NumpyBackend`` computes on the CPU and ``TorchBackend``
-on an Apple GPU, CUDA or the CPU, quantizing on the device.
+between holograms.  There is a backend for each kind of hardware, and all
+are tested against the reference.  ``NumpyBackend`` computes on the CPU and
+needs nothing else.  ``NumbaBackend`` does the parts that NumPy does in
+several passes over memory in one parallel pass each, on all the cores.
+``TorchBackend`` computes on an Apple GPU, CUDA or the CPU, quantizing on the
+device.  ``CupyBackend`` does the same on an NVIDIA GPU.  The accelerators are
+optional: ``pip install "QHOT[torch]"`` or ``"QHOT[numba]"``.  By default
+QHOT uses PyTorch if it is installed, then numba, then NumPy.
 
 :class:`~QHOT.lib.holograms.CGH.CGH` holds the calibration (assigning an
 attribute emits ``recalculate``) and runs a worker thread with a backend.

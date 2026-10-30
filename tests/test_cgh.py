@@ -84,11 +84,20 @@ class TestInit(unittest.TestCase):
         self.assertIsNone(CGH().parent())
 
     def test_building_it_emits_nothing(self):
-        cgh = CGH.__new__(CGH)
-        QtCore.QObject.__init__(cgh)
-        spy = QtTest.QSignalSpy(cgh.recalculate)
-        cgh.__init__(xc=1.)
-        self.assertEqual(len(spy), 0)
+        changes = []
+
+        class Probe(CGH):
+            def _changed(self):
+                changes.append(1)
+                super()._changed()
+
+        Probe(xc=1., wavelength=0.5)
+        self.assertEqual(changes, [])
+
+    def test_a_calibration_only_cgh_owns_no_thread(self):
+        cgh = CGH()
+        self.assertIsNone(cgh._thread)
+        self.assertIsNone(cgh._worker)
 
     def test_default_backend_is_numpy(self):
         self.assertIsInstance(CGH().backend, NumpyBackend)

@@ -136,15 +136,11 @@ class CGH(QtCore.QObject):
         self.backend = backend or NumpyBackend()
         self._busy = False
         self._next: tuple | None = None
-        self._thread = QtCore.QThread(self)
-        self._worker = QHologramWorker(self.backend)
-        self._worker.moveToThread(self._thread)
-        self._request.connect(self._worker.compute)
-        self._worker.done.connect(self._onDone)
-        self._worker.failed.connect(self._onFailed)
-        app = QtCore.QCoreApplication.instance()
-        if app is not None:
-            app.aboutToQuit.connect(self.stop)
+        # The thread and its worker exist only while the pipeline runs: a
+        # CGH that is used only for its calibration owns no thread.
+        self._thread: QtCore.QThread | None = None
+        self._worker: QHologramWorker | None = None
+        self._quitConnected = False
 
     def __setattr__(self, key: str, value: object) -> None:
         if key in self._fields:
@@ -268,9 +264,23 @@ class CGH(QtCore.QObject):
         CGH
             This instance, for chaining.
         '''
+        if self._thread is not None:
+            return self
         logger.info('starting CGH pipeline')
         self._busy = False
+        self._worker = QHologramWorker(self.backend)
+        self._thread = QtCore.QThread()
+        self._worker.moveToThread(self._thread)
+        # Qt deletes the worker in its own thread as that thread ends.
+        self._thread.finished.connect(self._worker.deleteLater)
+        self._request.connect(self._worker.compute)
+        self._worker.done.connect(self._onDone)
+        self._worker.failed.connect(self._onFailed)
         self._thread.start()
+        app = QtCore.QCoreApplication.instance()
+        if app is not None and not self._quitConnected:
+            app.aboutToQuit.connect(self.stop)
+            self._quitConnected = True
         self.recalculate.emit()
         self._dispatch()
         return self
@@ -281,9 +291,14 @@ class CGH(QtCore.QObject):
 
         A hologram that is being computed is finished and lost.
         '''
+        if self._thread is None:
+            return
         logger.info('stopping CGH pipeline')
         self._thread.quit()
         self._thread.wait()
+        # The worker is gone, and Qt has dropped its connections.
+        self._thread = None
+        self._worker = None
 
     @QtCore.Slot(object)
     def compute(self, pattern: Iterable[TrapSpec]) -> None:
@@ -309,7 +324,7 @@ class CGH(QtCore.QObject):
 
     def _dispatch(self) -> None:
         '''Send the waiting request to the thread, if it is idle.'''
-        if self._busy or self._next is None:
+        if self._thread is None or self._busy or self._next is None:
             return
         pattern, optics = self._next
         self._next = None

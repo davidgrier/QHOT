@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: 'If you use this software, please cite it using the metadata below.'
 title: QHOT
-version: "2.1.1"
-date-released: "2026-10-30"
+version: "2.1.2"
+date-released: "2026-10-31"
 abstract: >-
   A Python framework for holographic optical trapping — controlling
   spatial light modulators (SLMs) to create, move, and reconfigure

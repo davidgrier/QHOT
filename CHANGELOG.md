@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.2] — 2026-10-31
+
+A fix for `qhot -h`, which crashed.
+
+### Fixed
+- `qhot -h` aborted the program, and a bad value such as `qhot -c abc`
+  crashed it.  The command line was read after the camera thread had
+  started, and argparse ends the program by raising `SystemExit`, which Qt
+  turns into an abort while a thread is running.  The command line is now
+  read first, so `-h` prints the options of the camera and of the hologram
+  backends and ends, and a bad value ends with a message.
+
 ## [2.1.1] — 2026-10-30
 
 A fix for the lag of the traps with a GenICam camera such as the Flir.

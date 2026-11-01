@@ -6,6 +6,8 @@ the SLM, which is compared here with the algorithm in ``reference``.
 '''
 import importlib
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import tomllib
@@ -530,6 +532,7 @@ class TestTheThreadsShareTheInterpreter(unittest.TestCase):
         with patch.object(qhot, 'QCameraOpener', return_value=opener), \
                 patch.object(qhot, 'choose_slm', return_value=slm), \
                 patch.object(qhot, 'choose_cgh'), \
+                patch.object(sys, 'argv', ['qhot']), \
                 patch.object(qhot.chooser, 'make_tree', side_effect=stop):
             with self.assertRaises(RuntimeError):
                 qhot.main()
@@ -541,6 +544,34 @@ class TestTheThreadsShareTheInterpreter(unittest.TestCase):
     def test_main_leaves_the_interval_for_any_other_camera(self):
         self.run_main_with(ANoiseLikeCamera())
         self.assertEqual(sys.getswitchinterval(), 0.005)
+
+
+class TestTheCommandLine(unittest.TestCase):
+    '''The command line is read before there is a window or a thread.
+
+    ``-h`` once aborted the program (a thread was running when
+    ``SystemExit`` left ``main``), and a bad value crashed it.
+    '''
+
+    def run_qhot(self, *args: str) -> subprocess.CompletedProcess:
+        script = 'from QHOT.qhot import main; main()'
+        env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
+        return subprocess.run([sys.executable, '-c', script, *args],
+                              capture_output=True,
+                              text=True,
+                              timeout=120,
+                              env=env)
+
+    def test_help_prints_and_ends(self):
+        done = self.run_qhot('-h')
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('camera backend', done.stdout)
+        self.assertIn('CGH backend', done.stdout)
+
+    def test_a_bad_value_ends_with_a_message(self):
+        done = self.run_qhot('-c', 'abc')
+        self.assertEqual(done.returncode, 2, done.stderr)
+        self.assertIn('invalid int value', done.stderr)
 
 
 if __name__ == '__main__':

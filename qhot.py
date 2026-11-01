@@ -400,12 +400,16 @@ def main() -> None:
     that ``-h`` shows all options together.  The CGH backend is
     auto-selected (PyTorch, then numba, then NumPy) when no flag is given.
     '''
+    parser = build_parser()
+    # -h and a bad value end the program here, before there is a window or
+    # a thread: argparse exits by raising SystemExit, which Qt turns into an
+    # abort while the camera thread is running.
+    parser.parse_known_args()
     app = pg.mkQApp('QHOT')
     screen = splash()
     screen.show()
     screen.raise_()  # macOS shows a splash screen only if it is raised
     screen.activateWindow()
-    parser = build_parser()
     say(screen, 'Opening the camera...')
     opener = QCameraOpener(parser)
     app.aboutToQuit.connect(opener.stop)

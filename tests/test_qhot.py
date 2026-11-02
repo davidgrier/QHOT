@@ -225,6 +225,62 @@ class TestTheWindow(WindowCase):
         self.assertNotIn(trap, traps._trapWidgets)
 
 
+class TestTheAspectRatioDoesNotChaseItself(WindowCase):
+
+    '''If the width of the screen depends on the height of the window, the
+    correction of the height never settles; it must still stop.'''
+
+    def setUp(self):
+        super().setUp()
+        self.window._resetCorrections()
+
+    def tearDown(self):
+        self.window._resetCorrections()
+        super().tearDown()
+
+    def chase(self, times, widths):
+        # The window never gets the height that it asks for, as when the
+        # layout moves the screen again; the screen is as wide as the
+        # next of widths.
+        screen = self.window.screen
+        frame = MagicMock(return_value=QtCore.QRect(0, 0, 1, 1))
+        with patch.object(self.window, 'height', return_value=1), \
+                patch.object(self.window, 'frameGeometry', frame), \
+                patch.object(self.window, 'resize') as resize, \
+                patch.object(screen, 'width', side_effect=widths * times):
+            for _ in range(times * len(widths)):
+                self.window._constrainAspectRatio()
+        return resize.call_count
+
+    def test_the_same_request_is_made_once_in_a_burst(self):
+        self.assertEqual(self.chase(20, [900]), 1)
+
+    def test_two_heights_that_alternate_are_asked_for_once_each(self):
+        self.assertEqual(self.chase(20, [900, 880]), 2)
+
+    def resized(self, w, h):
+        self.window.resizeEvent(QtGui.QResizeEvent(QtCore.QSize(w, h),
+                                                   QtCore.QSize(1, 1)))
+
+    def test_a_resize_by_the_user_allows_the_request_again(self):
+        self.chase(5, [900])
+        self.window._expected = (1000, 700)
+        self.resized(1200, 800)             # not what the correction asked
+        self.assertEqual(self.window._requested, set())
+
+    def test_the_resize_that_a_correction_causes_is_not_the_user(self):
+        self.chase(5, [900])
+        asked = set(self.window._requested)
+        self.window._expected = (1000, 700)
+        self.resized(1000, 700)
+        self.assertEqual(self.window._requested, asked)
+
+    def test_a_pause_allows_the_request_again(self):
+        self.chase(5, [900])
+        self.assertTrue(wait_for(lambda: not self.window._requested))
+        self.assertEqual(self.chase(5, [900]), 1)
+
+
 class TestTheFileMenu(WindowCase):
 
     '''The actions of the File menu write and read the files that they name.'''

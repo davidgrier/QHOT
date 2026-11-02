@@ -61,6 +61,11 @@ class QHOT(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QHOT', 'QHOT')
 
+    #: Quiet time [ms] after the last correction of the aspect ratio that
+    #: ends a burst of resizes.
+    CORRECTION_PAUSE = 200
+    _expected: tuple[int, int] | None = None    # size of the last correction
+
     def __init__(self,
                  cameraTree: QCameraTree,
                  *args,
@@ -72,6 +77,10 @@ class QHOT(QtWidgets.QMainWindow):
         self.source = self.cameraTree.source
         self.slm = slm
         self.cgh = cgh
+        self._requested: set[tuple[int, int]] = set()
+        self._pause = QtCore.QTimer(self)
+        self._pause.setSingleShot(True)
+        self._pause.timeout.connect(self._resetCorrections)
         self._setupUi()
         self._connectSignals()
         self._addFilters()
@@ -312,6 +321,11 @@ class QHOT(QtWidgets.QMainWindow):
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         '''Schedule an aspect-ratio correction after every resize.'''
         super().resizeEvent(event)
+        size = event.size()
+        if (size.width(), size.height()) != self._expected:
+            # Not the result of a correction: the user, or the system,
+            # changed the window, so a request may be made again.
+            self._requested.clear()
         QtCore.QTimer.singleShot(0, self._constrainAspectRatio)
 
     def _constrainAspectRatio(self) -> None:
@@ -323,7 +337,18 @@ class QHOT(QtWidgets.QMainWindow):
         they differ.  The panels of controls scroll, so they ask for no
         height of their own and the image never has bars.  The correction
         is a no-op when the height is already correct, so the resulting
-        second resize event terminates the loop.
+        second resize event normally terminates the loop.
+
+        Whether the layout settles is not guaranteed: if the width of the
+        screen depends on the height of the window (a scroll bar of the
+        controls that comes and goes, say), the two chase each other
+        forever, and the interface does nothing but repaint.  A correction
+        converges, so it never asks twice for the same height at the same
+        width; the chase does.  The window remembers what it asked for in a
+        burst of resizes and does not ask again.  The memory is cleared by
+        a resize that is not one of its own corrections (the user dragged
+        the window, so the same request may be right again) and
+        :attr:`CORRECTION_PAUSE` milliseconds after the last correction.
         '''
         cam = self.screen.sizeHint()
         if not cam.isValid() or cam.width() == 0:
@@ -332,11 +357,23 @@ class QHOT(QtWidgets.QMainWindow):
         if screen_w <= 0:
             return
         ideal_h = screen_w * cam.height() // cam.width()
+        # The title bar and borders count against the display: a window
+        # whose frame is taller than the available height is shrunk by the
+        # window manager, and the two then undo each other's work.
+        decoration = max(0, self.frameGeometry().height() - self.height())
         available_h = (QtWidgets.QApplication.primaryScreen()
-                       .availableGeometry().height())
+                       .availableGeometry().height() - decoration)
         desired_h = min(ideal_h + self._chromeHeight, available_h)
-        if self.height() != desired_h:
-            self.resize(self.width(), desired_h)
+        request = (self.width(), desired_h)
+        if self.height() != desired_h and request not in self._requested:
+            self._requested.add(request)
+            self._expected = request
+            self._pause.start(self.CORRECTION_PAUSE)
+            self.resize(*request)
+
+    def _resetCorrections(self) -> None:
+        '''Forget the corrections of the aspect ratio that were asked for.'''
+        self._requested.clear()
 
     @QtCore.Slot(str)
     def setStatus(self, message: str) -> None:

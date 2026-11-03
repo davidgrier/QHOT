@@ -4,6 +4,31 @@ Ideas for upgrades and extensions, in no particular order.
 
 ---
 
+## Polish after the review of 2026-11-03
+
+The review kept to what the CI checks.  A stricter pass finds these:
+
+- [ ] `QTrapOverlay` is one class of about 1,000 lines with 43 methods
+      (picking, moving, rotating, grouping, marking, drawing).  Split it
+      along those lines, as one refactor.
+- [ ] `QTrapOverlay._detachTrap` has a branch for a group that is left empty
+      after a trap leaves it, which no test reaches and which cannot happen
+      if a group always has two traps or more.  Confirm, and remove it.
+- [ ] `CGH` defaults `xs` and `ys` to 0, while `QCGHTree` says 256.
+- [ ] Most tests import Qt through `pyqtgraph.Qt`, which takes the binding
+      that `pyqtgraph` picks, not `QT_API`; use `qtpy`.
+- [ ] Wide signatures: `QTomlDocument` (8 arguments), the numba backend (8),
+      `QDocument` and `QTaskManager` (6).
+- [ ] `try`/`except`/`pass` that is `contextlib.suppress` (5), `key in
+      dict.keys()` (3), `dict(...)` calls that are literals (44), a loop
+      variable that is overwritten (2), `filter` as an argument name.
+- [ ] 54 of 336 public functions have no docstring (`QTrap`, `QTrapArray`,
+      the tasks).
+- [ ] `.qh/` (a virtual environment, 519 MB) and `old/` sit in the working
+      directory, ignored by git; delete them if nothing needs them.
+
+---
+
 ## Hardware Acceleration
 
 Accelerate hologram computation for higher frame rates and larger SLMs.

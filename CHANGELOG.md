@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- QHOT no longer shortens the thread-switch interval of Python when a
+  GenICam camera is opened (`SWITCH_INTERVAL`, added in 2.1.1).  Use the
+  Viva backend (`qhot -g`), which holds no interpreter lock, or run a
+  camera that uses Harvesters in a process of its own (`qhot -fr`).  With a
+  Flir the event loop waits a median of 4.6 ms and 9.9 holograms a second
+  are made in a process of its own, and 4.9 ms and 9.8 with Viva; a Flir
+  read by Harvesters inside the program, at Python's own interval, waits
+  23.5 ms and makes 5.2 holograms a second.
+
+### Fixed
+- The window resized itself thousands of times a second, and the interface
+  did nothing else, when the frame of the camera made the window, with its
+  title bar, taller than the display: macOS shrank the window and QHOT
+  asked for the height again.  The height now allows for the title bar.
+
 ## [2.1.2] — 2026-10-31
 
 A fix for `qhot -h`, which crashed.

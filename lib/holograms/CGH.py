@@ -126,24 +126,11 @@ class CGH(QtCore.QObject):
                  backend: Backend | None = None,
                  parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
-        # Plain assignment, so that building the object emits nothing.
-        for attr, val in (('shape', shape),
-                          ('wavelength', wavelength),
-                          ('n_m', n_m),
-                          ('magnification', magnification),
-                          ('focallength', focallength),
-                          ('camerapitch', camerapitch),
-                          ('slmpitch', slmpitch),
-                          ('scale', scale),
-                          ('splay', splay),
-                          ('xs', xs),
-                          ('ys', ys),
-                          ('phis', phis),
-                          ('xc', xc),
-                          ('yc', yc),
-                          ('zc', zc),
-                          ('thetac', thetac)):
-            object.__setattr__(self, attr, val)
+        # Plain assignment, so that building the object emits nothing.  The
+        # values are the arguments named in _fields.
+        arguments = locals()
+        for name in self._fields:
+            object.__setattr__(self, name, arguments[name])
         object.__setattr__(self, '_optics', None)
         self.backend = backend or NumpyBackend()
         self._busy = False

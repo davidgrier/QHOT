@@ -24,6 +24,20 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 class TestInit(unittest.TestCase):
 
+    def test_the_arguments_are_the_calibration_fields_in_order(self):
+        # __init__ takes its values from the arguments named in _fields.
+        import inspect
+        arguments = [name for name in inspect.signature(CGH).parameters
+                     if name not in ('backend', 'parent')]
+        self.assertEqual(arguments, list(CGH._fields))
+
+    def test_every_calibration_field_is_set(self):
+        cgh = CGH(wavelength=0.532, xc=7.)
+        self.assertEqual(cgh.wavelength, 0.532)
+        self.assertEqual(cgh.xc, 7.)
+        for name in CGH._fields:
+            self.assertIn(name, vars(cgh))
+
     def test_default_shape(self):
         self.assertEqual(CGH().shape, (512, 512))
 

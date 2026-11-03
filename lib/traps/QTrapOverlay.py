@@ -1,9 +1,17 @@
+'''The overlay on which the optical traps are shown, picked and moved.'''
+import functools
+import logging
+import operator
+from collections.abc import Callable, Iterator
+from enum import Enum
 from typing import ClassVar
 
+import numpy as np
 from qtpy import QtCore, QtWidgets, QtGui
 import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
 from pyqtgraph import mkBrush, mkPen
+
 from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
@@ -12,12 +20,6 @@ from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
     MoveCommand, RotateCommand, WheelCommand, LockCommand)
 from QHOT.traps import QTweezer
-from enum import Enum
-import numpy as np
-from collections.abc import Callable, Iterator
-import functools
-import operator
-import logging
 
 
 logger = logging.getLogger(__name__)
@@ -640,33 +642,47 @@ class QTrapOverlay(ScatterPlotItem):
             return False
         outer = direct.parent()
         if isinstance(outer, QTrapGroup):
-            self.trapRemoved.emit(outer)
-            outer.removeTrap(direct)
-            direct.setParent(self)
-            direct.changed.connect(self._onGroupChanged)
-            if not list(outer) and outer.parent() is self:
-                outer.setParent(None)
-            else:
-                self.trapAdded.emit(outer)
-            self.trapAdded.emit(direct)
+            self._detachSubgroup(outer, direct)
         else:
-            all_members = list(direct)
-            self.trapRemoved.emit(direct)
-            direct.removeTrap(trap)
-            trap.setParent(self)
-            remaining = [m for m in all_members if m is not trap]
-            if len(remaining) == 1:
-                sole = remaining[0]
-                direct.removeTrap(sole)
-                sole.setParent(self)
-                direct.setParent(None)
-                self.trapAdded.emit(sole)
-            elif remaining:
-                self.trapAdded.emit(direct)
-            else:
-                direct.setParent(None)
-            self.trapAdded.emit(trap)
+            self._detachTrap(direct, trap)
         return True
+
+    def _detachSubgroup(self, outer: QTrapGroup, group: QTrapGroup) -> None:
+        '''Move the subgroup *group* out of the group *outer*.
+
+        *outer* disappears if nothing is left in it.
+        '''
+        self.trapRemoved.emit(outer)
+        outer.removeTrap(group)
+        group.setParent(self)
+        group.changed.connect(self._onGroupChanged)
+        if not list(outer) and outer.parent() is self:
+            outer.setParent(None)
+        else:
+            self.trapAdded.emit(outer)
+        self.trapAdded.emit(group)
+
+    def _detachTrap(self, group: QTrapGroup, trap: QTrap) -> None:
+        '''Move *trap* out of *group*.
+
+        A group left with one trap dissolves, and with none disappears.
+        '''
+        members = list(group)
+        self.trapRemoved.emit(group)
+        group.removeTrap(trap)
+        trap.setParent(self)
+        remaining = [m for m in members if m is not trap]
+        if len(remaining) == 1:
+            sole = remaining[0]
+            group.removeTrap(sole)
+            sole.setParent(self)
+            group.setParent(None)
+            self.trapAdded.emit(sole)
+        elif remaining:
+            self.trapAdded.emit(group)
+        else:
+            group.setParent(None)
+        self.trapAdded.emit(trap)
 
     # ------------------------------------------------------------------
     # Marking traps for task operations

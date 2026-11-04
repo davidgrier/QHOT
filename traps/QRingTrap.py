@@ -1,10 +1,13 @@
+'''A ring of light: the trap with a Bessel profile and a helical phase.'''
 from __future__ import annotations
 
-from QHOT.lib.traps.QTrap import QTrap
-from QHOT.lib.lettersymbol import letterSymbol
 from typing import TYPE_CHECKING
+
 import numpy as np
 from scipy.special import jv
+
+from QHOT.lib.lettersymbol import letterSymbol
+from QHOT.lib.traps.QTrap import QTrap
 
 if TYPE_CHECKING:
     from QHOT.lib.types import Field
@@ -31,7 +34,7 @@ class QRingTrap(QTrap):
     radius : float
         Radius of the ring [pixels]. Default: 10.
     ell : float
-        Topological charge of the ring trap. Default: 0.
+        Topological charge of the ring trap. Default: 10.
     *args, **kwargs
         Forwarded to ``QTrap``.
 

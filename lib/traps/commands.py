@@ -16,7 +16,6 @@ else:
 
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
-from QHOT.traps.QTweezer import QTweezer
 
 if TYPE_CHECKING:
     from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
@@ -52,6 +51,9 @@ class AddTrapCommand(QUndoCommand):
                  y: float,
                  parent: QUndoCommand | None = None) -> None:
         super().__init__('Add trap', parent)
+        # Not at the top: QHOT.traps imports this package, which imports
+        # this module.
+        from QHOT.traps.QTweezer import QTweezer
         self._overlay = overlay
         self._trap = QTweezer(r=(x, y, 0.))
 

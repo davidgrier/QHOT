@@ -1,9 +1,12 @@
+'''An optical vortex: the trap with a helical phase.'''
 from __future__ import annotations
 
-from QHOT.lib.traps.QTrap import QTrap
-from QHOT.lib.lettersymbol import letterSymbol
 from typing import TYPE_CHECKING
+
 import numpy as np
+
+from QHOT.lib.lettersymbol import letterSymbol
+from QHOT.lib.traps.QTrap import QTrap
 
 if TYPE_CHECKING:
     from QHOT.lib.types import Field
@@ -26,7 +29,7 @@ class QVortex(QTrap):
     Parameters
     ----------
     ell : int
-        Topological charge (winding number) of the vortex. Default: 0.
+        Topological charge (winding number) of the vortex. Default: 10.
     *args, **kwargs
         Forwarded to ``QTrap``.
 

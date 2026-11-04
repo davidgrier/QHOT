@@ -242,11 +242,18 @@ class TestTheAspectRatioDoesNotChaseItself(WindowCase):
         # The window never gets the height that it asks for, as when the
         # layout moves the screen again; the screen is as wide as the
         # next of widths.
+        # The display is big enough that no height is cut to fit it: the
+        # test is about the requests, not about the size of a screen.
         screen = self.window.screen
         frame = MagicMock(return_value=QtCore.QRect(0, 0, 1, 1))
+        QApplication = qhot.QtWidgets.QApplication
+        display = MagicMock()
+        display.availableGeometry.return_value = QtCore.QRect(0, 0, 4000, 3000)
+        primary = MagicMock(return_value=display)
         with patch.object(self.window, 'height', return_value=1), \
                 patch.object(self.window, 'frameGeometry', frame), \
                 patch.object(self.window, 'resize') as resize, \
+                patch.object(QApplication, 'primaryScreen', primary), \
                 patch.object(screen, 'width', side_effect=widths * times):
             for _ in range(times * len(widths)):
                 self.window._constrainAspectRatio()

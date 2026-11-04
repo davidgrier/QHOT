@@ -16,6 +16,13 @@ __all__ = ['QTaskManagerWidget']
 _ROLE = QtCore.Qt.ItemDataRole.UserRole
 
 
+def _dropPoint(event: QtGui.QDropEvent) -> QtCore.QPoint:
+    '''Return where *event* happened: Qt6 has ``position()``, Qt5 ``pos()``.'''
+    if hasattr(event, 'position'):
+        return event.position().toPoint()
+    return event.pos()
+
+
 class _DraggableQueueList(QtWidgets.QListWidget):
     '''QListWidget that allows PENDING tasks to be reordered by dragging.
 
@@ -30,7 +37,7 @@ class _DraggableQueueList(QtWidgets.QListWidget):
         self.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        index = self.indexAt(event.position().toPoint())
+        index = self.indexAt(_dropPoint(event))
         if not index.isValid():
             insert_row = self.count()
         elif (self.dropIndicatorPosition() ==
@@ -159,12 +166,9 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         self._queueList.model().rowsMoved.connect(self._onRowsMoved)
         self._queueList.customContextMenuRequested.connect(
             self._onQueueContextMenu)
-        delete_shortcut = QtGui.QShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key.Key_Delete), self._queueList)
-        delete_shortcut.activated.connect(self._onDeletePressed)
-        backspace_shortcut = QtGui.QShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key.Key_Backspace), self._queueList)
-        backspace_shortcut.activated.connect(self._onDeletePressed)
+        for key in (QtCore.Qt.Key.Key_Delete, QtCore.Qt.Key.Key_Backspace):
+            QtGui.QShortcut(QtGui.QKeySequence(key), self._queueList
+                            ).activated.connect(self._onDeletePressed)
 
     # ------------------------------------------------------------------
     # manager property

@@ -6,7 +6,8 @@ from qtpy import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
-from QHOT.lib.tasks.QTaskManagerWidget import QTaskManagerWidget, _ROLE
+from QHOT.lib.tasks.QTaskManagerWidget import (
+    QTaskManagerWidget, _ROLE, _dropPoint)
 
 try:
     from taskmanagers import Screen, manager_for
@@ -572,6 +573,21 @@ class TestQTaskManagerWidgetDragReorder(unittest.TestCase):
         items = [self.widget._queueList.item(i).data(_ROLE)
                  for i in range(self.widget._queueList.count())]
         self.assertEqual(items, [t1, t3, t2])
+
+
+
+class TestDropPoint(unittest.TestCase):
+    '''The drop position comes from position() in Qt6 and pos() in Qt5.'''
+
+    def test_qt6_event_has_position(self):
+        event = MagicMock(spec=['position'])
+        event.position.return_value = QtCore.QPointF(3.2, 4.4)
+        self.assertEqual(_dropPoint(event), QtCore.QPoint(3, 4))
+
+    def test_qt5_event_has_only_pos(self):
+        event = MagicMock(spec=['pos'])
+        event.pos.return_value = QtCore.QPoint(5, 6)
+        self.assertEqual(_dropPoint(event), QtCore.QPoint(5, 6))
 
 
 if __name__ == '__main__':

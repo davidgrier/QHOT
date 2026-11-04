@@ -48,7 +48,8 @@ The tasks
      - Marks the start of a block to repeat.
      - none
    * - ``Repeat``
-     - Repeats the tasks since ``BeginRepeat``.
+     - Repeats the tasks since ``BeginRepeat``, as they are when it runs.
+       Blocks may be nested.
      - ``n``: how many times the block runs in all (default 1).
    * - ``ClearTraps``
      - Removes every trap.
@@ -57,11 +58,12 @@ The tasks
      - Waits.
      - ``frames``: how many frames of video (default 30).
    * - ``Move``
-     - Moves the marked traps so that their centroid reaches a place.
+     - Moves the marked traps and groups, each as a whole, so that their
+       centroid reaches a place.
      - ``x``, ``y``, ``z`` [pixels]: the place.  ``step``: the most that
        it moves in a frame (default 1).
    * - ``MoveTraps``
-     - Moves every trap by a displacement.
+     - Moves every trap and group by a displacement.
      - ``dx``, ``dy``, ``dz`` [pixels]: how far (default 0).  ``step``:
        the most that it moves in a frame (default 1).
        ``selected_only``: move only the selected traps (default false).

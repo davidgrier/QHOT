@@ -70,7 +70,8 @@ onto the overlay's ``QUndoStack``:
    * - ``AddTrapCommand``
      - Add a ``QTweezer`` at a given position.
    * - ``RemoveTrapCommand``
-     - Remove a top-level trap or group.
+     - Remove a top-level trap or group.  A group keeps its members when
+       it is removed, so that undo restores all of it.
    * - ``MoveCommand``
      - Move a trap or group (pre-executed; first redo is a no-op).
    * - ``RotateCommand``
@@ -145,6 +146,10 @@ updates the corresponding ``CGH`` attribute.
 
 :class:`~QHOT.lib.QSLM.QSLM` manages the SLM display window on a secondary
 screen and exposes a ``setData`` slot that accepts a uint8 phase array.
+The shape of a hologram is the shape of that window.  With no secondary
+screen, or with ``-s``, the window is opened on the primary screen with a
+fixed size (640 × 480), so that the shape cannot change under the engine
+that makes the holograms.
 :class:`~QHOT.lib.QSLMWidget.QSLMWidget` shows a preview of the current
 hologram inside the main window.
 
@@ -173,7 +178,9 @@ up to three lifecycle hooks:
    * - ``process(frame)``
      - Once per frame while the task is running.  ``frame`` is a
        zero-based counter.  Call ``self.finish()`` to end early.
-       Never called when ``duration == 0``.
+       Never called when ``duration == 0``.  A hook that ends the task
+       (``finish()`` or ``abort()``) stops it: no hook is called after
+       it.
    * - ``complete()``
      - Once after the last ``process()`` call, or immediately after
        ``initialize()`` when ``duration == 0``.  Use it to store
@@ -217,9 +224,14 @@ configurable number of times::
 When ``Repeat`` runs, it scans the schedule backwards to find its
 matching ``BeginRepeat`` (handling nesting via a depth counter),
 serializes the intervening tasks, and prepends ``n − 1`` fresh copies
-to the front of the queue via ``manager.inject()``.  Injected tasks
-are ephemeral: they are not added to ``scheduled``, so they do not
-persist across ``stop()`` / ``restart()`` calls.
+to the front of the queue via ``manager.inject()``.  It looks for the
+block each time it runs, so a task that was changed since the last run
+is the one that repeats, and a queue that is saved after a run holds
+only what the user made.  A copy is not in the schedule, so each
+``Repeat`` in it is told its own block from the specs, which is what
+makes nested blocks work at any depth.  Injected tasks are ephemeral:
+they are not added to ``scheduled``, so they do not persist across
+``stop()`` / ``restart()`` calls.
 
 **Serialization.**  ``QTask.toDict()`` returns a plain dict with a
 ``'type'`` key (the class name), ``'delay'``, and all declared
@@ -262,13 +274,16 @@ uses this for ``load()``, ``restart()``, and loop injection.
    * - :class:`~QHOT.tasks.ClearTraps.ClearTraps`
      - Remove all traps from the overlay.
    * - :class:`~QHOT.tasks.LoadTraps.LoadTraps`
-     - Load a trap configuration from a JSON file.
+     - Load a trap configuration from a JSON file.  It fails, and with it
+       the queue, if there is no file name or the file cannot be read.
    * - :class:`~QHOT.tasks.SaveTraps.SaveTraps`
      - Save the current trap configuration to a JSON file.
    * - :class:`~QHOT.tasks.Move.Move`
-     - Move a single trap along a path over a number of frames.
+     - Move the marked traps and groups, each as a whole, so that their
+       centroid reaches a place, over a number of frames.
    * - :class:`~QHOT.tasks.MoveTraps.MoveTraps`
-     - Move all traps in the overlay by a common displacement.
+     - Move all traps and groups in the overlay, each as a whole, by a
+       common displacement.
    * - :class:`~QHOT.tasks.Snapshot.Snapshot`
      - Capture a single camera frame to a file.
    * - :class:`~QHOT.tasks.Record.Record`
@@ -287,6 +302,16 @@ Application layer — ``QHOT.qhot``
 :class:`~QHOT.qhot.QHOT` loads ``QHOT.ui`` and wires all subsystems
 together via Qt signals.
 
+**Starting up.**  ``main()`` reads the command line (so that ``-h`` and a
+bad value end the program before there is a window), shows a splash screen
+that says what is happening, and starts a
+:class:`~QVideo.lib.QCameraOpener.QCameraOpener`, which opens the camera in
+a thread of its own: opening one can take seconds.  Meanwhile it opens the
+SLM and makes the hologram engine, then waits for the camera with the event
+loop running and builds the window.  If the SLM or the engine cannot be
+made, the camera thread is stopped, the splash screen closes and the
+program ends with the message.
+
 **File menu.**  The File menu is organized into three groups:
 
 * **Open / Save / Save As** — the traps (JSON, a
@@ -303,7 +328,14 @@ together via Qt signals.
   of dialogs: a name that is taken gets a counter, so a save never replaces
   an earlier one.
 * **Preferences** submenu — CGH calibration settings (saved to
-  ``~/.qhot/QCGHTree.toml``).
+  ``~/.qhot/QCGHTree.toml``).  A configuration file that cannot be used
+  (it is not TOML, or has no ``settings``) is reported and the defaults
+  are used; the first launch has none, which is not an error.
+
+A save that fails, for any reason, is reported in the status bar and leaves
+the file that was there as it was: the text of a file is made before the
+file is opened.  Nothing but a bug of the program leaves a Qt slot, because
+PyQt ends the program.
 
 **Edit menu.**  Added programmatically by ``_setupEditMenu()`` and inserted
 between the File and Tasks menus.  Contains **Undo** (Ctrl+Z / Cmd+Z),

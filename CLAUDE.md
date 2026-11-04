@@ -62,6 +62,8 @@ qhot.py (QHOTWindow)
 
 **Signal flow:** a trap, or a group of traps, changes (`changed`, which a change of structure also emits) or the traps are added or removed → `QTrapOverlay.patternChanged`; or the calibration changes → `CGH.recalculate`. `CGH.follow(overlay)` notes that the hologram is stale, and a timer of the CGH (`CGH.INTERVAL`, independent of the video) calls `CGH.compute(overlay.pattern())` → the worker thread computes with a `Backend` → `CGH.hologramReady` → `QSLM.setData()` updates SLM display. `QHOT` only makes the connections.
 
+**Starting up:** `main()` reads the command line, shows the splash screen and starts QVideo's `QCameraOpener`, which opens the camera in a thread, while it makes the SLM and the hologram engine on the main thread. If either fails, `main()` stops the opener and exits with the message; otherwise it waits for the camera, builds the tree and the window, and sets `opener.camera = None` (the interface has it now).
+
 **Threading rule:** the compute thread must never touch anything the interface edits. `CGH.compute` captures two plain values at the request: the pattern (`QTrapOverlay.pattern()`, a tuple of immutable `TrapSpec`) and the calibration (`CGH.optics`, an immutable `Optics`). Anything a hologram depends on must therefore be in the `TrapSpec` or the `Optics`. There are no locks and no caches to invalidate: a hologram is computed from scratch, and the only thing kept between holograms is the structuring fields, keyed by value.
 
 **The algorithm** is stated in `lib/holograms/reference.py` (slow, literal, float64). Backends are tested against it, so change the reference and its tests first, then make a backend agree. A trap's field is `amplitude * exp(i phase) * D(r) * S`, where `D` is the displacement and `S` the structuring field (`QTrap.structuringField(geometry, **params)`, a function of values, given only a `Geometry`). A group's structure is the superposition of its members', recursively. A plain group has no amplitude of its own; a composite (`QTrapGroup.composite = True`) does.
@@ -70,6 +72,7 @@ qhot.py (QHOTWindow)
 - `lib/traps/QTrap.py` — base class; all traps have a 3D position and phase profile
 - `lib/traps/QTrapGroup.py` — recursive grouping of traps
 - `lib/traps/QTrapOverlay.py` — `QGraphicsScene` subclass; handles mouse/wheel interaction
+- **A group keeps its own center.** Move a group as a whole (`group.r = ...`, which `QTrapOverlay.markedGroups` and iterating the overlay give you), never the traps of a group one by one: an array makes its traps again around its center when it is saved, loaded or reshaped. Removing a group from the overlay detaches only the group, so that undo restores all of it.
 - `traps/` — concrete trap types: `QTweezer`, `QVortex`, `QRingTrap`, `QTrapArray`, `QLetterArray`, `QTextArray`
 
 **Hologram computation** (`lib/holograms/`):
@@ -85,6 +88,8 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - **Contracts are enforced when the code is written, not when it runs.** A developer who breaks the contract of a component finds out from the tests, from the types, or from a `TypeError` at construction. Do not add run-time cross-checks, `requires` declarations or `if x is None` fallbacks for a part that the program always has.
 - **No options for the sake of options.** A resource that the program always provides is a required argument, not `x: X | None = None`. `QTaskManager` takes its `overlay`, `cgh`, `dvr`, `save` and `image`, all of them, and gives each task the ones that the task lacks.
 - **Run-time checks are for what comes from outside:** files that a user may have edited (traps, queues, the configuration), and hardware that may or may not be present.
+- **A save never destroys, and nothing but a bug leaves a slot.** Make the text of a file before opening it (`json.dumps`, then write), so that data that cannot be written leaves the old file alone. `QDocument` reports any failure of a save in the status bar; an exception that leaves a Qt slot ends the program under PyQt.
+- **A task fails the queue when it cannot do what it was asked** (`LoadTraps` with no file, a recording that cannot start): an unattended run must not go on with the wrong traps.
 - **So the tests must cross the seams.** `tests/test_task_contract.py` takes every registered task through the path of a user (menu, manager, parameter tree, queue file), and `tests/test_qhot.py` builds the real window. A new task or component that does not fit fails there.
 - **`qhot.py` shows the wiring.** Components are written so that connecting them is one clear line; the window should not reach into them.
 
@@ -97,7 +102,8 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - CI runs headless with `QT_QPA_PLATFORM=offscreen` across Python 3.11–3.12
 - Coverage config in `pyproject.toml` under `[tool.coverage.*]`
 - Use `# pragma: no cover` for example/main blocks and GPU-only code paths
-- `QVideo` (camera library) is an external dependency installed from GitHub, not pip
+- `QVideo` (camera library) is a dependency from PyPI (`QVideo[dvr]>=4.13.0`); its camera opener (`QVideo.lib.QCameraOpener`) is used here, not copied
+- Tests import Qt from `qtpy`, not from `pyqtgraph.Qt`; `tests/test_import_order.py` checks the order of imports and `tests/test_import_cycles.py` imports each package first, in an interpreter of its own, as a script would
 
 ## Style
 
@@ -114,6 +120,8 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - Name things in the physicist's words where they are physics (`psi`, `phasors`, `superpose`, `structuringField`, `amplitude`, `toSLM`) so that the code reads as the equation, and in plain engineering words where they are plumbing (`upload`, `cache`, `device`).
 
 ## Imports
+
+Import `qtpy` (or QVideo, which imports it first) before `pyqtgraph` in every module, script and example: `qtpy` honors `QT_API`, and `pyqtgraph` imported first chooses a binding of its own. `import QHOT` does not import `qtpy`. Any package can be the first one that a script imports, so `lib/traps/commands.py` imports `QTweezer` inside `AddTrapCommand`, where it makes one, and not at the top (`QHOT.traps` imports `QHOT.lib.traps`).
 
 Traps do not import the hologram pipeline: they are given a `Geometry`. `reference.py` and `backends/_base.py` import `QHOT.traps` lazily, inside the function that needs it, to register the trap classes without a cycle.
 

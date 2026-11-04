@@ -21,7 +21,7 @@ in real time using a live camera feed.
   dot-matrix text patterns
 - Interactive display filter pipeline (smoothing, edge detection, RGB selection, sample-hold)
 - Configuration save/restore via TOML
-- Full unit-test suite (1400+ tests)
+- Full unit-test suite (1700+ tests)
 
 ## Requirements
 
@@ -69,6 +69,20 @@ pip install -e ".[pyqt6]"
 qhot
 ```
 
+The flags of the command line choose the camera, the hologram backend and
+the SLM:
+
+| Flag | Chooses |
+|---|---|
+| `-g` | a GenICam camera through viva-genicam (preferred: no vendor SDK) |
+| `-f`, `-b`, `-i`, `-m`, `-v` | a GenICam camera through a vendor's producer (FLIR, Basler, IDS, MATRIX VISION, Allied Vision), which QVideo opens in a process of its own on macOS and Linux |
+| `-c`, `-p` | an OpenCV camera, a Raspberry Pi camera |
+| `-t`, `-j`, `-n`, `-u` | the hologram backend: PyTorch, numba, NumPy, CuPy |
+| `-s` | the SLM window on the primary screen, even with a second screen |
+
+With no camera flag, QHOT shows a simulated camera.  `qhot -h` lists them
+all.
+
 Or from Python:
 
 ```python
@@ -99,8 +113,10 @@ QHOT/
 │   ├── QSaveFile.py
 │   ├── QDocument.py, QImageFile.py
 │   ├── holograms/    — Hologram computation
+│   ├── tasks/        — The task manager and its widgets
 │   └── traps/        — Trap base classes and overlay
 ├── traps/            — Concrete trap implementations
+├── tasks/            — Concrete tasks, for the queue
 └── tests/            — Unit tests
 ```
 

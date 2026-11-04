@@ -61,10 +61,14 @@ class QTask(QtCore.QObject):
         The file helper.
     image : ImageItem
         The live video image.
+    previous : QTask or None
+        The blocking task that completed immediately before this one,
+        set by the manager when the task is activated.
 
     The resources that a task works with are given to it by the
     :class:`~QHOT.lib.tasks.QTaskManager.QTaskManager` that takes it,
     and do not exist before: a task works only as a part of the program.
+    ``previous`` and ``manager`` are set by the manager as well.
 
     Parameters
     ----------
@@ -78,16 +82,11 @@ class QTask(QtCore.QObject):
         (default) means run until ``finish()`` or ``abort()`` is
         called.
 
-    Attributes
-    ----------
-    previous : QTask or None
-        The blocking task that completed immediately before this one,
-        set by the manager when the task is activated.
-
     Signals
     -------
     started
-        Emitted immediately after ``initialize()`` returns.
+        Emitted immediately after ``initialize()`` returns, unless the
+        hook has ended the task.
     finished
         Emitted after ``complete()`` returns successfully.
     failed : str
@@ -268,11 +267,6 @@ class QTask(QtCore.QObject):
             raise ValueError(f'unknown task type: {typename!r}')
         return klass(**d)
 
-    @classmethod
-    def make(cls, d: dict) -> QTask:
-        '''Alias for ``fromDict``; reconstruct a task from a dict.'''
-        return cls.fromDict(d)
-
     # ------------------------------------------------------------------
     # Internal machinery — called by QTaskManager
 
@@ -302,6 +296,8 @@ class QTask(QtCore.QObject):
             except Exception as exc:
                 self._fail(str(exc))
                 return
+            if self._state is not self.State.RUNNING:   # ended by the hook
+                return
             self.started.emit()
             if self.duration == 0:
                 self._finish()
@@ -310,6 +306,8 @@ class QTask(QtCore.QObject):
             self.process(self._frame)
         except Exception as exc:
             self._fail(str(exc))
+            return
+        if self._state is not self.State.RUNNING:       # ended by the hook
             return
         self._frame += 1
         if self.duration is not None and self._frame >= self.duration:

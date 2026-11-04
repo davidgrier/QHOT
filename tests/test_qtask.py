@@ -409,5 +409,50 @@ class TestQTaskReset(unittest.TestCase):
         self.assertEqual(task.state, QTask.State.COMPLETED)
 
 
+class TestAHookThatEndsTheTask(unittest.TestCase):
+    '''A task that finishes or aborts in a hook does not go on.'''
+
+    def run_task(self, **hooks):
+        log = []
+
+        class Hooked(QTask):
+            def initialize(self):
+                log.append('initialize')
+                hooks.get('initialize', lambda task: None)(self)
+
+            def process(self, frame):
+                log.append(f'process {frame}')
+                hooks.get('process', lambda task: None)(self)
+
+            def complete(self):
+                log.append('complete')
+
+        task = Hooked(duration=hooks.get('duration'))
+        task.started.connect(lambda: log.append('started'))
+        task.finished.connect(lambda: log.append('finished'))
+        task.failed.connect(lambda reason: log.append(f'failed {reason}'))
+        task._start()
+        for _ in range(3):
+            task._step()
+        return task, log
+
+    def test_finish_in_process_completes_once(self):
+        task, log = self.run_task(process=QTask.finish, duration=1)
+        self.assertEqual(log, ['initialize', 'started', 'process 0',
+                               'complete', 'finished'])
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+
+    def test_finish_in_initialize_runs_no_process(self):
+        task, log = self.run_task(initialize=QTask.finish)
+        self.assertEqual(log, ['initialize', 'complete', 'finished'])
+        self.assertEqual(task.state, QTask.State.COMPLETED)
+
+    def test_abort_in_process_is_not_completed(self):
+        task, log = self.run_task(process=QTask.abort, duration=1)
+        self.assertEqual(log, ['initialize', 'started', 'process 0',
+                               'failed aborted'])
+        self.assertEqual(task.state, QTask.State.FAILED)
+
+
 if __name__ == '__main__':
     unittest.main()

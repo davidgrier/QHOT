@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>Running a Queue of Tasks</title>
+</head>
+<body>
+<h2>Running a Queue of Tasks</h2>
+
+<h3>Build a queue in the program</h3>
+<ol>
+  <li>Choose <b>Tasks &rarr; Queue</b> and pick a task.  It is added to
+    the end of the queue in the <a href="taskstab.html">Tasks tab</a>.
+    Pick the tasks in the order that they should run.</li>
+  <li>Click a task in the Tasks tab and set its parameters.</li>
+  <li>Press <b>Play</b>.</li>
+</ol>
+<p>Press <b>Stop</b> to end the run and go back to the first task.  When
+  all of the tasks are done the queue is ready to run again.</p>
+
+<h3>Choose the traps to move</h3>
+<p>The task <tt>Move</tt> moves the <i>marked</i> traps.  Mark a trap or
+  a group by holding <b>Ctrl</b> and clicking its marker; it turns
+  violet.  <tt>MoveTraps</tt> moves all of the traps, or only the marked
+  ones if you check <tt>selected_only</tt>.  A group moves as a whole.</p>
+
+<h3>Repeat a block of tasks</h3>
+<p>Put <tt>BeginRepeat</tt> before the tasks to repeat and
+  <tt>Repeat</tt> after them.  The parameter <tt>n</tt> of
+  <tt>Repeat</tt> is how many times the block runs in all.  Blocks can be
+  inside blocks.  For example, to move a trap 10 pixels to the right and
+  take a picture, twenty times:</p>
+<pre>
+  BeginRepeat
+  MoveTraps   dx = 10
+  Snapshot
+  Repeat      n = 20
+</pre>
+
+<h3>Save a queue and use it again</h3>
+<p><b>File &rarr; Save Queue</b> writes the tasks that are waiting to run
+  to a file, and <b>File &rarr; Open Queue</b> adds the tasks in a file
+  to the end of the queue.  A queue that was not running waits for Play,
+  so that you can look at the new tasks first.  The
+  file is plain text, so you can also write it in an editor.  Each task
+  is a <tt>[[tasks]]</tt> table; <tt>type</tt> is the name of the task,
+  and the other lines are its parameters.  A line that begins with
+  <tt>#</tt> is a comment.</p>
+<pre>
+  # Put a tweezer on the optical axis and wait 60 frames.
+  [[tasks]]
+  type = "AddTweezer"
+
+  [[tasks]]
+  type = "Delay"
+  frames = 60
+</pre>
+<p>Every task also takes <tt>delay</tt>, a number of frames to wait
+  before it starts.  If a queue file has a mistake, such as a task name
+  that is spelled wrong or a parameter that does not exist, the status bar
+  says what is wrong, and the file is not opened.</p>
+
+<h3>When a task fails</h3>
+<p>A task that cannot do its work turns red, and the queue does not
+  run the tasks after it.  For example, <tt>LoadTraps</tt> fails if it
+  has no file name or the file cannot be read, and the recording tasks
+  fail if the file exists (and you did not allow replacing it), cannot be
+  written, or a video is playing.  Fix the cause, press <b>Stop</b> to go
+  back to the first task, and press <b>Play</b>.</p>
+<hr>
+</body>
+</html>

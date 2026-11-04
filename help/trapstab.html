@@ -1,41 +1,66 @@
 <html>
-  <head>
-    <title>Traps Tab</title>
-  </head>
-  <body>
-    <h2>Traps Tab</h2>
-    The properties of each trap are exposed in a spreadsheet.
-    Each row corresponds to a trap, and each column to a property.
-    Every trap has the following properties:
-    <ul>
-	<li><b>x</b>: the X position of the trap [pixels]</li>
-	<li><b>y</b>: the Y position of the trap [pixels]</li>
-	<li><b>z</b>: the Z position of the trap [pixels]</li>
-	<li><b>A</b>: the relative amplitude of the trap</li>
-	<li><b>ϕ</b>: the relative phase of the trap [radians]</li>
-    </ul>
-    These values update in real time as you manipulate the traps
-    and can be edited directly by clicking on a cell.
+<head>
+<title>Traps Tab</title>
+</head>
+<body>
+<h2>Traps Tab</h2>
+<p>The Traps tab lists the traps in a spreadsheet.  There is a row for
+  each trap, and the rows follow the traps as you move them on the
+  screen.  Edit a value by clicking on it, typing a number and pressing
+  Return.  Point at a value and the status bar says which property of
+  which trap it is.</p>
 
-    Additional columns are added automatically to control properties
-    of structured traps. The available structured trap types are:
-    <ul>
-      <li><b>Tweezer</b>: a single focused spot.</li>
-      <li><b>Vortex</b>: a Laguerre-Gaussian beam with a topological charge.</li>
-      <li><b>Ring trap</b>: an annular optical trap.</li>
-      <li><b>Trap array</b>: a rectangular grid of tweezers, with optional
-          position jitter (<b>fuzz</b>) and a mask to suppress individual
-          sites. Extra properties: <b>nx</b> (columns), <b>ny</b> (rows),
-          <b>separation</b> (spacing in pixels), <b>fuzz</b>
-          (random displacement std dev in pixels).</li>
-      <li><b>Letter array</b>: a single dot-matrix character (A–Z, a–z, 0–9)
-          rendered as tweezers on a 5&times;7 grid.
-          Extra property: <b>separation</b> (dot spacing in pixels).</li>
-      <li><b>Text array</b>: a string of letter arrays laid out side by side.
-          Extra properties: <b>text</b> (the string), <b>separation</b>
-          (dot spacing in pixels).</li>
-    </ul>
-    The extra property cells have tooltips that explain their function.
-    <hr>
-  </body>
+<p>A single trap has these properties:</p>
+<ul>
+  <li><b>x</b>, <b>y</b>: the position in the image [pixels]</li>
+  <li><b>z</b>: the position along the optical axis [pixels]; a trap is
+    in focus at the value of <tt>zc</tt> on the
+    <a href="cghtab.html">CGH tab</a></li>
+  <li><b>A</b>: the relative amplitude of the trap</li>
+  <li><b>&phi;</b>: the relative phase of the trap [radians]</li>
+</ul>
+
+<h3>Kinds of trap</h3>
+<p>Add a trap of any kind from the <b>Tasks</b> menu, in <b>Add Trap</b>.
+  It appears on the optical axis.  Traps with structure have more
+  properties, which follow the first ones in the row.  Point at one for
+  its name.</p>
+<dl>
+  <dt>QTweezer</dt>
+  <dd>A single focused spot.</dd>
+
+  <dt>QVortex</dt>
+  <dd>A ring of light with a twist.  <b>ell</b> is its topological
+    charge: the number of times the phase winds around the ring.</dd>
+
+  <dt>QRingTrap</dt>
+  <dd>A ring of light.  <b>radius</b> is the radius of the ring
+    [pixels], and <b>ell</b> is its topological charge.</dd>
+
+  <dt>QTrapArray</dt>
+  <dd>A rectangular grid of tweezers.  <b>nx</b> and <b>ny</b> are the
+    numbers of columns and rows, <b>separation</b> is the spacing between
+    neighbors [pixels], and <b>fuzz</b> is the size of a random
+    displacement of each tweezer [pixels].</dd>
+
+  <dt>QLetterArray</dt>
+  <dd>A letter drawn in dots, one tweezer for each dot, on a grid of 5
+    columns and 7 rows.  It begins as the letter A.  <b>separation</b>
+    is the spacing between dots [pixels].</dd>
+
+  <dt>QTextArray</dt>
+  <dd>A word of letter arrays side by side.  It begins as the word NYU.
+    <b>separation</b> is the spacing between dots [pixels].</dd>
+</dl>
+
+<h3>Groups</h3>
+<p>The traps in a group move together, and a group has a row of its own
+  that gives the position of its center.  A rectangular array, a letter
+  or a word is a group; so is a set of traps that you
+  <a href="traphowto.html">gather</a>.  The traps of a group are listed
+  below it, indented.  A group has no amplitude or phase of its own: the
+  amplitude and phase of each member are its own.  Move a group by
+  changing the position in its row, and the whole group follows.</p>
+<hr>
+</body>
 </html>

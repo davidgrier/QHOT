@@ -1,0 +1,78 @@
+<html>
+<head>
+<title>The Tasks</title>
+</head>
+<body>
+<h2>The Tasks</h2>
+<p>Every task also has <tt>delay</tt>: the number of frames to wait before
+  it starts (default 0).  A frame is a frame of video that QHOT displays.
+  Positions are in pixels of the camera image.</p>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr><th align="left">Task</th><th align="left">What it does</th>
+    <th align="left">Parameters</th></tr>
+
+  <tr><td><tt>AddTweezer</tt></td>
+    <td>Adds one tweezer.</td>
+    <td><tt>x</tt>, <tt>y</tt>: where.  If they are left out, the optical
+      axis.</td></tr>
+
+  <tr><td><tt>ClearTraps</tt></td>
+    <td>Removes every trap.</td><td>none</td></tr>
+
+  <tr><td><tt>Delay</tt></td>
+    <td>Waits.</td>
+    <td><tt>frames</tt>: how many (default 30).</td></tr>
+
+  <tr><td><tt>Move</tt></td>
+    <td>Moves the marked traps and groups, each as a whole, so that the
+      center of the marked traps reaches a place.  Nothing is marked: it
+      does nothing.</td>
+    <td><tt>x</tt>, <tt>y</tt>, <tt>z</tt>: the place.  <tt>step</tt>:
+      the most that a trap moves in one frame (default 1).</td></tr>
+
+  <tr><td><tt>MoveTraps</tt></td>
+    <td>Moves every trap and group by a displacement.</td>
+    <td><tt>dx</tt>, <tt>dy</tt>, <tt>dz</tt>: how far (default 0).
+      <tt>step</tt>: the most in one frame (default 1).
+      <tt>selected_only</tt>: move only the marked traps.</td></tr>
+
+  <tr><td><tt>BeginRepeat</tt>, <tt>Repeat</tt></td>
+    <td>Repeat the tasks between them.</td>
+    <td><tt>n</tt> (of <tt>Repeat</tt>): how many times the block runs in
+      all (default 1).</td></tr>
+
+  <tr><td><tt>LoadTraps</tt></td>
+    <td>Replaces the traps with those in a file that
+      <b>File &rarr; Save Traps</b> or <tt>SaveTraps</tt> wrote.</td>
+    <td><tt>filename</tt>: the file.  Required.</td></tr>
+
+  <tr><td><tt>SaveTraps</tt></td>
+    <td>Saves the traps to a file.</td>
+    <td><tt>filename</tt>.  If it is left out, a file with the time in its
+      name in your <tt>data</tt> folder.</td></tr>
+
+  <tr><td><tt>Snapshot</tt></td>
+    <td>Saves the video image to a picture file.</td>
+    <td><tt>filename</tt>.  If it is left out, a file named from
+      <tt>prefix</tt> (default <tt>snapshot</tt>) and the time, in your
+      <tt>data</tt> folder.</td></tr>
+
+  <tr><td><tt>StartRecording</tt></td>
+    <td>Starts recording the video, and goes on to the next task.</td>
+    <td><tt>filename</tt>: if it is left out, the file named in the
+      recorder.  <tt>nframes</tt>: the most frames (default 10000).
+      <tt>nskip</tt>: record every Nth frame (default 1).
+      <tt>overwrite</tt>: replace a file that exists (default no).</td></tr>
+
+  <tr><td><tt>StopRecording</tt></td>
+    <td>Stops the recording.</td><td>none</td></tr>
+
+  <tr><td><tt>Record</tt></td>
+    <td>Records for as long as the task lasts, then stops.</td>
+    <td><tt>filename</tt>, <tt>overwrite</tt> as above.
+      <tt>nframes</tt>: how many frames to record (default 0, which is
+      until the queue is stopped).</td></tr>
+</table>
+<hr>
+</body>
+</html>

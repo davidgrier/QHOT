@@ -11,6 +11,11 @@
 - **`LoadTraps` fails, and with it the queue, if it has no file name or the
   file cannot be read**, where it logged an error and went on with the
   wrong traps.  This is the policy of the recording tasks.
+- The help pages (Help tab) describe the program as it is: the recorder
+  and its playback, the camera panel, the display filters, the traps and
+  their gestures (including marking), the Tasks tab, the calibration, the
+  menus and the keyboard shortcuts.  `tests/test_help.py` checks that every
+  link leads to a page.
 - The tests import Qt from `qtpy`, not from `pyqtgraph.Qt`, and a test
   checks that `qtpy` (or QVideo) comes before `pyqtgraph` in every file, so
   that `QT_API` selects the Qt binding.
@@ -56,6 +61,9 @@
   launch, which has none, is no longer a warning.
 - **A locked trap array stays locked** when it is saved (and so does a
   `QLetterArray`).
+- **A trap that the Tasks > Add Trap menu adds is on the optical axis as
+  it is calibrated**, and not at the place that the axis had when QHOT
+  started.
 - **A script that began with `from QHOT.traps import ...` failed** with an
   import cycle with `QHOT.lib.traps`.
 - **The window of the SLM on the primary screen has a fixed size**, as its

@@ -5,27 +5,57 @@
 <body>
 <h2>QHOT User Manual</h2>
 <p><b>QHOT</b> is a point-and-click interface for holographic optical
-  trapping and video microscopy.  It uses a spatial light modulator (SLM)
-  to project configurable optical traps into a microscope field of view.</p>
+  trapping and video microscopy.  A spatial light modulator (SLM)
+  projects optical traps into the field of view of the microscope, and the
+  camera shows the traps and the particles that they hold.</p>
 
-<p><b>QHOT</b>'s controls are grouped into tabs
-  in the bar above this browser.
-  Navigate onto a tab by clicking on it.
-  This Help Browser is located in the Help tab.
-  What the tabs control is described in the links below.</p>
+<p>The controls are grouped into tabs in the bar above this browser.
+  Click a tab to use it.  This browser is in the Help tab: its Back,
+  Forward and Home buttons move through the pages.</p>
+
+<h3>The tabs</h3>
 <ul>
-  <li><a href='videotab.html'>Video</a></li>
-  <li><a href='trapstab.html'>Traps</a></li>
-  <li><a href='cghtab.html'>CGH</a></li>
-  <li><a href='slmtab.html'>SLM</a></li>
-  <li><a href='helptab.html'>Help</a></li>
+  <li><a href='videotab.html'>Video</a>: the recorder, the camera and
+    the display filters.</li>
+  <li><a href='trapstab.html'>Traps</a>: the position, amplitude and
+    phase of each trap.</li>
+  <li><a href='taskstab.html'>Tasks</a>: a queue of steps that QHOT
+    carries out for you.</li>
+  <li><a href='cghtab.html'>CGH</a>: the calibration of the optical
+    train.</li>
+  <li><a href='slmtab.html'>SLM</a>: a preview of the hologram.</li>
+  <li><a href='helptab.html'>Help</a>: this manual.</li>
 </ul>
 
 <h3>Topics</h3>
 <ul>
   <li><a href='traphowto.html'>Working with traps</a></li>
+  <li><a href='taskhowto.html'>Running a queue of tasks</a></li>
   <li><a href='recordhowto.html'>Recording video</a></li>
+  <li><a href='menus.html'>Menus, files and keyboard shortcuts</a></li>
 </ul>
+
+<h3>Starting QHOT</h3>
+<p>Run <tt>qhot</tt> from a terminal.  Flags on the command line choose
+  the camera, the hologram backend and the SLM window:</p>
+<table border="0" cellpadding="3">
+  <tr><td><tt>-g</tt></td>
+    <td>a GenICam camera through viva-genicam</td></tr>
+  <tr><td><tt>-f -b -i -m -v</tt></td>
+    <td>a GenICam camera through the producer of its maker: FLIR,
+      Basler, IDS, MATRIX VISION, Allied Vision</td></tr>
+  <tr><td><tt>-c</tt></td><td>an OpenCV camera (a webcam)</td></tr>
+  <tr><td><tt>-p</tt></td><td>a Raspberry Pi camera</td></tr>
+  <tr><td><tt>-t -j -n -u</tt></td>
+    <td>the hologram backend: PyTorch, numba, NumPy, CuPy</td></tr>
+  <tr><td><tt>-s</tt></td>
+    <td>show the SLM in a window on the main screen, even if the
+      computer has a second screen</td></tr>
+</table>
+<p>A number after the flag chooses among several cameras of the same
+  kind.  With no camera flag QHOT shows a simulated camera.  With no
+  backend flag it computes holograms with PyTorch if that is installed,
+  then numba, then NumPy.  <tt>qhot -h</tt> lists every flag.</p>
 <hr>
 </body>
 </html>

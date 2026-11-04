@@ -1,96 +1,80 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html> <head>
+<html>
+<head>
 <title>How to Work with Traps</title>
 </head>
-
 <body>
 <h2>How to Work with Traps</h2>
+<p>You work with traps on the video image on the screen.  A colored marker
+  shows where each trap is projected.  In the instructions below, the
+  <b>Ctrl</b> key is the <b>Command</b> key on a Mac, and the
+  <b>Alt</b> key is the <b>Option</b> key.</p>
+
 <dl>
   <dt>Create a trap</dt>
-  <dd>by holding the SHIFT key while left-clicking on the screen.
-    A marker will appear on the screen (approximately) where the
-    trap is projected.  In addition, an entry for the new trap
-    will appear in the <a href="trapstab.html">trap tab</a>.
-  </dd>
+  <dd>Hold <b>Shift</b> and click where you want a tweezer.  A green
+    marker appears, and a row for the new trap appears in the
+    <a href="trapstab.html">Traps tab</a>.  To add a trap of another
+    kind, or a tweezer on the optical axis, use the <b>Tasks</b>
+    menu.</dd>
 
+  <dt>Move a trap</dt>
+  <dd>Drag its marker.  The marker is pink while the trap moves, and
+    turns green when you release the button.  Or change the x and y of
+    the trap in the Traps tab.</dd>
 
-  <dt>Move a trap (or a group of traps)</dt>
-  <dd>by left-dragging the trap's marker.  The
-    selected trap's marker will turn pink as it is being moved.
-    It will turn green again when the mouse button is released.
-    Alternatively, the trap's position can be changed with
-    controls in the <a href="trapstab.html">trap tab</a>.
-  </dd>
+  <dt>Move a trap along the optical axis</dt>
+  <dd>Point at the marker and turn the mouse wheel.  Each step of the
+    wheel changes the z of the trap by one pixel.  Read and set z
+    exactly in the Traps tab.</dd>
 
-  <dt>Move a trap (or a group of traps) in 3D</dt>
-  <dd>by placing the mouse over the trap's marker and
-    scrolling the mouse wheel.  The axial (z) position can be
-    monitored and set precisely with the <a href="trapstab.html">trap tab</a>.
-  </dd>
-
-  <dt>Delete a trap (or a group of traps)</dt>
-  <dd>by holding CONTROL-SHIFT (COMMAND-SHIFT on Mac)
-    while left-clicking on the
-    trap's marker.  The marker will disappear, and the
-    trap's information will disappear from the
-    <a href="trapstab.html">trap tab</a>.
-  </dd>
+  <dt>Delete a trap</dt>
+  <dd>Hold <b>Ctrl</b> and <b>Shift</b> and click the marker.  If the
+    trap belongs to a group, the whole group is deleted.</dd>
 
   <dt>Gather traps into a group</dt>
-  <dd>by left-dragging the mouse on the screen to create
-    a "rubber-band" box around the traps.  Markers in the group
-    will turn yellow while being gathered, and return to green
-    after the mouse button is released.  After this, the entire
-    group can be moved simultaneously by left-dragging or
-    scrolling any of the traps in the group.
-    Individual traps can still be moved within a group using
-    the <a href="trapstab.html">trap tab</a>.
-  </dd>
+  <dd>Drag a box around the traps, starting on an empty part of the
+    screen.  The markers inside the box are yellow while you drag.  When
+    you release the button the traps are a group: drag, scroll or rotate
+    any one of them and they all follow.  You can still move one member
+    of a group relative to the others in the Traps tab.</dd>
 
-  <dt>Rotate a group of traps</dt>
-  <dd>by holding the OPTION (Alt) key while left-dragging any trap
-    in the group.  The entire group rotates around its center; the
-    rotation angle follows the angle from the group center to the
-    cursor.  Markers turn pink during the rotation and return to
-    green when the mouse button is released.
-  </dd>
+  <dt>Rotate a group</dt>
+  <dd>Hold <b>Alt</b> and drag a trap of the group.  The group turns
+    about its center to follow the cursor.  The markers are pink during
+    the rotation.</dd>
 
-  <dt>Remove traps from a group</dt>
-  <dd>by holding OPTION-SHIFT while left-clicking the trap
-    to be removed.  This trap will now move independently of
-    the rest of the group.
-  </dd>
+  <dt>Take a trap out of a group</dt>
+  <dd>Hold <b>Alt</b> and <b>Shift</b> and click the trap.  It then moves
+    on its own.</dd>
 
-  <dt>Lock or unlock a trap (or group)</dt>
-  <dd>by holding CONTROL-OPTION while left-clicking the trap's
-    marker.  Locked traps appear white and cannot be moved,
-    scrolled, or rotated.  Click again with the same modifier to
-    unlock.
-  </dd>
+  <dt>Lock or unlock a trap or group</dt>
+  <dd>Hold <b>Ctrl</b> and <b>Alt</b> and click the marker.  A locked
+    trap is white, and cannot be moved, scrolled or rotated.  Click it
+    again in the same way to unlock it.</dd>
+
+  <dt>Mark a trap for a task</dt>
+  <dd>Hold <b>Ctrl</b> and click the marker.  A marked trap is violet.
+    Click it again in the same way to remove the mark.  The task
+    <tt>Move</tt>, and <tt>MoveTraps</tt> with <tt>selected_only</tt>,
+    move the marked traps; see
+    <a href="taskhowto.html">Running a queue of tasks</a>.</dd>
 </dl>
 
-<h3>Keyboard Shortcuts</h3>
-<table border="0" cellpadding="3">
-  <tr><th align="left">Action</th><th align="left">Mac</th><th align="left">Other</th></tr>
-  <tr><td>Add tweezer at center</td><td>CMD-T</td><td>CTRL-T</td></tr>
-  <tr><td>Clear all traps</td><td>CMD-BACKSPACE</td><td>CTRL-BACKSPACE</td></tr>
-  <tr><td>Toggle overlay</td><td>CMD-\</td><td>CTRL-\</td></tr>
-  <tr><td>Open traps</td><td>CMD-O</td><td>CTRL-O</td></tr>
-  <tr><td>Save traps</td><td>CMD-S</td><td>CTRL-S</td></tr>
-  <tr><td>Save traps as</td><td>SHIFT-CMD-S</td><td>CTRL-SHIFT-S</td></tr>
-  <tr><td>Undo</td><td>CMD-Z</td><td>CTRL-Z</td></tr>
-  <tr><td>Redo</td><td>SHIFT-CMD-Z</td><td>CTRL-Y</td></tr>
-</table>
+<h3>Hiding the markers</h3>
+<p>Choose <b>Edit &rarr; Toggle Overlay</b> to hide the markers, so that
+  you can see the image beneath them, and again to show them.  The traps
+  are still there.</p>
 
-<h3>Undo and Redo</h3>
-<p>All trap operations (add, remove, move, scroll, rotate, lock) are
-  undoable.  Use the <b>Edit</b> menu or the keyboard shortcuts:</p>
-<ul>
-  <li><b>Undo</b>: &nbsp;CMD-Z &nbsp;(Mac) &nbsp;/&nbsp; CTRL-Z &nbsp;(other)</li>
-  <li><b>Redo</b>: &nbsp;SHIFT-CMD-Z &nbsp;(Mac) &nbsp;/&nbsp; CTRL-Y &nbsp;(other)</li>
-</ul>
-<p>Consecutive scroll-wheel movements on the same trap are merged into
-  a single undo step.</p>
-
+<h3>Undo and redo</h3>
+<p>Adding, deleting, moving, scrolling, rotating and locking a trap can
+  be undone with <b>Edit &rarr; Undo</b>, and done again with
+  <b>Redo</b>.  The turns of the wheel on one trap, one after another,
+  are a single step.  Undoing the deletion of a group brings the whole
+  group back.  <b>Clear Traps</b> removes every trap and also forgets
+  what could be undone.  Editing a number in the Traps tab cannot be
+  undone.</p>
+<p>The keyboard shortcuts are in
+  <a href="menus.html">Menus, files and keyboard shortcuts</a>.</p>
 <hr>
-</body> </html>
+</body>
+</html>

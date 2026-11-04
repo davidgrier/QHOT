@@ -1,36 +1,33 @@
 <html>
-  <head>
-    <title>SLM Tab</title>
-  </head>
-  <body>
-    <h2>SLM Tab</h2>
-    <p>The SLM tab shows a live preview of the phase hologram currently
-      being displayed on the spatial light modulator (SLM).</p>
+<head>
+<title>SLM Tab</title>
+</head>
+<body>
+<h2>SLM Tab</h2>
+<p>The SLM tab shows a preview of the hologram that the spatial light
+  modulator (SLM) is displaying.  The preview updates each time a new
+  hologram is computed.  While the tab is hidden the preview is paused,
+  so it does not slow QHOT down.</p>
 
-    <p>The preview updates automatically each time a new hologram is
-      computed.  While the tab is not visible the preview is paused,
-      so switching away from it has no performance cost.</p>
+<p>The hologram is a picture of phase.  The brightness of a pixel is the
+  phase of the light at that point, from black for the least to white for
+  the greatest, over one full wave (2&pi;), in 256 steps.</p>
 
-    <h3>Navigating the preview</h3>
-    <dl>
-      <dt>Zoom in / out</dt>
-      <dd>Scroll the mouse wheel over the preview image.</dd>
+<h3>Looking at the preview</h3>
+<dl>
+  <dt>Zoom in and out</dt>
+  <dd>Turn the mouse wheel over the preview, or drag with the right
+    mouse button.</dd>
 
-      <dt>Zoom to region</dt>
-      <dd>Right-click and drag to draw a box around the area of interest.</dd>
+  <dt>Pan</dt>
+  <dd>Drag with the left mouse button.</dd>
+</dl>
 
-      <dt>Pan</dt>
-      <dd>Left-click and drag to scroll around the image.</dd>
-
-      <dt>Reset view</dt>
-      <dd>Right-click and choose <em>View All</em> from the context menu
-        to return to the full hologram view.</dd>
-    </dl>
-
-    <p>The phase pattern is displayed as a grayscale image: pixel
-      brightness represents phase from 0 (black) to 2&pi; (white),
-      encoded as an 8-bit value in the range 0&ndash;255.</p>
-
-    <hr>
-  </body>
+<h3>The SLM window</h3>
+<p>The SLM itself is a second screen, and QHOT fills that screen with the
+  hologram.  If the computer has only one screen, or QHOT was started
+  with <tt>-s</tt>, the hologram is shown in a small window of fixed size
+  (640 &times; 480 pixels) on the main screen instead.</p>
+<hr>
+</body>
 </html>

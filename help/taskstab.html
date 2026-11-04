@@ -1,0 +1,56 @@
+<html>
+<head>
+<title>Tasks Tab</title>
+</head>
+<body>
+<h2>Tasks Tab</h2>
+<p>The Tasks tab runs a <b>queue</b>: a list of steps that QHOT carries
+  out, one after another, without your hands.  A step can add or move
+  traps, wait, take a picture, or start and stop a recording.  See
+  <a href="taskhowto.html">Running a queue of tasks</a> for how to build
+  one and <a href="tasklist.html">The tasks</a> for what each step
+  does.</p>
+
+<h3>The panels</h3>
+<dl>
+  <dt>Queue</dt>
+  <dd>The tasks, in the order that they run.  The task that is running
+    is in bold on a violet background.  Tasks that are done are gray,
+    and a task that failed is red.  Tasks that have not run yet can be
+    dragged to a new place.</dd>
+
+  <dt>Background</dt>
+  <dd>Tasks that run alongside the queue, if there are any.  The tasks
+    that you add from the menu or from a queue file run in the
+    queue.</dd>
+
+  <dt>Parameters</dt>
+  <dd>Click a task to show its parameters, and change them here.  A
+    task with no parameters shows nothing.</dd>
+</dl>
+
+<h3>The buttons</h3>
+<dl>
+  <dt>Play / Pause</dt>
+  <dd>Starts the queue, or pauses it while it runs.  Tasks that you add
+    to a queue that is not running wait for you to press Play, so that
+    you can look at them before they move anything.</dd>
+
+  <dt>Stop</dt>
+  <dd>Ends the running task and goes back to the first task of the queue,
+    paused.  The tasks stay in the list, and Play runs them again from
+    the start.</dd>
+
+  <dt>Clear</dt>
+  <dd>Stops the queue and removes all of its tasks.</dd>
+</dl>
+<p>To remove one task, right-click it and choose <b>Remove</b>, or select
+  it and press Delete or Backspace.  The task that is running cannot be
+  removed.  When the last task is done, the queue is ready to run again
+  from its first task.</p>
+<p>The status bar says whether the queue is running, paused or idle.  A
+  step of the queue happens once for each frame of video that QHOT
+  displays, which is up to 30 a second.</p>
+<hr>
+</body>
+</html>

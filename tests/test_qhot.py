@@ -552,6 +552,30 @@ class TestTheTasksMenu(WindowCase):
                         actions.index(self.window.actionClearTraps))
 
 
+class TestTheAddTrapMenu(WindowCase):
+    '''A trap that the menu adds is on the optical axis, as calibrated.'''
+
+    def setUp(self):
+        super().setUp()
+        self.axis = (self.cgh.xc, self.cgh.yc)
+        self.addCleanup(self.restoreAxis)
+
+    def restoreAxis(self):
+        self.cgh.xc, self.cgh.yc = self.axis
+
+    def add(self, name):
+        menu = self.window.menuAddTrap
+        menu.aboutToShow.emit()             # as the menu does when it opens
+        action = next(a for a in menu.actions() if a.text() == name)
+        action.trigger()
+
+    def test_the_trap_is_where_the_axis_was_calibrated(self):
+        self.cgh.xc, self.cgh.yc = 123., 77.
+        self.add('QTweezer')
+        (trap,) = list(self.overlay.groupOf(t) for t in self.overlay._traps)
+        np.testing.assert_allclose(trap.r[:2], [123., 77.])
+
+
 class TestStartingUp(unittest.TestCase):
     '''What main() and the window do when something is missing.'''
 

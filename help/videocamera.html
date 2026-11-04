@@ -1,26 +1,25 @@
 <html>
-  <head>
-    <title>Video Camera</title>
-  </head>
-  <body>
-    <h2>Video Camera</h2>
-    <p>
-      The video camera panel provides control over the
-      image aquisition process.</p>
-    <h3>Checkboxes</h3>
-    <dl>
-      <dt>mirrored</dt>
-      <dd>Flip image left to right.</dd>
-      <dt>flipped</dt>
-      <dd>Flip image top to bottom.</dd>
-      <dt>gray</dt>
-      <dd>If this box is checked, the camera acquires
-	single-channel grayscale images.
-	The camera defaults to acquiring 3-channel color images.</dd>
-    </dl>
-    <h3>Display Filters</h3>
-    <p>The Video tab also provides a panel for applying real-time
-      <a href="videofilters.html">display filters</a> to the camera image.</p>
-    <hr>
-  </body>
+<head>
+<title>Video Camera</title>
+</head>
+<body>
+<h2>Video Camera</h2>
+<p>The camera panel lists the settings of the camera that QHOT is using:
+  for example its exposure time, gain, frame rate and image size.  Which
+  settings appear depends on the kind of camera.</p>
+
+<p>Change a setting by editing its value: type a number and press
+  Return, use the arrows of a number box, or choose from a list.  The
+  panel shows the value that the camera actually adopted, which can
+  differ from the one that you asked for.  A longer exposure, for
+  example, lowers the frame rate.  A setting that is gray cannot be
+  changed at the moment.</p>
+
+<p>The panel is disabled while the recorder records or plays a video, so
+  that the camera does not change in the middle of a video.</p>
+
+<p>When the size of the image changes, the screen adjusts to show the
+  whole image.</p>
+<hr>
+</body>
 </html>

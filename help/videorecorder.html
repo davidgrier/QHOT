@@ -1,33 +1,56 @@
 <html>
-  <head>
-    <title>Video Recorder</title>
-  </head>
-  <body>
-    <h2>Video Recorder</h2>
-    <p>
-      The video recorder panel acts as a digital video recorder.</p>
+<head>
+<title>Video Recorder</title>
+</head>
+<body>
+<h2>Video Recorder</h2>
+<p>The video recorder records the video from the camera, and plays a
+  recorded video back.</p>
 
-    <p>
-      Clicking the Record button creates a video file whose name
-      is listed in the file name box, and starts recording video frames
-      into that file.  An existing file will be overwritten.</p>
+<h3>The controls</h3>
+<dl>
+  <dt>File</dt>
+  <dd>The name of the video file.  Click it to choose another file in a
+    file dialog.  The same file is recorded to and played from.  The
+    name decides the format: <tt>.mkv</tt> and <tt>.avi</tt> are lossless
+    video, <tt>.mp4</tt> is compressed video, and <tt>.h5</tt> is an HDF5
+    file that also stores the time of every frame.</dd>
 
-    <p>
-      Clicking the Stop button stops recording and closes the video file.</p>
+  <dt>Record</dt>
+  <dd>Starts recording into the file.  If the file already exists, the
+    recorder asks whether to replace it.  It warns you, and does not
+    record, if the folder cannot be written to or the name does not end
+    in one of the formats above.  Click Record again, or Stop, to
+    finish.</dd>
 
-    <p>
-      The frame counter presents the current number of frames
-      in the video file.</p>
+  <dt>Stop</dt>
+  <dd>Ends the recording, or the playback.</dd>
 
-    <p>
-      Clicking on the file name box launches a file selection dialog
-      that can be used to change the name of the video file.</p>
+  <dt>Rewind, Back, Play/Pause, Forward</dt>
+  <dd>Play back the file: go to the first frame, step one frame back,
+    play or pause, and step one frame forward.  The slider moves to any
+    frame.</dd>
 
-    <h3>Keyboard shortcuts</h3>
-    <p>
-      Typing "r" starts recording.  Typing "s" stops recording.
-      Typing "R" brings up the file selection dialog.</p>
+  <dt>Duration</dt>
+  <dd>The number of frames to record.  Recording stops by itself when it
+    has recorded this many.</dd>
 
-    <hr>
-  </body>
+  <dt>Interval</dt>
+  <dd>Records every Nth frame.  With an interval of 1 every frame is
+    recorded.  The recorded video plays N times faster than the event
+    that it shows.</dd>
+</dl>
+<p>Below the buttons, the recorder shows the number of the frame that is
+  being recorded or played, out of the total, and the time.</p>
+
+<h3>Playing a video</h3>
+<p>While a video plays, the screen shows the video instead of the live
+  image, and the camera panel is disabled.  Click Stop to return to the
+  live image.  The recorder does not record while a video plays.</p>
+
+<h3>Keyboard shortcuts</h3>
+<p>Press the <b>R</b> key to start recording, and press it again to stop.
+  Press the <b>S</b> key to stop.</p>
+<hr>
+</body>
 </html>

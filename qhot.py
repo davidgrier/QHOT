@@ -108,7 +108,6 @@ class QHOT(QtWidgets.QMainWindow):
         self.screen.source = self.filter.pipeline
         self.dvr.source = self.source
         self.cghTree.cgh = self.cgh
-        self.menuAddTrap.pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])
         self.helpBrowser.setSource(QtCore.QUrl('index.html'))
         self._setupEditMenu()
@@ -222,12 +221,22 @@ class QHOT(QtWidgets.QMainWindow):
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
         self.cgh.follow(overlay)
+        self.menuAddTrap.aboutToShow.connect(self._placeNewTraps)
         self.menuAddTrap.trapRequested.connect(self._onTrapRequested)
 
     def _addFilters(self) -> None:
         '''Register display filters with the filter rack.'''
         for f in ('Color Channel', 'Smoothing', 'Sample and Hold', 'Canny'):
             self.filter.addByName(f)
+
+    @QtCore.Slot()
+    def _placeNewTraps(self) -> None:
+        '''Put the traps that the menu adds on the optical axis as it is now.
+
+        The calibration can change at any time, so the place is read when
+        the menu opens.
+        '''
+        self.menuAddTrap.pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
 
     @QtCore.Slot(QtCore.QPointF, QTrap)
     def _onTrapRequested(self, pos: QtCore.QPointF, trap: QTrap) -> None:

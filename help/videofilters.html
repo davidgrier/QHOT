@@ -1,24 +1,46 @@
 <html>
-  <head>
-    <title>Video Filters</title>
-  </head>
-  <body>
-    <h2>Video Filters</h2>
-    <p>
-      The Display Filters panel provides control over the
-      image display. Filters are turned on with checkboxes and
-      operate in order from top to bottom.</p>
-    <h3>Checkboxes</h3>
-    <dl>
-      <dt>color channel</dt>
-      <dd>Only display the selected (R, G, B) color channel.</dd>
-      <dt>Gaussian blur</dt>
-      <dd>Smooth the image by convolution.</dd>
-      <dt>sample and hold</dt>
-      <dd>Save an image and use it to normalize the video stream.</dd>
-      <dt>Canny edge detection</dt>
-      <dd>Display edges of visible scene</dd>
-    </dl>
-    <hr>
-  </body>
+<head>
+<title>Display Filters</title>
+</head>
+<body>
+<h2>Display Filters</h2>
+<p>The display filters process the image that appears on the screen.  They
+  do not change the video that the recorder saves.</p>
+
+<p>Each filter is a box with a check mark.  Check the box to apply the
+  filter, and uncheck it to turn the filter off.  Filters work in order
+  from top to bottom, each on the result of the one above.  Drag the
+  &#8942; handle at the left of a filter to move it up or down, and click
+  the &times; at its right to remove it.</p>
+
+<h3>The filters at the start</h3>
+<dl>
+  <dt>Color Channel</dt>
+  <dd>Shows only the red, green or blue channel of a color image.</dd>
+
+  <dt>Smoothing</dt>
+  <dd>Blurs the image.  Choose the method (box, Gaussian or median) and
+    the width of the blur in pixels.</dd>
+
+  <dt>Sample and Hold</dt>
+  <dd>Records a picture of the background and divides every later frame
+    by it, so that what stays the same disappears and what moves stands
+    out.  The order, 1, 2 or 3, sets how many frames are averaged into
+    the background (3, 9 or 27).  Click <b>Reset</b> to sample a new
+    background, for example after you move the sample.</dd>
+
+  <dt>Canny</dt>
+  <dd>Shows the edges in the image.  A pixel is an edge if the change
+    across it is above the high threshold, or above the low threshold
+    and next to an edge.</dd>
+</dl>
+
+<h3>Adding and exporting filters</h3>
+<p>Click <b>Add filter&hellip;</b> to choose another filter from a list
+  that is arranged by kind.  Double-click a name, or select it and
+  click OK.  <b>Export&hellip;</b> writes a short Python program that
+  applies the filters that are checked, so that you can use the same
+  processing in your own analysis.</p>
+<hr>
+</body>
 </html>

@@ -1,31 +1,34 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html> <head>
+<html>
+<head>
 <title>How to Record Video</title>
 </head>
-
 <body>
 <h2>How to Record Video</h2>
-<h3>Using the GUI</h3>
-<p>Navigate to the <a href="videotab.html">video tab</a>.</p>
-<p>Click the Record button to start recording.
-This will open a video file with the specified file name,
-overwriting any existing video with that name.
-Frames will be written to the file until recording is stopped.
-The number of frames in the video is presented on the LCD display.
-</p>
-<p>Click the Stop button to stop recording.
-</p>
+<ol>
+  <li>Go to the <a href="videotab.html">Video tab</a>.</li>
+  <li>Click the file name and choose where the video goes and what it is
+    called.  The ending of the name sets the format (<tt>.mkv</tt>,
+    <tt>.avi</tt>, <tt>.mp4</tt> or <tt>.h5</tt>).</li>
+  <li>Set the <b>Duration</b>, the number of frames to record, and the
+    <b>Interval</b> if you want to record only every Nth frame.</li>
+  <li>Click <b>Record</b>, or press the R key.  If the file exists,
+    confirm that it should be replaced.</li>
+  <li>Click <b>Stop</b>, or press the S key, to end the recording before
+    the duration is up.</li>
+</ol>
+<p>While QHOT records, the camera panel is disabled so that the settings
+  of the camera cannot change in the middle of a video.  The recording is
+  the video from the camera, without the filters and the trap markers.</p>
+<p>To play the video back, click Play.  See
+  <a href="videorecorder.html">Video recorder</a>.</p>
 
-<p>Select the file name by clicking on it.  This will
-launch a file selection dialog.
-</p>
-
-<h3>Using keyboard shortcuts</h3>
-<ul>
-  <li>Type "r" to start recording.</li>
-  <li>Type "r" again or "s" to stop recording.</li>
-  <li>Type "R" to launch the file selection dialog.</li>
-</ul>
-
+<h3>Recording as part of a queue</h3>
+<p>A <a href="taskhowto.html">queue of tasks</a> can start and stop a
+  recording at exactly the right moment, for example while it moves a
+  trap.  A task never asks questions: if the file exists, or cannot be
+  written, the task fails and the queue stops.  See the tasks
+  <tt>StartRecording</tt>, <tt>StopRecording</tt> and <tt>Record</tt> in
+  <a href="tasklist.html">The tasks</a>.</p>
 <hr>
-</body> </html>
+</body>
+</html>

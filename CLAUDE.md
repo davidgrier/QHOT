@@ -103,6 +103,7 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - Coverage config in `pyproject.toml` under `[tool.coverage.*]`
 - Use `# pragma: no cover` for example/main blocks and GPU-only code paths
 - `QVideo` (camera library) is a dependency from PyPI (`QVideo[dvr]>=4.13.0`); its camera opener (`QVideo.lib.QCameraOpener`) is used here, not copied
+- The help pages (`help/*.html`, shown in the Help tab) are a manual for users: they describe the program as it is, by what the user sees and does. When a control, a gesture, a menu or a shortcut changes, change its page; `tests/test_help.py` checks that every link leads to a page and every page is reachable from `index.html`
 - Tests import Qt from `qtpy`, not from `pyqtgraph.Qt`; `tests/test_import_order.py` checks the order of imports and `tests/test_import_cycles.py` imports each package first, in an interpreter of its own, as a script would
 
 ## Style

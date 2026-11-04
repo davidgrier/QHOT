@@ -1,0 +1,74 @@
+<html>
+<head>
+<title>Menus, Files and Keyboard Shortcuts</title>
+</head>
+<body>
+<h2>Menus, Files and Keyboard Shortcuts</h2>
+<p>In the shortcuts, <b>Ctrl</b> is the <b>Command</b> key on a Mac.
+  QHOT says what it did, or why it could not, in the status bar at the
+  bottom of the window.</p>
+
+<h3>File</h3>
+<table border="0" cellpadding="3">
+  <tr><td><b>Open Traps</b></td><td>Ctrl-O</td>
+    <td>Replace the traps with those in a file.</td></tr>
+  <tr><td><b>Save Traps</b></td><td>Ctrl-S</td>
+    <td>Save the traps to the file that you last opened or saved, or to
+      a new file if there is none.</td></tr>
+  <tr><td><b>Save Traps As</b></td><td>Shift-Ctrl-S</td>
+    <td>Choose a file to save the traps to.</td></tr>
+  <tr><td><b>Open Queue, Save Queue, Save Queue As</b></td><td></td>
+    <td>The same for the <a href="taskhowto.html">queue of
+      tasks</a>.</td></tr>
+  <tr><td><b>Export</b></td><td></td>
+    <td><b>Save Image</b> saves the video image as it appears on the
+      screen, without the trap markers, and <b>Save Hologram</b> saves the hologram on the SLM, each
+      as a picture (PNG, JPEG or TIFF).  The <b>As</b> items ask for a
+      file name.</td></tr>
+  <tr><td><b>Preferences</b></td><td></td>
+    <td><b>Save Settings</b> saves the size and place of the window and
+      the <a href="cghtab.html">CGH calibration</a>; <b>Restore
+      Settings</b> goes back to them.  QHOT does both by itself when it
+      quits and starts.</td></tr>
+</table>
+<p>Traps are saved in a file of type JSON, and a queue in a text file of
+  type TOML.  A file that is saved without a name from you gets the time
+  in its name, and goes to the <tt>data</tt> folder in your home folder,
+  where a new file never replaces an old one.  If a file cannot be
+  saved, QHOT says so and the file that was there is left as it
+  was.</p>
+
+<h3>Edit</h3>
+<table border="0" cellpadding="3">
+  <tr><td><b>Undo</b></td><td>Ctrl-Z</td>
+    <td>Undo the last operation on the traps.</td></tr>
+  <tr><td><b>Redo</b></td><td>Ctrl-Y (Shift-Command-Z on a Mac)</td>
+    <td>Do again what was undone.</td></tr>
+  <tr><td><b>Toggle Overlay</b></td><td>Ctrl-\</td>
+    <td>Hide or show the trap markers.</td></tr>
+</table>
+
+<h3>Tasks</h3>
+<table border="0" cellpadding="3">
+  <tr><td><b>Add Trap</b></td><td></td>
+    <td>Add a trap of the kind that you choose, on the optical
+      axis.</td></tr>
+  <tr><td><b>Add Tweezer</b></td><td>Ctrl-T</td>
+    <td>Add a tweezer on the optical axis.</td></tr>
+  <tr><td><b>Clear Traps</b></td><td>Ctrl-Backspace</td>
+    <td>Remove every trap.  This cannot be undone.</td></tr>
+  <tr><td><b>Queue</b></td><td></td>
+    <td>Add a <a href="tasklist.html">task</a> to the queue.</td></tr>
+</table>
+
+<h3>Recorder</h3>
+<table border="0" cellpadding="3">
+  <tr><td>R</td><td>Start recording, or stop if it is recording.</td></tr>
+  <tr><td>S</td><td>Stop recording or playing.</td></tr>
+</table>
+
+<p>The mouse gestures for the traps are in
+  <a href="traphowto.html">Working with traps</a>.</p>
+<hr>
+</body>
+</html>

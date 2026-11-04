@@ -1,19 +1,25 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
-<html> <head>
+<html>
+<head>
 <title>CGH Tab</title>
 </head>
-
 <body>
 <h2>CGH Tab</h2>
-The CGH tab provides access to the calibration constants used in
-calculating computer-generated holograms.  Change values by
-clicking on the numbers, typing new values into the form, and hitting RETURN.
+<p>The CGH tab holds the calibration of the optical train: the numbers
+  that QHOT needs to compute a hologram that puts each trap where you
+  placed it in the camera image.  Change a value by clicking on it,
+  typing the new value and pressing Return.  The next hologram uses it.
+  If the traps are not where the markers say, check these numbers first,
+  and in particular the position of the optical axis.</p>
 
-<h3>Instrumental Calibrations</h3>
+<p>QHOT saves the calibration when you quit and restores it when it
+  starts.  <b>File &rarr; Preferences &rarr; Save Settings</b> saves it
+  at once, and <b>Restore Settings</b> goes back to what was saved.</p>
+
+<h3>Instrument</h3>
 <dl>
   <dt>wavelength</dt>
   <dd>Vacuum wavelength of the trapping laser [&mu;m]</dd>
-  
+
   <dt>n_m</dt>
   <dd>Refractive index of the medium</dd>
 
@@ -21,43 +27,44 @@ clicking on the numbers, typing new values into the form, and hitting RETURN.
   <dd>Magnification of the objective lens</dd>
 
   <dt>focallength</dt>
-  <dd>Focal length of the objective lens [&mu;m]</dd>
+  <dd>Focal length of the tube lens [&mu;m]</dd>
 
   <dt>camerapitch</dt>
-  <dd>Center-to-center separation between camera pixels [&mu;m]</dd>
+  <dd>Center-to-center spacing of the pixels of the camera [&mu;m]</dd>
 
   <dt>slmpitch</dt>
-  <dd>Center-to-center separation between SLM pixels [&mu;m]</dd>
+  <dd>Center-to-center spacing of the pixels of the SLM [&mu;m]</dd>
 
   <dt>splay</dt>
-  <dd>Splay factor [rad/pixel]</dd>
+  <dd>Correction for the spreading of the beam with depth.  It has no
+    units: the distance of a trap from the optical axis is scaled by the
+    factor 1/(1 + splay &middot; <i>z</i>), where <i>z</i> is the depth of
+    the trap from the focal plane.</dd>
 </dl>
 
-<h3>Geometry of the SLM plane</h3>
+<h3>SLM</h3>
 <dl>
-  <dt>(xs, ys)</dt>
-  <dd>Coordinates of the optical axis in the hologram plane [phixel]</dd>
+  <dt>xs, ys</dt>
+  <dd>Position of the optical axis in the plane of the hologram [phixels].
+    A phixel is a pixel of the SLM.</dd>
 
   <dt>phis</dt>
-  <dd>Tilt of the SLM relative to the optical axis [degree]</dd>
+  <dd>Tilt of the SLM relative to the optical axis [degrees]</dd>
 
   <dt>scale</dt>
-  <dd>Effective magnification of the objective's input pupil onto
-    the SLM</dd>
+  <dd>Scale factor of the SLM.  The pixels of the SLM have the effective
+    spacing slmpitch / scale at the pupil of the objective.</dd>
 </dl>
 
-<h3>Geometry at the camera plane</h3>
+<h3>Camera</h3>
 <dl>
-  <dt>(xc, yc)</dt>
-  <dd>Coordinates of the optical axis in the camera plane [pixel]</dd>
-
-  <dt>zc</dt>
-  <dd>Axial offset of the trap plane from the image plane [pixel]</dd>
+  <dt>xc, yc, zc</dt>
+  <dd>Position of the optical axis in the camera image [pixels].  A trap
+    at a <i>z</i> equal to <i>zc</i> is in the focal plane.</dd>
 
   <dt>thetac</dt>
-  <dd>Orientation of the trap plane relative to the image plane
-    [degree]</dd>
+  <dd>Rotation of the camera relative to the SLM [degrees]</dd>
 </dl>
-
 <hr>
-</body> </html>
+</body>
+</html>

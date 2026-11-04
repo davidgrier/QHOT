@@ -77,6 +77,12 @@ _CGH_BACKENDS: dict[str, _CGHEntry] = {
 _AUTO_DETECT_ORDER = ('torch', 'numba', 'numpy')
 
 
+def _load(entry: _CGHEntry) -> Backend:
+    '''Import the module of *entry* and return an instance of its class.'''
+    module = importlib.import_module(entry.module)
+    return getattr(module, entry.cls)()
+
+
 def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
     '''Return a parser extended with a titled CGH backend option group.
 
@@ -104,8 +110,8 @@ def cgh_parser(parser: ArgumentParser | None = None) -> ArgumentParser:
         numba, then NumPy.
     '''
     parser = parser or ArgumentParser()
-    first_flag = next(iter(_CGH_BACKENDS.values())).flag
-    if first_flag not in parser._option_string_actions:
+    # An option that the parser has already has a default that is not None.
+    if parser.get_default(next(iter(_CGH_BACKENDS))) is None:
         group = parser.add_argument_group('CGH backend')
         mutex = group.add_mutually_exclusive_group()
         for dest, entry in _CGH_BACKENDS.items():
@@ -202,27 +208,20 @@ def choose_backend(parser: ArgumentParser | None = None) -> Backend:
         The backend.
     '''
     args, _ = cgh_parser(parser).parse_known_args()
-
-    # Explicit selection: try the requested backend, warn on failure.
-    for dest, entry in _CGH_BACKENDS.items():
-        if getattr(args, dest, False):
-            try:
-                module = importlib.import_module(entry.module)
-                backend = getattr(module, entry.cls)()
-                logger.info(f'Using {entry.label} backend')
-                return backend
-            except Exception as ex:
-                logger.warning(
-                    f'Could not initialize {entry.label} backend: {ex}',
-                )
-            break
-
-    # Auto-detection: probe in priority order.
+    requested = next((dest for dest in _CGH_BACKENDS
+                      if getattr(args, dest, False)), None)
+    if requested is not None:
+        try:
+            backend = _load(_CGH_BACKENDS[requested])
+            logger.info(f'Using {_CGH_BACKENDS[requested].label} backend')
+            return backend
+        except Exception as ex:
+            logger.warning(f'Could not initialize '
+                           f'{_CGH_BACKENDS[requested].label} backend: {ex}')
     for dest in _AUTO_DETECT_ORDER:
         entry = _CGH_BACKENDS[dest]
         try:
-            module = importlib.import_module(entry.module)
-            backend = getattr(module, entry.cls)()
+            backend = _load(entry)
             logger.info(f'Auto-selected {entry.label} backend')
             return backend
         except Exception as ex:
@@ -273,7 +272,7 @@ def choose_slm(parser: ArgumentParser | None = None) -> QSLM:
         primary screen if ``--fake-slm`` was supplied.
     '''
     parser = parser or ArgumentParser()
-    if '-s' not in parser._option_string_actions:
+    if parser.get_default('fake_slm') is None:
         parser.add_argument(
             '-s',
             '--fake-slm',

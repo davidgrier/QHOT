@@ -1,14 +1,13 @@
-from qtpy import QtCore
-from QHOT.lib.traps.QTrap import QTrap
-from QHOT.lib.types import Displacement
-from QHOT.lib.traps.trapspec import TrapSpec
+'''A trap made of other traps, moved, rotated and saved together.'''
 from collections.abc import Iterator
+
 import numpy as np
 import numpy.typing as npt
-import logging
+from qtpy import QtCore
 
-
-logger = logging.getLogger(__name__)
+from QHOT.lib.traps.QTrap import QTrap
+from QHOT.lib.traps.trapspec import TrapSpec
+from QHOT.lib.types import Displacement
 
 
 class QTrapGroup(QTrap):
@@ -98,7 +97,7 @@ class QTrapGroup(QTrap):
             isGroup=True,
             **weight)
 
-    def addTrap(self, traps: QTrap) -> None:
+    def addTrap(self, traps: QTrap | list[QTrap]) -> None:
         '''Adds one or more traps or groups to this group.
 
         Parameters

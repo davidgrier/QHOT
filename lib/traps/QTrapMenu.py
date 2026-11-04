@@ -1,8 +1,11 @@
+'''The menu that adds a trap of a chosen kind.'''
 import functools
-from qtpy import QtCore, QtWidgets
-from QHOT.lib.traps.QTrap import QTrap
-import QHOT.traps
 import logging
+
+from qtpy import QtCore, QtWidgets
+
+import QHOT.traps
+from QHOT.lib.traps.QTrap import QTrap
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +65,6 @@ class QTrapMenu(QtWidgets.QMenu):
             action.triggered.connect(
                 functools.partial(self._onTrapSelected, trapname))
 
-    @QtCore.Slot()
     def _onTrapSelected(self, trapname: str) -> None:
         '''Construct the chosen trap and emit ``trapRequested``.
 

@@ -1,4 +1,7 @@
+'''The undoable operations on the traps of the overlay.'''
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from qtpy import QtGui, QtWidgets
 
@@ -15,7 +18,6 @@ from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.traps.QTweezer import QTweezer
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 

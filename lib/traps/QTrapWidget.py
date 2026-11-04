@@ -1,8 +1,11 @@
+'''The panel that shows the properties of the traps and edits them.'''
 import functools
-from qtpy import QtCore, QtWidgets, QtGui
+import logging
+
+from qtpy import QtCore, QtGui, QtWidgets
+
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
-import logging
 
 
 logger = logging.getLogger(__name__)

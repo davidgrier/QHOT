@@ -1,18 +1,15 @@
+'''The optical trap: a position, an amplitude and a phase.'''
 from __future__ import annotations
 
-import logging
+from collections.abc import Iterator
+from typing import ClassVar
 
 import numpy as np
 import numpy.typing as npt
 from qtpy import QtCore
-from collections.abc import Iterator
-from typing import ClassVar
 
 from QHOT.lib.types import Field, Position
 from QHOT.lib.traps.trapspec import TrapSpec
-
-
-logger = logging.getLogger(__name__)
 
 
 class QTrap(QtCore.QObject):

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-11-03
+
 ### Changed
 - QHOT needs QVideo 4.13.0 (`QVideo[dvr]>=4.13.0`).  The camera opener is
   `QVideo.lib.QCameraOpener`, which that release provides; QHOT's copy,

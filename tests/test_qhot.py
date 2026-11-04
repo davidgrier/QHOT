@@ -543,5 +543,61 @@ class TestTheCommandLine(unittest.TestCase):
         self.assertIn('invalid int value', done.stderr)
 
 
+class TestTheTasksMenu(WindowCase):
+
+    def test_add_tweezer_comes_before_clear_traps(self):
+        actions = self.window.menuTasks.actions()
+        names = [a.text() for a in actions]
+        self.assertLess(names.index('Add &Tweezer'),
+                        actions.index(self.window.actionClearTraps))
+
+
+class TestStartingUp(unittest.TestCase):
+    '''What main() and the window do when something is missing.'''
+
+    def test_no_saved_configuration_is_not_a_warning(self):
+        # The first launch on a machine has no configuration file.
+        window = MagicMock()
+        window.save.fromToml.return_value = ''
+        window.SETTINGS = qhot.QHOT.SETTINGS
+        with patch.object(qhot.QtCore, 'QSettings') as settings, \
+                patch.object(qhot.QtCore.QTimer, 'singleShot'):
+            settings.return_value.value.return_value = None
+            with self.assertNoLogs(qhot.logger, 'WARNING'):
+                qhot.QHOT.restoreSettings(window)
+        message = window.setStatus.call_args.args[0]
+        self.assertIn('defaults', message)
+
+    def test_a_failure_to_make_the_slm_stops_the_camera_thread(self):
+        opener = MagicMock()
+        screen = MagicMock()
+        failing = MagicMock(side_effect=RuntimeError('no SLM'))
+        with patch.object(qhot.pg, 'mkQApp'), \
+                patch.object(qhot, 'build_parser'), \
+                patch.object(qhot, 'splash', return_value=screen), \
+                patch.object(qhot, 'say'), \
+                patch.object(qhot, 'QCameraOpener', return_value=opener), \
+                patch.object(qhot, 'choose_slm', failing):
+            with self.assertRaises(SystemExit) as raised:
+                qhot.main()
+        opener.stop.assert_called_once()
+        screen.close.assert_called_once()
+        self.assertIn('no SLM', str(raised.exception))
+
+    def test_a_failure_to_make_the_engine_stops_the_camera_thread(self):
+        opener = MagicMock()
+        failing = MagicMock(side_effect=RuntimeError('no engine'))
+        with patch.object(qhot.pg, 'mkQApp'), \
+                patch.object(qhot, 'build_parser'), \
+                patch.object(qhot, 'splash'), \
+                patch.object(qhot, 'say'), \
+                patch.object(qhot, 'QCameraOpener', return_value=opener), \
+                patch.object(qhot, 'choose_slm'), \
+                patch.object(qhot, 'choose_cgh', failing):
+            with self.assertRaises(SystemExit):
+                qhot.main()
+        opener.stop.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -197,9 +197,8 @@ class QHOT(QtWidgets.QMainWindow):
         addAction = QtGui.QAction('Add &Tweezer', self)
         addAction.setShortcut(QtGui.QKeySequence('Ctrl+T'))
         addAction.triggered.connect(self.addTweezerAtCenter)
-        clearAction = self.menuTasks.actions()[1]
-        self.menuTasks.insertSeparator(clearAction)
-        self.menuTasks.insertAction(clearAction, addAction)
+        self.menuTasks.insertSeparator(self.actionClearTraps)
+        self.menuTasks.insertAction(self.actionClearTraps, addAction)
 
     def _connectSignals(self) -> None:
         '''Wire signals and slots between subsystems.
@@ -283,9 +282,9 @@ class QHOT(QtWidgets.QMainWindow):
         if (filename := self.save.fromToml(self.cghTree)):
             logger.info(f'Configuration restored from {filename}')
             self.setStatus(f'Configuration restored from {filename}')
-        else:
-            logger.warning('Configuration file not found or invalid')
-            self.setStatus('Configuration file not found or invalid')
+        else:       # the first launch has none; a bad file was reported
+            logger.info('No saved configuration; using the defaults')
+            self.setStatus('No saved configuration; using the defaults')
 
     @property
     def _chromeHeight(self) -> int:
@@ -414,10 +413,15 @@ def main() -> None:
     opener = QCameraOpener(parser)
     app.aboutToQuit.connect(opener.stop)
     opener.start()
-    say(screen, 'Opening the SLM...')
-    slm = choose_slm(parser)
-    say(screen, 'Starting the hologram engine...')
-    cgh = choose_cgh(parser, shape=slm.shape)
+    try:
+        say(screen, 'Opening the SLM...')
+        slm = choose_slm(parser)
+        say(screen, 'Starting the hologram engine...')
+        cgh = choose_cgh(parser, shape=slm.shape)
+    except Exception as error:      # the camera thread must not outlive us
+        opener.stop()
+        screen.close()
+        sys.exit(f'Error: {error}')
     say(screen, 'Waiting for the camera...')
     if not opener.waitForCamera():
         screen.close()

@@ -9,10 +9,10 @@ class Move(QTask):
 
     '''Translate marked traps to an absolute target over multiple frames.
 
-    Moves every leaf trap in the marked set so that their centroid
-    reaches ``(x, y, z)``, preserving the relative configuration.
-    If no traps are marked the task completes immediately without
-    moving anything.
+    Moves the marked traps and groups, each as a whole, so that the
+    centroid of their traps reaches ``(x, y, z)``, preserving the relative
+    configuration.  If nothing is marked the task completes immediately
+    without moving anything.
 
     The displacement is divided into steps of at most ``step`` pixels
     (L2 norm of the centroid displacement) so that trapped particles
@@ -69,11 +69,6 @@ class Move(QTask):
     # ------------------------------------------------------------------
     # Internal helpers
 
-    def _centroid(self, starts: dict) -> np.ndarray:
-        '''Return the mean position of the given trap start positions.'''
-        positions = np.array(list(starts.values()))
-        return positions.mean(axis=0)
-
     def _computeDuration(self, displacement: float) -> int:
         return max(1, math.ceil(displacement / self._stepSize))
 
@@ -122,19 +117,19 @@ class Move(QTask):
     def initialize(self) -> None:
         '''Record starting positions and compute the duration from the
         displacement of the centroid.'''
-        traps = list(self.overlay.marked)
-        if not traps:
+        groups = self.overlay.markedGroups
+        if not groups:
             self.duration = 0
             return
-        self._starts = {trap: trap.r.copy() for trap in traps}
-        centroid = self._centroid(self._starts)
+        self._starts = {group: group.r for group in groups}
+        centroid = np.mean([trap.r for trap in self.overlay.marked], axis=0)
         target = np.array([self._x, self._y, self._z])
         self._dr = target - centroid
         dist = float(np.linalg.norm(self._dr))
         self.duration = self._computeDuration(dist)
 
     def process(self, frame: int) -> None:
-        '''Interpolate each trap toward its target position.'''
+        '''Interpolate each group toward its target position.'''
         t = (frame + 1) / self.duration
-        for trap, r0 in self._starts.items():
-            trap.r = r0 + t * self._dr
+        for group, r0 in self._starts.items():
+            group.r = r0 + t * self._dr

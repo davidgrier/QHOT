@@ -37,6 +37,10 @@ class FakeOverlay:
         self._traps = list(traps)
         self.marked = list(traps)   # default: all traps marked
 
+    @property
+    def markedGroups(self):
+        return list(self.marked)
+
     def __iter__(self):
         return iter(self._traps)
 

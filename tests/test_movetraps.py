@@ -44,6 +44,10 @@ class FakeOverlay:
         self._traps = list(traps)
         self.marked = []   # tests may override to simulate marked traps
 
+    @property
+    def markedGroups(self):
+        return list(self.marked)
+
     def __iter__(self):
         return iter(self._traps)
 

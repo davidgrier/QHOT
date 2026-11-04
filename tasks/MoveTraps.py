@@ -9,8 +9,9 @@ class MoveTraps(QTask):
 
     '''Translate all traps by a 3D displacement over multiple frames.
 
-    Moves every leaf trap in the overlay from its current position to
-    ``r + (dx, dy, dz)`` via linear interpolation.  The displacement is
+    Moves every trap and group in the overlay from its current position
+    to ``r + (dx, dy, dz)`` via linear interpolation; a group moves as a
+    whole and keeps its own center.  The displacement is
     divided into steps of at most ``step`` pixels (L2 norm) so that
     trapped particles are not lost.
 
@@ -68,10 +69,10 @@ class MoveTraps(QTask):
         _dist = math.sqrt(_dx**2 + _dy**2 + _dz**2)
         _n = max(1, math.ceil(_dist / _stepSize))
         super().__init__(duration=_n, **kwargs)
-        self._dx          = _dx
-        self._dy          = _dy
-        self._dz          = _dz
-        self._stepSize   = _stepSize
+        self._dx = _dx
+        self._dy = _dy
+        self._dz = _dz
+        self._stepSize = _stepSize
         self.selected_only = bool(selected_only)
         self._starts: dict = {}
 
@@ -134,18 +135,16 @@ class MoveTraps(QTask):
     # QTask lifecycle hooks
 
     def initialize(self) -> None:
-        '''Record starting positions of the traps to be moved.
+        '''Record starting positions of the traps and groups to be moved.
 
-        Uses ``overlay.marked`` when ``selected_only`` is ``True``,
-        otherwise uses all leaf traps in the overlay.
+        Uses ``overlay.markedGroups`` when ``selected_only`` is ``True``,
+        otherwise all the traps and groups of the overlay.
         '''
         if self.selected_only:
-            traps = list(self.overlay.marked)
+            traps = self.overlay.markedGroups
         else:
-            traps = [trap
-                     for top in self.overlay
-                     for trap in top.leaves()]
-        self._starts = {trap: trap.r.copy() for trap in traps}
+            traps = list(self.overlay)
+        self._starts = {trap: trap.r for trap in traps}
 
     def process(self, frame: int) -> None:
         '''Interpolate each trap toward its target position.'''

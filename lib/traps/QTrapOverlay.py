@@ -699,6 +699,15 @@ class QTrapOverlay(ScatterPlotItem):
         for group in self._marked:
             yield from group.leaves()
 
+    @property
+    def markedGroups(self) -> list[QTrap]:
+        '''The marked traps and groups, each as a whole.
+
+        A task that moves them moves the group, which keeps its own
+        center, and not the traps of the group one by one.
+        '''
+        return list(self._marked)
+
     def toggleMark(self, pos: QtCore.QPointF) -> bool:
         '''Toggle the SPECIAL (marked) state of the group at pos.
 

@@ -34,16 +34,29 @@ qhot
 
 ## Releasing
 
-When pushing a new version, always create a GitHub Release (not just a tag) so
-that Zenodo's webhook fires and mints a DOI:
+`pyproject.toml` is the single source of truth for the version.  `CITATION.cff`
+is updated by CI on a tag push: never edit it by hand.
+
+1. Write the section of `CHANGELOG.md` for the version, bump `version` in
+   `pyproject.toml`, and refresh the editable install (`pip install -e .
+   --no-deps` in the development environment).
+2. Commit and push `main`, and wait for the `Tests` workflow to pass on
+   every job (Python 3.11 and 3.12, PyQt5 and PyQt6, the wheel, lint).
+3. Tag and push the tag:
 
 ```bash
 git tag vX.Y.Z && git push origin vX.Y.Z
-gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
 ```
 
-Pushing the tag alone is not sufficient — Zenodo listens for the GitHub
-`release` event, not a raw tag push.
+The tag push triggers the workflows by itself: `Publish` builds the package,
+publishes it to PyPI and **creates the GitHub Release** (which fires the
+Zenodo webhook that mints a DOI), and `Update CITATION.cff` commits the new
+version back to `main`.  Do not run `gh release create`: it conflicts with the
+workflow.  Pull `main` afterward to get the citation commit.
+
+The requirement on QVideo (`QVideo[dvr]>=`) in `pyproject.toml` and in the
+README names the oldest release that has what QHOT uses: raise it only after
+that release of QVideo is on PyPI.
 
 ## Architecture
 

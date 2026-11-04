@@ -1,5 +1,3 @@
-import json
-
 from QHOT.lib.tasks.QTask import QTask
 
 
@@ -11,13 +9,15 @@ class LoadTraps(QTask):
     current traps with those stored in ``filename``.
     Completes immediately in a single frame.
 
+    The task fails, and with it the queue, if there is no file name or the
+    file cannot be read, because a run that went on with the wrong traps
+    would be wrong without anyone knowing.
+
     Parameters
     ----------
     filename : str
         Path to a ``.json`` file previously written by
-        :class:`SaveTraps` or by File > Save Traps.
-        Required; an empty string is logged as an error and the task
-        completes without changing the overlay.
+        :class:`SaveTraps` or by File > Save Traps.  Required.
     **kwargs
         Forwarded to :class:`~QHOT.lib.tasks.QTask.QTask`.
 
@@ -39,9 +39,5 @@ class LoadTraps(QTask):
 
     def initialize(self) -> None:
         if not self.filename:
-            import logging
-            logging.getLogger(__name__).error(
-                'LoadTraps: filename is required')
-            return
-        with open(self.filename) as f:
-            self.overlay.fromList(json.load(f))
+            raise ValueError('LoadTraps needs the name of a file')
+        self.overlay.fromList(self.save.readJson(self.filename))

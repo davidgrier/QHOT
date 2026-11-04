@@ -17,9 +17,9 @@ class ClearTraps(QTask):
     --------
     Clear all traps, then wait 30 frames, then add a tweezer::
 
-        manager.register(ClearTraps(overlay))
+        manager.register(ClearTraps())
         manager.register(Delay(30))
-        manager.register(AddTrap(overlay, pos=QtCore.QPointF(320, 240)))
+        manager.register(AddTweezer(x=320., y=240.))
     '''
 
     def __init__(self, *args, **kwargs) -> None:

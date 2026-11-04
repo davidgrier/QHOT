@@ -68,7 +68,8 @@ The tasks
    * - ``LoadTraps``
      - Replaces the traps with those in a file that File > Save Traps or
        ``SaveTraps`` wrote.
-     - ``filename``: the file.
+     - ``filename``: the file.  Required: a task with no file name, or
+       with a file that cannot be read, fails, and with it the queue.
    * - ``SaveTraps``
      - Saves the traps to a file.
      - ``filename``: the file.  If left out, a file with a timestamped

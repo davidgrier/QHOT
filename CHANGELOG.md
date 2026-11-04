@@ -8,6 +8,9 @@
   `QHOT.lib.QCameraOpener`, is gone.  QVideo 4.13.0 also opens the
   Harvesters backends in a process of their own, which QHOT relies on in
   place of the thread-switch stopgap that it removed.
+- **`LoadTraps` fails, and with it the queue, if it has no file name or the
+  file cannot be read**, where it logged an error and went on with the
+  wrong traps.  This is the policy of the recording tasks.
 - The tests import Qt from `qtpy`, not from `pyqtgraph.Qt`, and a test
   checks that `qtpy` (or QVideo) comes before `pyqtgraph` in every file, so
   that `QT_API` selects the Qt binding.
@@ -29,6 +32,40 @@
   did nothing else, when the frame of the camera made the window, with its
   title bar, taller than the display: macOS shrank the window and QHOT
   asked for the height again.  The height now allows for the title bar.
+- **Undoing the removal of a group brought back an empty group.**
+  Removing a group detached its traps from it, so Ctrl+Z restored a group
+  with nothing in it, and the traps were lost.
+- **`Move` and `MoveTraps` moved the traps of a group one by one** and left
+  the center of the group where it was.  An array makes its traps again
+  around its center when it is saved and loaded, so a moved array went
+  back to where it had been.  The tasks move a group as a whole
+  (`QTrapOverlay.markedGroups`).
+- **`Repeat` repeated the old version of a task that the user had changed**
+  in its block, and kept a copy of the block, which a queue saved after a
+  run then held.  The block is looked for each time; nested blocks still
+  work, to any depth.
+- **A task that called `finish()` or `abort()` in a hook went on**: with a
+  duration it completed twice, and `finish()` in `initialize()` was
+  followed by `process()`.
+- **A failed save no longer destroys the file** that was there: the text of
+  a JSON or TOML file is made before the file is opened, and a save that
+  fails for any reason is reported in the status bar and not raised out of
+  the slot, which ends the program under PyQt.
+- **A configuration file that is not TOML, or has no `settings`, kept QHOT
+  from starting**; it is reported and the defaults are used.  The first
+  launch, which has none, is no longer a warning.
+- **A locked trap array stays locked** when it is saved (and so does a
+  `QLetterArray`).
+- **A script that began with `from QHOT.traps import ...` failed** with an
+  import cycle with `QHOT.lib.traps`.
+- **The window of the SLM on the primary screen has a fixed size**, as its
+  documentation said.  The shape of a hologram is the shape of that
+  window, and a window that could be resized made every later hologram
+  fail to match.
+- **Dragging a task in the queue raised on PyQt5** (`event.position()` is
+  Qt6 only).
+- If the SLM or the hologram engine cannot be made while the camera opens,
+  QHOT stops the camera thread and ends with the message.
 
 ## [2.1.2] — 2026-10-31
 

@@ -13,7 +13,7 @@ class SaveTraps(QTask):
     filename : str
         Destination path.  If ``''`` (default), a timestamped ``.json``
         file is created in the data directory via
-        :meth:`~QHOT.lib.QSaveFile.QSaveFile.traps`.
+        :meth:`~QHOT.lib.QSaveFile.QSaveFile.writeJson`.
     **kwargs
         Forwarded to :class:`~QHOT.lib.tasks.QTask.QTask`.
 

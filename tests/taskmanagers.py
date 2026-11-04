@@ -1,7 +1,7 @@
 '''A task manager, driven as the window drives it.'''
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtCore
+from qtpy import QtCore
 
 from QHOT.lib.tasks import QTaskManager
 from QHOT.lib.tasks.QTask import QTask

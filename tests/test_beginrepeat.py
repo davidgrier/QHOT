@@ -1,7 +1,7 @@
 '''Unit tests for BeginRepeat.'''
 import unittest
 
-from pyqtgraph.Qt import QtWidgets, QtTest
+from qtpy import QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.BeginRepeat import BeginRepeat

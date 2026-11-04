@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from pyqtgraph.Qt import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets
 
 import importlib
 from QHOT.lib.splash import SIZE, hologram, say, splash

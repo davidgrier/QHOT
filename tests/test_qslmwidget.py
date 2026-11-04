@@ -1,8 +1,8 @@
 '''Unit tests for QSLMWidget.'''
 import unittest
 import numpy as np
+from qtpy import QtWidgets
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
-from pyqtgraph.Qt import QtWidgets
 from QHOT.lib.QSLMWidget import QSLMWidget
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

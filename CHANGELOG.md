@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Changed
+- The tests import Qt from `qtpy`, not from `pyqtgraph.Qt`, and a test
+  checks that `qtpy` (or QVideo) comes before `pyqtgraph` in every file, so
+  that `QT_API` selects the Qt binding.
+- American spelling throughout the code and documentation (serialize,
+  synchronize, initialize, normalize).
 - QHOT no longer shortens the thread-switch interval of Python when a
   GenICam camera is opened (`SWITCH_INTERVAL`, added in 2.1.1).  Use the
   Viva backend (`qhot -g`), which holds no interpreter lock, or a camera

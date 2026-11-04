@@ -10,7 +10,7 @@ and it is saved in a queue file and read back.
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 import QHOT.tasks
 from QHOT.lib.tasks.QTask import QTask

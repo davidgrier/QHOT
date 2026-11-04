@@ -2,7 +2,7 @@
 import tomllib
 import unittest
 
-from pyqtgraph.Qt import QtTest
+from qtpy import QtTest
 
 from QHOT.lib.QTomlDocument import QTomlDocument
 

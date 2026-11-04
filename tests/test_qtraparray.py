@@ -1,7 +1,7 @@
 '''Unit tests for QTrapArray.'''
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtWidgets, QtTest
+from qtpy import QtWidgets, QtTest
 from QHOT.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
 from QHOT.traps.QTrapArray import QTrapArray
 from QHOT.traps.QTweezer import QTweezer

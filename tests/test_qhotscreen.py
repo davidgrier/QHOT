@@ -2,7 +2,7 @@
 import unittest
 import numpy as np
 from unittest.mock import MagicMock, patch
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui, QtTest
+from qtpy import QtWidgets, QtCore, QtGui, QtTest
 from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup

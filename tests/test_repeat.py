@@ -1,7 +1,7 @@
 '''Unit tests for Repeat.'''
 import unittest
 
-from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtpy import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -47,7 +47,7 @@ class TestRepeatInit(unittest.TestCase):
 
 
 # ------------------------------------------------------------------
-# Serialisation
+# Serialization
 
 class TestRepeatSerialization(unittest.TestCase):
 
@@ -218,7 +218,7 @@ class TestRepeatNested(TestRepeatSetup):
         self.manager.register(inner_repeat)
         self.manager.register(Repeat(n=1))     # outer no-op
 
-        # Step through until inner_repeat has initialised
+        # Step through until inner_repeat has initialized
         for _ in range(10):
             self.screen.rendered.emit()
             if inner_repeat.state == QTask.State.COMPLETED:

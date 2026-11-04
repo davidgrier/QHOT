@@ -2,7 +2,7 @@
 import sys
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
@@ -305,7 +305,7 @@ class TestUndoStackIntegration(unittest.TestCase):
     '''Integration: add, move, and remove via overlay and undo.'''
 
     def setUp(self):
-        from pyqtgraph.Qt import QtCore
+        from qtpy import QtCore
         self.overlay = make_overlay()
         self.stack = self.overlay._undoStack
         self.overlay.addTrap(QtCore.QPointF(5., 5.))

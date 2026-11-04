@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import MagicMock
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtTest, QtWidgets
+from qtpy import QtCore, QtTest, QtWidgets
 
 from QVideo.dvr import QDVRWidget, formats
 

@@ -248,14 +248,14 @@ class QTrapGroup(QTrap):
         self.changed.emit()
 
     def toDict(self) -> dict:
-        '''Serialise this group and all its children to a plain dict.
+        '''Serialize this group and all its children to a plain dict.
 
         Returns
         -------
         dict
             A dict with ``'type'``, the registered properties,
             ``'locked': True`` when the group is locked, and a
-            ``'children'`` list of recursively serialised child traps.
+            ``'children'`` list of recursively serialized child traps.
         '''
         d = super().toDict()
         d['children'] = [child.toDict() for child in self]

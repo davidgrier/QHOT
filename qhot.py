@@ -53,7 +53,7 @@ class QHOT(QtWidgets.QMainWindow):
     Attributes
     ----------
     manager : QTaskManager
-        Frame-synchronised task scheduler.  Register tasks with
+        Frame-synchronized task scheduler.  Register tasks with
         ``self.manager.register(task)`` to queue them for execution.
     '''
 

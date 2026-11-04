@@ -3,7 +3,7 @@ import math
 import unittest
 
 import numpy as np
-from pyqtgraph.Qt import QtWidgets, QtTest
+from qtpy import QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.Move import Move

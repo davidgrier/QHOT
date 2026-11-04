@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtGui, QtTest
+from qtpy import QtGui, QtTest
 
 from QHOT.lib.QDocument import QDocument
 from QHOT.lib.QJsonDocument import QJsonDocument

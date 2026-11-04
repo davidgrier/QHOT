@@ -7,7 +7,7 @@ import re
 import unittest
 from pathlib import Path
 
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 
 import QHOT.tasks
 from QHOT.lib.QSaveFile import QSaveFile

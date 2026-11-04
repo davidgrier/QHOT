@@ -213,7 +213,7 @@ def choose_backend(parser: ArgumentParser | None = None) -> Backend:
                 return backend
             except Exception as ex:
                 logger.warning(
-                    f'Could not initialise {entry.label} backend: {ex}',
+                    f'Could not initialize {entry.label} backend: {ex}',
                 )
             break
 
@@ -247,7 +247,7 @@ def choose_cgh(parser: ArgumentParser | None = None,
     Returns
     -------
     CGH
-        An initialised CGH pipeline.  Call ``start()`` to run it.
+        An initialized CGH pipeline.  Call ``start()`` to run it.
     '''
     return CGH(backend=choose_backend(parser), **kwargs)
 

@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtpy import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -148,7 +148,7 @@ class TestQTaskManagerWidgetDisplay(unittest.TestCase):
         self.assertTrue(item.font().bold())
 
     def test_active_task_has_nyu_tint_background(self):
-        from pyqtgraph.Qt import QtGui
+        from qtpy import QtGui
         task = QTask()
         self.manager.register(task)
         self._emit()
@@ -521,7 +521,7 @@ class TestQTaskManagerWidgetDragReorder(unittest.TestCase):
             self.screen.rendered.emit()
 
     def test_queue_list_has_internal_move(self):
-        from pyqtgraph.Qt import QtWidgets as _QtW
+        from qtpy import QtWidgets as _QtW
         self.assertEqual(
             self.widget._queueList.dragDropMode(),
             _QtW.QAbstractItemView.DragDropMode.InternalMove)

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 
 from QHOT.lib.QSaveFile import QSaveFile
 

@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtTest
+from qtpy import QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.StartRecording import StartRecording

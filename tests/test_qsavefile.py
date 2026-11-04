@@ -7,8 +7,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph import ImageItem
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
 
 import importlib as _importlib
 from QHOT.lib.QSaveFile import QSaveFile

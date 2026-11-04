@@ -2,8 +2,8 @@
 import unittest
 
 import numpy as np
+from qtpy import QtGui, QtTest
 from pyqtgraph import ImageItem
-from pyqtgraph.Qt import QtGui, QtTest
 
 from QHOT.lib.QImageFile import QImageFile
 

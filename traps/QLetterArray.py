@@ -172,10 +172,10 @@ class QLetterArray(QTrapArray):
 
     @classmethod
     def fromDict(cls, d: dict) -> QLetterArray:
-        '''Reconstruct a QLetterArray from a serialised dict.
+        '''Reconstruct a QLetterArray from a serialized dict.
 
         Overrides ``QTrapArray.fromDict`` because ``QLetterArray``
-        fixes ``shape`` at (5, 7) and does not serialise ``nx`` or
+        fixes ``shape`` at (5, 7) and does not serialize ``nx`` or
         ``ny``.  The mask is applied after construction so it is not
         passed directly to the constructor.
 
@@ -187,7 +187,7 @@ class QLetterArray(QTrapArray):
         Returns
         -------
         QLetterArray
-            A new instance initialised from ``d``.
+            A new instance initialized from ``d``.
         '''
         r = (d['x'], d['y'], d['z'])
         mask = d.get('mask')

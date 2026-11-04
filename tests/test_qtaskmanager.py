@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtpy import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -552,7 +552,7 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
 
     def test_resuming_after_auto_reset_reruns_tasks(self):
         from QHOT.tasks.Delay import Delay
-        from pyqtgraph.Qt import QtTest
+        from qtpy import QtTest
         task = Delay(frames=1)
         self.manager.register(task)
         self._emit(1)             # first run completes → auto-reset, re-activated

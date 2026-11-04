@@ -1,7 +1,7 @@
 '''Unit tests for QCGHTree.'''
 import unittest
 from unittest.mock import MagicMock, patch
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 from QHOT.lib.holograms.CGH import CGH
 from QHOT.lib.holograms.QCGHTree import QCGHTree
 

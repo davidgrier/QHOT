@@ -49,7 +49,7 @@ efficiency by (1) randomizing the relative phases of the traps and (2)
 introducing a small amount of position jitter in trap arrays to break
 their symmetry.  Further improvements are possible:
 
-- **Phase optimisation** (method 3): iteratively optimize the relative
+- **Phase optimization** (method 3): iteratively optimize the relative
   phases of all traps to maximize diffraction efficiency, using the
   algorithm described by Curtis et al. (2002).
   https://doi.org/10.1016/S0030-4018(02)01524-9
@@ -106,8 +106,8 @@ Concrete task implementations still to be written (`tasks/lib/`):
   `complete()`; runs as a non-blocking background task so that
   motion tasks proceed in parallel
 - `Snapshot` — save a single camera frame to disk via `QSaveFile`
-- `SaveTraps` — serialise the current overlay to JSON via `QSaveFile`
-- `LoadTraps` — deserialise a JSON trap file into the overlay
+- `SaveTraps` — serialize the current overlay to JSON via `QSaveFile`
+- `LoadTraps` — deserialize a JSON trap file into the overlay
 
 **Hologram control**
 

@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
+from qtpy import QtCore, QtGui, QtTest, QtWidgets
 
 import importlib as _importlib
 from QHOT.lib.holograms import NumpyBackend, Optics

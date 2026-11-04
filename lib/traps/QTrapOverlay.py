@@ -983,7 +983,7 @@ class QTrapOverlay(ScatterPlotItem):
     # Serialization
 
     def _makeTrap(self, d: dict) -> QTrap:
-        '''Reconstruct a trap or group from a serialised dict.
+        '''Reconstruct a trap or group from a serialized dict.
 
         Parameters
         ----------
@@ -1009,7 +1009,7 @@ class QTrapOverlay(ScatterPlotItem):
         return trap
 
     def toList(self) -> list[dict]:
-        '''Serialise all traps to a list of plain dicts.
+        '''Serialize all traps to a list of plain dicts.
 
         Returns
         -------

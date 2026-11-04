@@ -247,7 +247,7 @@ class QTaskManager(QtCore.QObject):
             self.pause(True)
 
     def load(self, task_dicts: list[dict]) -> None:
-        '''Deserialise a list of task dicts and enqueue the tasks.
+        '''Deserialize a list of task dicts and enqueue the tasks.
 
         Each task is given the resources of the manager as it is taken.
 
@@ -294,7 +294,7 @@ class QTaskManager(QtCore.QObject):
     def restart(self) -> None:
         '''Re-run the current schedule from fresh task instances.
 
-        Serialises the current ``scheduled`` list, clears the manager,
+        Serializes the current ``scheduled`` list, clears the manager,
         then reloads the specs so that every task starts from
         ``PENDING`` with its saved parameters.  Has no effect if the
         schedule is empty.

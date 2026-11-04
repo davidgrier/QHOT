@@ -1,7 +1,7 @@
 '''Unit tests for QTextArray.'''
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtWidgets, QtTest
+from qtpy import QtWidgets, QtTest
 from QHOT.lib.traps.QTrapGroup import QTrapGroup  # must precede traps imports
 from QHOT.traps.QTextArray import QTextArray
 from QHOT.traps.QLetterArray import QLetterArray, _char_positions, _FONT

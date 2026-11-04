@@ -3,7 +3,7 @@ import sys
 import unittest
 from argparse import ArgumentParser
 from unittest.mock import patch, MagicMock
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 import importlib as _importlib
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

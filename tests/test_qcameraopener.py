@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest.mock import MagicMock, patch
 
-from pyqtgraph.Qt import QtCore, QtTest, QtWidgets
+from qtpy import QtCore, QtTest, QtWidgets
 
 import importlib
 from QHOT.lib.QCameraOpener import QCameraOpener

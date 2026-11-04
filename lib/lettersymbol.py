@@ -2,7 +2,7 @@ from qtpy import QtGui
 
 
 def letterSymbol(letter: str) -> QtGui.QPainterPath:
-    '''Return a normalised ``QPainterPath`` glyph for use as a trap symbol.
+    '''Return a normalized ``QPainterPath`` glyph for use as a trap symbol.
 
     Renders ``letter`` in bold Arial at 14 pt, then scales and centers the
     resulting path so it fits within the unit square centered on the origin.
@@ -15,7 +15,7 @@ def letterSymbol(letter: str) -> QtGui.QPainterPath:
     Returns
     -------
     QtGui.QPainterPath
-        Normalised glyph path suitable for use as a pyqtgraph scatter symbol.
+        Normalized glyph path suitable for use as a pyqtgraph scatter symbol.
     '''
     symbol = QtGui.QPainterPath()
     font = QtGui.QFont('Arial', 14, QtGui.QFont.Weight.Bold)

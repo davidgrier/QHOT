@@ -13,7 +13,7 @@ class QTaskTree(ParameterTree):
     '''ParameterTree widget for editing a QTask's parameters.
 
     Builds a ``Parameter`` group from the task's ``parameters`` spec,
-    initialises values from the current task instance attributes, and
+    initializes values from the current task instance attributes, and
     writes every user edit back to the task via ``setattr``.
 
     Intended to be created on demand when the user selects a task in
@@ -48,7 +48,7 @@ class QTaskTree(ParameterTree):
         return self._task
 
     def _buildParams(self) -> Parameter:
-        '''Build a Parameter group initialised from task instance attrs.'''
+        '''Build a Parameter group initialized from task instance attrs.'''
         specs = []
         for spec in type(self._task).parameters:
             s = dict(spec)

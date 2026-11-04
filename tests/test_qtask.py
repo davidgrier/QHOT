@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock, call
 
-from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtpy import QtCore, QtWidgets, QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 

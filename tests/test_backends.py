@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from QHOT.lib.holograms import NumpyBackend, Optics
 from QHOT.lib.holograms import reference as ref

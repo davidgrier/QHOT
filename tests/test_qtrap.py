@@ -1,7 +1,7 @@
 '''Unit tests for QTrap.'''
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtWidgets, QtTest
+from qtpy import QtCore, QtWidgets, QtTest
 from QHOT.lib.traps.QTrap import QTrap
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

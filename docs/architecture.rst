@@ -151,7 +151,7 @@ hologram inside the main window.
 Task framework — ``QHOT.lib.tasks`` / ``QHOT.tasks``
 -----------------------------------------------------
 
-The task framework provides a frame-synchronised automation layer that
+The task framework provides a frame-synchronized automation layer that
 sits alongside the trapping system.  Tasks are Python objects that run
 one step per video frame, driven by the same ``QHOTScreen.rendered``
 signal that updates the CGH.
@@ -216,12 +216,12 @@ configurable number of times::
 
 When ``Repeat`` runs, it scans the schedule backwards to find its
 matching ``BeginRepeat`` (handling nesting via a depth counter),
-serialises the intervening tasks, and prepends ``n − 1`` fresh copies
+serializes the intervening tasks, and prepends ``n − 1`` fresh copies
 to the front of the queue via ``manager.inject()``.  Injected tasks
 are ephemeral: they are not added to ``scheduled``, so they do not
 persist across ``stop()`` / ``restart()`` calls.
 
-**Serialisation.**  ``QTask.toDict()`` returns a plain dict with a
+**Serialization.**  ``QTask.toDict()`` returns a plain dict with a
 ``'type'`` key (the class name), ``'delay'``, and all declared
 parameter values.  ``QTask.fromDict()`` looks up the class name in
 ``QTask._registry`` and reconstructs the task.  New subclasses are
@@ -232,7 +232,7 @@ uses this for ``load()``, ``restart()``, and loop injection.
 
 * :class:`~QHOT.lib.tasks.QTaskManagerWidget.QTaskManagerWidget` — the
   main control panel.  Shows the blocking queue (active task in bold
-  with a violet tint; completed tasks greyed; failed tasks in red) and
+  with a violet tint; completed tasks grayed; failed tasks in red) and
   a separate background-task list.  Clicking any task reveals its
   editable parameters in a
   :class:`~QHOT.lib.tasks.QTaskTree.QTaskTree` below.  Pending tasks
@@ -328,7 +328,7 @@ overlay without removing any traps.
 ``_addFilters()`` populates the rack at startup with four filters in
 pipeline order: *Color Channel*, *Smoothing*, *Sample and Hold*, and
 *Canny*.  Because ``QFilterRack`` is editable by default, users can add
-further filters from the full QVideo catalogue via the **Add filter…**
+further filters from the full QVideo catalog via the **Add filter…**
 button, remove any filter with its × button, and drag filters to reorder
 the pipeline.  The **Export…** button saves the current enabled pipeline
 as a standalone Python module.

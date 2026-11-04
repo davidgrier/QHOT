@@ -26,7 +26,7 @@ class QTask(QtCore.QObject):
     Subclasses declare a ``parameters`` class variable listing
     pyqtgraph ``Parameter`` specs for their configurable fields.
     ``toDict()`` and ``fromDict()`` use this declaration together
-    with the class registry to serialise and reconstruct tasks.
+    with the class registry to serialize and reconstruct tasks.
 
     A task is a frame-synchronized operation on the trapping system.
     The task manager connects each registered task to
@@ -221,10 +221,10 @@ class QTask(QtCore.QObject):
             self.previous = None
 
     # ------------------------------------------------------------------
-    # Serialisation
+    # Serialization
 
     def toDict(self) -> dict:
-        '''Serialise the task to a plain dict.
+        '''Serialize the task to a plain dict.
 
         Returns
         -------
@@ -241,7 +241,7 @@ class QTask(QtCore.QObject):
 
     @classmethod
     def fromDict(cls, d: dict) -> QTask:
-        '''Reconstruct a task from a serialised dict.
+        '''Reconstruct a task from a serialized dict.
 
         Parameters
         ----------

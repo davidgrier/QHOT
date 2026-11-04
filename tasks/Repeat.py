@@ -80,7 +80,7 @@ class Repeat(QTask):
         Returns
         -------
         list[dict]
-            Serialised specs of every task between ``BeginRepeat`` and
+            Serialized specs of every task between ``BeginRepeat`` and
             this ``Repeat``, in execution order.  Empty list if no
             matching bracket is found.
         '''

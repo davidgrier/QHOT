@@ -291,7 +291,7 @@ class QTrap(QtCore.QObject):
         return {p: getattr(self, p) for p in self.properties.keys()}
 
     def toDict(self) -> dict:
-        '''Serialise this trap to a plain dict suitable for JSON export.
+        '''Serialize this trap to a plain dict suitable for JSON export.
 
         Returns
         -------
@@ -307,7 +307,7 @@ class QTrap(QtCore.QObject):
 
     @classmethod
     def fromDict(cls, d: dict) -> QTrap:
-        '''Reconstruct a trap from a serialised dict.
+        '''Reconstruct a trap from a serialized dict.
 
         Parameters
         ----------
@@ -317,7 +317,7 @@ class QTrap(QtCore.QObject):
         Returns
         -------
         QTrap
-            A new instance of ``cls`` initialised from ``d``.
+            A new instance of ``cls`` initialized from ``d``.
         '''
         r = (d['x'], d['y'], d['z'])
         kwargs = {k: v for k, v in d.items()

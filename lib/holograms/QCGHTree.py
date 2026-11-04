@@ -14,13 +14,13 @@ class QCGHTree(ParameterTree):
     '''Parameter tree widget for editing CGH calibration settings.
 
     Displays all CGH calibration parameters grouped by subsystem
-    (instrument, SLM, camera) and synchronises changes bidirectionally
+    (instrument, SLM, camera) and synchronizes changes bidirectionally
     with a connected ``CGH`` instance.
 
     Parameters
     ----------
     cgh : CGH or None
-        The hologram computation object to synchronise with.
+        The hologram computation object to synchronize with.
         Can be changed at runtime via the ``cgh`` property.
     *args, **kwargs
         Forwarded to ``ParameterTree``.

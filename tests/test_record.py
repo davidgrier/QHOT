@@ -1,7 +1,7 @@
 '''Unit tests for Record.'''
 import unittest
 
-from pyqtgraph.Qt import QtTest
+from qtpy import QtTest
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.Record import Record

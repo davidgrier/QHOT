@@ -1,7 +1,7 @@
 '''Unit tests for QVortex.'''
 import unittest
 import numpy as np
-from pyqtgraph.Qt import QtWidgets, QtTest
+from qtpy import QtWidgets, QtTest
 from QHOT.traps.QVortex import QVortex
 from QHOT.lib.holograms import Optics
 

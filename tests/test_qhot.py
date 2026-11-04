@@ -16,7 +16,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from pyqtgraph.Qt import QtCore, QtGui, QtTest, QtWidgets
+from qtpy import QtCore, QtGui, QtTest, QtWidgets
 from QVideo.cameras import chooser
 
 from QHOT.lib import QSLM

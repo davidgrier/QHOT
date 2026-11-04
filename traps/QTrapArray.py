@@ -195,7 +195,7 @@ class QTrapArray(QTrapGroup):
             self.addTrap(traps)
 
     def toDict(self) -> dict:
-        '''Serialise this array's parameters to a plain dict.
+        '''Serialize this array's parameters to a plain dict.
 
         Overrides ``QTrapGroup.toDict()`` to omit children, which are
         reconstructed automatically from ``shape``, ``separation``,
@@ -213,9 +213,9 @@ class QTrapArray(QTrapGroup):
 
     @classmethod
     def fromDict(cls, d: dict) -> QTrapArray:
-        '''Reconstruct a QTrapArray from a serialised dict.
+        '''Reconstruct a QTrapArray from a serialized dict.
 
-        Overrides ``QTrap.fromDict`` to convert the serialised ``nx``
+        Overrides ``QTrap.fromDict`` to convert the serialized ``nx``
         and ``ny`` values back into the ``shape`` constructor argument,
         and to convert ``mask`` from a nested list to a numpy array.
 
@@ -227,7 +227,7 @@ class QTrapArray(QTrapGroup):
         Returns
         -------
         QTrapArray
-            A new instance initialised from ``d``.
+            A new instance initialized from ``d``.
         '''
         r = (d['x'], d['y'], d['z'])
         shape = (int(d['nx']), int(d['ny']))

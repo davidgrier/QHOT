@@ -8,7 +8,7 @@ import dataclasses
 import unittest
 
 import numpy as np
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 
 from QHOT.lib.holograms import CGH, Geometry, Optics
 from QHOT.lib.holograms import reference as ref

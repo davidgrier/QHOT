@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.tasks.SaveTraps import SaveTraps

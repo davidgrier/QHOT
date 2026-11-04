@@ -1,7 +1,7 @@
 '''Unit tests for QTaskTree.'''
 import unittest
 
-from pyqtgraph.Qt import QtWidgets
+from qtpy import QtWidgets
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskTree import QTaskTree

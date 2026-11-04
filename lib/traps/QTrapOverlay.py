@@ -310,7 +310,8 @@ class QTrapOverlay(ScatterPlotItem):
         '''Deregister a top-level trap or group from the overlay (internal).
 
         Disconnects signals, removes leaf spots, detaches the group from
-        Qt's object hierarchy, and emits ``trapRemoved``.  Called by
+        Qt's object hierarchy, and emits ``trapRemoved``.  The members
+        stay in the group, so that undoing the removal restores it.  Called by
         ``removeTrap`` for programmatic removal, and by
         ``RemoveTrapCommand`` and ``AddTrapCommand`` during undo/redo.
 
@@ -329,7 +330,6 @@ class QTrapOverlay(ScatterPlotItem):
             if t in self._traps:
                 self._traps.remove(t)
             t._index = None
-            t.setParent(None)
         if isinstance(group, QTrapGroup):
             try:
                 group.changed.disconnect(self._onGroupChanged)

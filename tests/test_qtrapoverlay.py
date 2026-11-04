@@ -6,6 +6,7 @@ from qtpy import QtCore, QtWidgets, QtTest
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
+from QHOT.lib.traps.commands import RemoveTrapCommand
 from QHOT.traps.QTweezer import QTweezer
 
 
@@ -173,6 +174,42 @@ class TestRemoveTrapGroup(unittest.TestCase):
         self.assertEqual(len(self.overlay.points()), 0)
 
 
+class TestRemovedGroupKeepsItsMembers(unittest.TestCase):
+    '''A group that is removed is still a group, so that undo restores it.'''
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.inner = QTrapGroup(r=(7., 7., 0.))
+        self.leaf = QTrap(r=(7., 7., 0.), phase=0.)
+        self.inner.addTrap(self.leaf)
+        self.t1 = QTrap(r=(4., 4., 0.), phase=0.)
+        self.grp = QTrapGroup(r=(5., 5., 0.))
+        self.grp.addTrap([self.t1, self.inner])
+        self.overlay.addTrap(self.grp)
+
+    def test_members_stay_in_the_group(self):
+        self.overlay.removeTrap(self.t1)
+        self.assertEqual(self.grp.traps, [self.t1, self.inner])
+        self.assertEqual(self.inner.traps, [self.leaf])
+        self.assertIs(self.t1.parent(), self.grp)
+        self.assertIsNone(self.grp.parent())
+
+    def test_undo_restores_the_whole_group(self):
+        self.overlay.undoStack.push(RemoveTrapCommand(self.overlay, self.grp))
+        self.assertEqual(len(self.overlay._traps), 0)
+        self.overlay.undoStack.undo()
+        self.assertEqual(len(self.overlay._traps), 2)
+        self.assertEqual(len(self.grp.traps), 2)
+        self.assertIs(self.grp.parent(), self.overlay)
+
+    def test_redo_removes_it_again(self):
+        self.overlay.undoStack.push(RemoveTrapCommand(self.overlay, self.grp))
+        self.overlay.undoStack.undo()
+        self.overlay.undoStack.redo()
+        self.assertEqual(len(self.overlay._traps), 0)
+        self.assertEqual(len(self.grp.traps), 2)
+
+
 class TestRemoveTrapLargerGroup(unittest.TestCase):
     '''Removing any leaf from a three-member group removes the entire group.'''
 
@@ -218,10 +255,10 @@ class TestRemoveTrapSignalOrdering(unittest.TestCase):
         self.overlay.removeTrap(self.t1)
         self.assertEqual(leaf_count_at_signal, [2])
 
-    def test_leaves_orphaned_after_remove(self):
+    def test_leaves_stay_in_the_group_after_remove(self):
         self.overlay.removeTrap(self.t1)
-        self.assertIsNone(self.t1.parent())
-        self.assertIsNone(self.t2.parent())
+        self.assertIs(self.t1.parent(), self.grp)
+        self.assertIs(self.t2.parent(), self.grp)
 
 
 class TestClearTraps(unittest.TestCase):

@@ -495,5 +495,17 @@ class TestToDict(unittest.TestCase):
         self.assertEqual(d['mask'], [[True, False], [False, True]])
 
 
+class TestLockedSurvivesSaving(unittest.TestCase):
+
+    def test_a_locked_array_is_saved_locked(self):
+        arr = QTrapArray(shape=(2, 2), locked=True)
+        d = arr.toDict()
+        self.assertTrue(d['locked'])
+        self.assertTrue(QTrapArray.fromDict(d).locked)
+
+    def test_an_unlocked_array_leaves_the_key_out(self):
+        self.assertNotIn('locked', QTrapArray(shape=(2, 2)).toDict())
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,4 @@
+'''A rectangular array of tweezers.'''
 from __future__ import annotations
 
 import numpy as np
@@ -178,19 +179,19 @@ class QTrapArray(QTrapGroup):
         Gaussian random offset (std = ``fuzz``) in x and y.
         '''
         cx, cy, cz = self._r
-        dx = self._separation * (np.arange(self._nx) - (self._nx - 1) / 2.)
-        dy = self._separation * (np.arange(self._ny) - (self._ny - 1) / 2.)
-        xs = cx + dx
-        ys = cy + dy
+        xs = cx + self._separation * (np.arange(self._nx)
+                                      - (self._nx - 1) / 2.)
+        ys = cy + self._separation * (np.arange(self._ny)
+                                      - (self._ny - 1) / 2.)
         traps = []
         for ix, x in enumerate(xs):
             for iy, y in enumerate(ys):
                 if self._mask is None or self._mask[ix, iy]:
                     if self._fuzz > 0.:
-                        dx, dy = np.random.normal(0., self._fuzz, 2)
+                        jx, jy = np.random.normal(0., self._fuzz, 2)
                     else:
-                        dx = dy = 0.
-                    traps.append(QTweezer(r=(x + dx, y + dy, cz)))
+                        jx = jy = 0.
+                    traps.append(QTweezer(r=(x + jx, y + jy, cz)))
         if traps:
             self.addTrap(traps)
 
@@ -208,6 +209,8 @@ class QTrapArray(QTrapGroup):
             (a nested list of bools, or ``None``).
         '''
         d = {'type': type(self).__name__, **self.settings}
+        if self.locked:
+            d['locked'] = True
         d['mask'] = self._mask.tolist() if self._mask is not None else None
         return d
 

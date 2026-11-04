@@ -340,6 +340,22 @@ class TestFromToml(_Base):
         self.save.fromToml(qobj)
         self.assertIn('original', qobj.settings)
 
+    def test_a_file_that_is_not_toml_is_not_a_configuration(self):
+        qobj = _FakeQObj()
+        qobj._settings = {'original': True}
+        Path(self.save.configname(qobj)).write_text('this is [ not toml')
+        with self.assertLogs('QHOT.lib.QSaveFile', 'WARNING'):
+            self.assertEqual(self.save.fromToml(qobj), '')
+        self.assertIn('original', qobj.settings)
+
+    def test_a_file_without_settings_is_not_a_configuration(self):
+        qobj = _FakeQObj()
+        qobj._settings = {'original': True}
+        Path(self.save.configname(qobj)).write_text('x = 1\n')
+        with self.assertLogs('QHOT.lib.QSaveFile', 'WARNING'):
+            self.assertEqual(self.save.fromToml(qobj), '')
+        self.assertIn('original', qobj.settings)
+
 
 # ---------------------------------------------------------------------------
 # queue() / queueAs() / openQueue()

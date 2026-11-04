@@ -1,14 +1,16 @@
+'''Saves the images, data and settings of QHOT in files.'''
+import json
+import logging
+import tomllib
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import numpy.typing as npt
+import tomlkit
 from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph import ImageItem
 from pyqtgraph.exporters import ImageExporter
-from pathlib import Path
-from datetime import datetime
-import numpy as np
-import numpy.typing as npt
-import json
-import tomllib
-import tomlkit
-import logging
 
 
 logger = logging.getLogger(__name__)
@@ -310,13 +312,18 @@ class QSaveFile(QtCore.QObject):
         Returns
         -------
         str
-            Path of the configuration file that was read, or empty string
-            if the file does not exist.
+            Path of the configuration file that was read, or an empty
+            string if there is none or it holds no settings (a file that
+            is not TOML, say, or that a person has edited): the object
+            keeps the settings that it has, and the reason is logged.
         '''
         filename = self.configname(qobj)
-        if Path(filename).exists():
-            with open(filename, 'r', encoding='utf-8') as f:
-                doc = tomlkit.load(f)
-            qobj.settings = doc['settings']
-            return filename
-        return ''
+        try:
+            settings = self.readToml(filename)['settings']
+        except FileNotFoundError:
+            return ''
+        except (OSError, ValueError, KeyError) as ex:
+            logger.warning(f'Cannot use {filename}: {ex!r}')
+            return ''
+        qobj.settings = settings
+        return filename

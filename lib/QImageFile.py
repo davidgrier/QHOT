@@ -1,3 +1,4 @@
+'''An image that the program shows, saved to a file.'''
 from __future__ import annotations
 
 from collections.abc import Callable

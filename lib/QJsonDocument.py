@@ -1,3 +1,4 @@
+'''A document kept in a JSON file.'''
 from __future__ import annotations
 
 from QHOT.lib.QDocument import QDocument

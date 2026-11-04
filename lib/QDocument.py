@@ -1,3 +1,4 @@
+'''A document of the program, kept in a file.'''
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -106,9 +107,11 @@ class QDocument(QFileAction):
         self._saveTo(path)
 
     def _saveTo(self, path: str | None) -> None:
-        try:
+        try:                    # nothing but a bug of ours may leave a slot
             path = self._write(self._dump(), path)
-        except OSError as error:
+        except NotImplementedError:
+            raise
+        except Exception as error:
             self.failed('save', path, error)
             return
         self.filename = path

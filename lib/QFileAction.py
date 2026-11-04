@@ -1,3 +1,4 @@
+'''What a menu does with one kind of file: the dialogs and the messages.'''
 from __future__ import annotations
 
 import logging

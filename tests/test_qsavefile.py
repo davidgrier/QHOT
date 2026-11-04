@@ -374,6 +374,13 @@ class TestToJson(_Base):
         path = str(self.home / 'out.json')
         self.assertEqual(self.save.writeJson([], path), path)
 
+    def test_data_that_cannot_be_written_leaves_the_old_file_alone(self):
+        path = Path(self.home / 'out.json')
+        self.save.writeJson({'traps': [1, 2, 3]}, str(path))
+        with self.assertRaises(TypeError):
+            self.save.writeJson({'traps': [1], 'bad': object()}, str(path))
+        self.assertEqual(json.loads(path.read_text()), {'traps': [1, 2, 3]})
+
     def test_auto_generates_filename_when_none(self):
         result = self.save.writeJson([1])
         self.assertTrue(result.endswith('.json'))

@@ -77,6 +77,28 @@ class TestSave(DocumentCase):
                          str(self.home / 'no' / 'such' / 'x.json'))
 
 
+class TestSaveThatFails(DocumentCase):
+    '''A document that cannot be written is reported, not raised.
+
+    The exception would leave a Qt slot, and PyQt ends the program.
+    '''
+
+    def test_data_that_cannot_be_written_is_reported(self):
+        self.content = [{'type': 'QTweezer', 'x': object()}]
+        self.document.save()
+        self.assertIn('Could not save traps', self.message())
+        self.assertIsNone(self.document.filename)
+        self.assertEqual(self.written(), [])
+
+    def test_a_dump_that_raises_is_reported(self):
+        def broken():
+            raise RuntimeError('the overlay is gone')
+
+        self.document._dump = broken
+        self.document.save()
+        self.assertIn('the overlay is gone', self.message())
+
+
 class TestSaveAs(DocumentCase):
 
     def test_it_writes_the_file_that_was_chosen(self):

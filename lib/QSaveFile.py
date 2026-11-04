@@ -184,10 +184,14 @@ class QSaveFile(QtCore.QObject):
         ------
         OSError
             If the file cannot be written.
+        TypeError
+            If the data cannot be written as JSON; a file that is there is
+            left as it was.
         '''
         filename = filename or self.filename(prefix=prefix, suffix='.json')
+        text = json.dumps(data, indent=2)   # before the file is touched
         with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
+            f.write(text)
         return filename
 
     @staticmethod
@@ -253,8 +257,9 @@ class QSaveFile(QtCore.QObject):
             doc.add(tomlkit.nl())
         for key, value in data.items():
             doc[key] = value
+        text = tomlkit.dumps(doc)           # before the file is touched
         with open(filename, 'w', encoding='utf-8') as f:
-            f.write(tomlkit.dumps(doc))
+            f.write(text)
         return filename
 
     @staticmethod
@@ -297,8 +302,9 @@ class QSaveFile(QtCore.QObject):
         doc = tomlkit.document()
         doc['settings'] = qobj.settings
         filename = self.configname(qobj)
+        text = tomlkit.dumps(doc)           # before the file is touched
         with open(filename, 'w', encoding='utf-8') as f:
-            f.write(tomlkit.dumps(doc))
+            f.write(text)
         return filename
 
     def fromToml(self, qobj: QtCore.QObject) -> str:

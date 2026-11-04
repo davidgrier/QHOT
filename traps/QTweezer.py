@@ -1,3 +1,4 @@
+'''The single optical tweezer.'''
 from QHOT.lib.traps.QTrap import QTrap
 
 

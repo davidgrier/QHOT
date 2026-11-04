@@ -1493,7 +1493,7 @@ class TestLockedTrapIgnored(unittest.TestCase):
             overlay.brush[overlay.State.STATIC].color())
 
 
-class TestLockedSerialisation(unittest.TestCase):
+class TestLockedSerialization(unittest.TestCase):
 
     def test_locked_survives_roundtrip(self):
         overlay = make_overlay()

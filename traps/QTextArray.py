@@ -1,4 +1,6 @@
+'''A line of text made of tweezers.'''
 from qtpy import QtCore
+
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from .QLetterArray import QLetterArray
 

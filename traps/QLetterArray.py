@@ -1,6 +1,8 @@
+'''A dot-matrix character made of tweezers.'''
 from __future__ import annotations
 
 import numpy as np
+
 from QHOT.traps.QTrapArray import QTrapArray
 
 
@@ -109,7 +111,7 @@ class QLetterArray(QTrapArray):
 
     '''Single dot-matrix character rendered as optical tweezers.
 
-    A specialisation of ``QTrapArray`` with a fixed 5-column × 7-row
+    A specialization of ``QTrapArray`` with a fixed 5-column × 7-row
     grid and a mask derived from the dot-matrix font.  Each lit dot
     becomes one ``QTweezer``; blank dots produce no trap.
 

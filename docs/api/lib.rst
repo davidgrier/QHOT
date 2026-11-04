@@ -19,12 +19,6 @@ Splash screen
 .. automodule:: QHOT.lib.splash
    :members:
 
-QCameraOpener
--------------
-
-.. automodule:: QHOT.lib.QCameraOpener
-   :members:
-
 QSLM
 ----
 

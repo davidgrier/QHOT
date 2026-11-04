@@ -6,11 +6,10 @@ from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
 
 from QVideo.cameras import chooser
-from QVideo.lib import QCameraTree, QFilterRack
+from QVideo.lib import QCameraOpener, QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
                       build_parser, choose_cgh, choose_slm)
 from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
-from QHOT.lib.QCameraOpener import QCameraOpener
 from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.QJsonDocument import QJsonDocument
 from QHOT.lib.QTomlDocument import QTomlDocument

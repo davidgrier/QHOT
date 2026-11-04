@@ -3,8 +3,7 @@
 The image is the hologram of a particle: far from a small scatterer the
 fringes are the zones of a Fresnel lens, rings that crowd together and
 fade with distance.  It is drawn in purple, with a vignette, so that the
-text stays legible.  Adapted from the splash screen of QVideo, which is
-private to that project.
+text stays legible.
 '''
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets

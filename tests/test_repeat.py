@@ -224,9 +224,80 @@ class TestRepeatNested(TestRepeatSetup):
             if inner_repeat.state == QTask.State.COMPLETED:
                 break
 
-        # _specs should contain only the inner Delay, not the outer one
-        self.assertIsNotNone(inner_repeat._specs)
-        self.assertEqual(len(inner_repeat._specs), 1)
+        # the block of the inner Repeat is the inner Delay, not the outer one
+        self.assertEqual(len(inner_repeat._findSpecs()), 1)
+
+
+# ------------------------------------------------------------------
+# What runs, and what is saved
+
+class Tick(QTask):
+    '''Writes its tag in a log when it runs, and takes no frames.'''
+
+    log: list = []
+    parameters = (dict(name='tag', type='str', value='', default=''),)
+
+    def __init__(self, tag: str = '', **kwargs):
+        super().__init__(duration=0, **kwargs)
+        self.tag = tag
+
+    def initialize(self):
+        Tick.log.append(self.tag)
+
+
+class TestWhatRuns(TestRepeatSetup):
+
+    def setUp(self):
+        super().setUp()
+        Tick.log.clear()
+
+    def run_queue(self):
+        Tick.log.clear()
+        self.manager.pause(False)
+        self._pump(max_signals=500)
+        return ' '.join(Tick.log)
+
+    def register(self, *tasks):
+        for task in tasks:
+            self.manager.register(task)
+
+    def test_a_block_runs_n_times(self):
+        self.register(BeginRepeat(), Tick('a'), Repeat(n=3))
+        self.assertEqual(self.run_queue(), 'a a a')
+
+    def test_nested_blocks_multiply(self):
+        tasks = [BeginRepeat(), Tick('a'), BeginRepeat(), Tick('b'),
+                 Repeat(n=2), Repeat(n=3)]
+        self.register(*tasks)
+        self.assertEqual(self.run_queue(), 'a b b a b b a b b')
+
+    def test_three_levels_of_blocks(self):
+        tasks = [BeginRepeat(), Tick('a'), BeginRepeat(), Tick('b'),
+                 BeginRepeat(), Tick('c'), Repeat(n=2), Repeat(n=2),
+                 Repeat(n=2)]
+        self.register(*tasks)
+        pass_ = 'a b c c b c c'
+        self.assertEqual(self.run_queue(), f'{pass_} {pass_}')
+
+    def test_the_same_queue_runs_the_same_again(self):
+        tasks = [BeginRepeat(), Tick('a'), BeginRepeat(), Tick('b'),
+                 Repeat(n=2), Repeat(n=2)]
+        self.register(*tasks)
+        first = self.run_queue()
+        self.assertEqual(self.run_queue(), first)
+
+    def test_a_task_edited_in_the_block_is_the_one_repeated(self):
+        tick = Tick('a')
+        self.register(BeginRepeat(), tick, Repeat(n=3))
+        self.run_queue()
+        tick.tag = 'edited'
+        self.assertEqual(self.run_queue(), 'edited edited edited')
+
+    def test_a_queue_saved_after_a_run_is_as_it_was_made(self):
+        self.register(BeginRepeat(), Tick('a'), Repeat(n=3))
+        before = self.manager.toList()
+        self.run_queue()
+        self.assertEqual(self.manager.toList(), before)
 
 
 if __name__ == '__main__':  # pragma: no cover

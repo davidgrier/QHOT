@@ -6,6 +6,63 @@ from QHOT.lib.tasks.QTask import QTask
 logger = logging.getLogger(__name__)
 
 
+def _opening(kinds: list[str], closing: int) -> int | None:
+    '''Return the place of the BeginRepeat that the Repeat at *closing* closes.
+
+    Handles nesting by counting backwards: each ``Repeat`` skips one
+    ``BeginRepeat``, and the first one that is not skipped is the bracket.
+
+    Parameters
+    ----------
+    kinds : list[str]
+        The names of the classes of the tasks, in order.
+    closing : int
+        Place of the ``Repeat`` in *kinds*.
+
+    Returns
+    -------
+    int or None
+        Place of its ``BeginRepeat``, or ``None`` if there is none.
+    '''
+    skip = 0
+    for i in range(closing - 1, -1, -1):
+        if kinds[i] == 'Repeat':
+            skip += 1
+        elif kinds[i] == 'BeginRepeat':
+            if skip:
+                skip -= 1
+            else:
+                return i
+    return None
+
+
+def _resolve(specs: list[dict]) -> list[dict]:
+    '''Give each Repeat in a block of specs the block that it repeats.
+
+    The copy of a block is made from its specs and is not in the schedule,
+    where a ``Repeat`` would look for its ``BeginRepeat``.  The block of
+    each ``Repeat`` is found here, in the specs, at any depth of nesting.
+
+    Parameters
+    ----------
+    specs : list[dict]
+        Serialized tasks in execution order.
+
+    Returns
+    -------
+    list[dict]
+        The same specs, with ``_specs`` in those of the ``Repeat`` tasks.
+    '''
+    resolved = [dict(spec) for spec in specs]
+    kinds = [spec['type'] for spec in resolved]
+    for i, spec in enumerate(resolved):
+        if kinds[i] == 'Repeat' and '_specs' not in spec:
+            begin = _opening(kinds, i)
+            if begin is not None:
+                spec['_specs'] = resolved[begin + 1:i]
+    return resolved
+
+
 class Repeat(QTask):
 
     '''Repeat a bracketed block of tasks n times.
@@ -61,21 +118,22 @@ class Repeat(QTask):
         self._n = int(value)
 
     def initialize(self) -> None:
-        if self._specs is None:
-            self._specs = self._findSpecs()
-        if self._n <= 1 or not self._specs:
+        '''Queue n - 1 more copies of the block, each with its own Repeat.
+
+        The block is looked for in the schedule every time, so that a task
+        that the user changed since the last run is the one that repeats.
+        A copy is not in the schedule, so each ``Repeat`` in it is told
+        its block (:func:`_resolve`).
+        '''
+        specs = self._specs if self._specs is not None else self._findSpecs()
+        if self._n <= 1 or not specs:
             return
-        new_tasks = [QTask.fromDict(s) for s in self._specs]
-        new_tasks.append(Repeat(n=self._n - 1, _specs=self._specs))
+        new_tasks = [QTask.fromDict(s) for s in _resolve(specs)]
+        new_tasks.append(Repeat(n=self._n - 1, _specs=specs))
         self.manager.inject(new_tasks)
 
     def _findSpecs(self) -> list:
-        '''Scan the schedule backwards to find the matching BeginRepeat.
-
-        Handles nesting by tracking depth: each ``Repeat`` encountered
-        while scanning backwards increments the skip counter; each
-        ``BeginRepeat`` decrements it.  The first ``BeginRepeat`` at
-        depth zero is our bracket.
+        '''Find the matching BeginRepeat in the schedule; return the block.
 
         Returns
         -------
@@ -84,29 +142,17 @@ class Repeat(QTask):
             this ``Repeat``, in execution order.  Empty list if no
             matching bracket is found.
         '''
-        from QHOT.tasks.BeginRepeat import BeginRepeat
         schedule = self.manager.scheduled
         try:
-            my_idx = next(i for i, t in enumerate(schedule) if t is self)
+            mine = next(i for i, t in enumerate(schedule) if t is self)
         except StopIteration:
             logger.warning('Repeat: task not found in schedule')
             return []
-        to_skip = 0
-        begin_idx = None
-        for i in range(my_idx - 1, -1, -1):
-            task = schedule[i]
-            if isinstance(task, Repeat):
-                to_skip += 1
-            elif isinstance(task, BeginRepeat):
-                if to_skip > 0:
-                    to_skip -= 1
-                else:
-                    begin_idx = i
-                    break
-        if begin_idx is None:
+        begin = _opening([type(t).__name__ for t in schedule], mine)
+        if begin is None:
             logger.warning('Repeat: no matching BeginRepeat found in schedule')
             return []
-        return [t.toDict() for t in schedule[begin_idx + 1:my_idx]]
+        return [t.toDict() for t in schedule[begin + 1:mine]]
 
     def toDict(self) -> dict:
         d = super().toDict()

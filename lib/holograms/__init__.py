@@ -1,3 +1,4 @@
+'''Holograms of patterns of traps, and the engine that computes them.'''
 from .backends import Backend, NumpyBackend
 from .CGH import CGH
 from .optics import Geometry, Optics

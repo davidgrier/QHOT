@@ -1,3 +1,4 @@
+'''The calibration of the optical train, as a value.'''
 from __future__ import annotations
 
 from dataclasses import dataclass, fields

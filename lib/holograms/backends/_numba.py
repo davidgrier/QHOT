@@ -1,3 +1,4 @@
+'''The backend that computes with numba, on all the cores.'''
 from __future__ import annotations
 
 import math

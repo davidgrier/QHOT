@@ -1,3 +1,4 @@
+'''The engine that computes holograms for the traps of the overlay.'''
 from __future__ import annotations
 
 import logging

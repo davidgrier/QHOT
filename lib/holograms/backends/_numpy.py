@@ -1,3 +1,4 @@
+'''The backend that computes with NumPy, on the CPU.'''
 from __future__ import annotations
 
 from types import SimpleNamespace

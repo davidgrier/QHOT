@@ -1,3 +1,4 @@
+'''Computes holograms in a thread of its own.'''
 from __future__ import annotations
 
 import logging

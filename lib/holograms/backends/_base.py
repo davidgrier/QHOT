@@ -1,3 +1,4 @@
+'''The algorithm that every backend shares.'''
 from __future__ import annotations
 
 from collections import OrderedDict

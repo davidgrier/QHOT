@@ -1,3 +1,4 @@
+'''The backend that computes with CuPy, on an NVIDIA GPU.'''
 from __future__ import annotations
 
 from types import SimpleNamespace

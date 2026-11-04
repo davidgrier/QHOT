@@ -1,3 +1,4 @@
+'''The backend that computes with PyTorch, on a GPU or the CPU.'''
 from __future__ import annotations
 
 from types import SimpleNamespace

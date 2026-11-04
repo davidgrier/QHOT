@@ -3,9 +3,11 @@
 ## [Unreleased]
 
 ### Changed
-- The camera opener is `QVideo.lib.QCameraOpener`, which QVideo (after
-  4.12.0) provides; QHOT's copy, `QHOT.lib.QCameraOpener`, is gone.
-  `QHOT` needs that release of QVideo.
+- QHOT needs QVideo 4.13.0 (`QVideo[dvr]>=4.13.0`).  The camera opener is
+  `QVideo.lib.QCameraOpener`, which that release provides; QHOT's copy,
+  `QHOT.lib.QCameraOpener`, is gone.  QVideo 4.13.0 also opens the
+  Harvesters backends in a process of their own, which QHOT relies on in
+  place of the thread-switch stopgap that it removed.
 - The tests import Qt from `qtpy`, not from `pyqtgraph.Qt`, and a test
   checks that `qtpy` (or QVideo) comes before `pyqtgraph` in every file, so
   that `QT_API` selects the Qt binding.

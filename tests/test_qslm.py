@@ -30,6 +30,13 @@ class TestInit(unittest.TestCase):
     def test_fake_mode_not_maximized(self):
         self.assertFalse(self.slm.isMaximized())
 
+    def test_the_window_on_the_primary_screen_cannot_be_resized(self):
+        # The hologram has the shape of the window: a window that is
+        # resized would no longer take the holograms that are made for it.
+        shape = self.slm.shape
+        self.slm.resize(shape[1] + 100, shape[0] + 50)
+        self.assertEqual(self.slm.shape, shape)
+
 
 class TestShape(unittest.TestCase):
 

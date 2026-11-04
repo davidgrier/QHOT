@@ -1,8 +1,11 @@
+'''The preview of the hologram that the SLM shows.'''
+import logging
+
+import numpy as np
 from qtpy import QtCore
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
-from QHOT.lib.QSLM import Hologram
-import numpy as np
-import logging
+
+from QHOT.lib.types import Hologram
 
 
 logger = logging.getLogger(__name__)
@@ -13,7 +16,7 @@ class QSLMWidget(GraphicsLayoutWidget):
     '''Preview widget showing the hologram currently displayed on the SLM.
 
     Embeds a read-only image view of the phase pattern being sent to
-    the physical SLM.  Connect ``QSLM.hologramReady`` (or any signal
+    the physical SLM.  Connect ``CGH.hologramReady`` (or any signal
     carrying a ``Hologram`` array) to :meth:`setData` to keep the
     preview in sync.
 

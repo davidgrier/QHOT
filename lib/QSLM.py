@@ -1,7 +1,10 @@
-from qtpy import QtCore, QtGui
-import numpy as np
-from pyqtgraph import GraphicsLayoutWidget, ImageItem
+'''The window that shows the hologram on the SLM.'''
 import logging
+
+import numpy as np
+from qtpy import QtCore, QtGui
+from pyqtgraph import GraphicsLayoutWidget, ImageItem
+
 from QHOT.lib.types import Hologram, Shape
 
 
@@ -14,8 +17,18 @@ class QSLM(GraphicsLayoutWidget):
 
     QSLM displays 8-bit phase patterns on an SLM that is configured
     as the secondary display of the computer.
-    If no secondary display is detected, a window is opened on
-    the primary screen.
+    If no secondary display is detected, a window of a fixed size is
+    opened on the primary screen.  The shape of the hologram is the shape
+    of the window, so that window cannot be resized.
+
+    Parameters
+    ----------
+    fake : bool
+        If True, open a window on the primary screen even when a
+        secondary screen is present. Useful for testing without
+        hardware. Default: False.
+    *args, **kwargs
+        Passed to ``GraphicsLayoutWidget``.
 
     Attributes
     ----------
@@ -23,25 +36,9 @@ class QSLM(GraphicsLayoutWidget):
         The shape of the SLM in pixels (height, width).
     data : npt.NDArray[np.uint8]
         The current phase pattern displayed on the SLM.
-
-    Methods
-    -------
-    setData(hologram: npt.NDArray[np.uint8]) -> None
-        Sets the phase pattern to be displayed on the SLM.
     '''
 
     def __init__(self, *args, fake: bool = False, **kwargs) -> None:
-        '''Initialize the SLM display.
-
-        Parameters
-        ----------
-        fake : bool
-            If True, open a window on the primary screen even when a
-            secondary screen is present. Useful for testing without
-            hardware. Default: False.
-        *args, **kwargs
-            Passed to ``GraphicsLayoutWidget``.
-        '''
         super().__init__(*args, **kwargs)
         self._setupUi(fake)
 
@@ -50,7 +47,9 @@ class QSLM(GraphicsLayoutWidget):
 
         If more than one screen is detected and ``fake`` is False, the
         window is moved to the secondary screen and maximized. Otherwise
-        a fixed-size window is opened on the primary screen.
+        a fixed-size window is opened on the primary screen, so that the
+        shape of the holograms cannot change under the engine that makes
+        them.
 
         Parameters
         ----------
@@ -79,7 +78,8 @@ class QSLM(GraphicsLayoutWidget):
                 logger.warning('No secondary screen detected; '
                                'opening SLM on primary screen')
             x0, y0, w, h = 100, 100, 640, 480
-            self.setGeometry(x0, y0, w, h)
+            self.move(x0, y0)
+            self.setFixedSize(w, h)
             self.show()
         self.setData(np.zeros(self.shape, dtype=np.uint8))
 

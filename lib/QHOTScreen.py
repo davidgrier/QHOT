@@ -1,11 +1,9 @@
+'''The video screen on which the traps are placed and moved.'''
+import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
+
 from QVideo.lib import QVideoScreen
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
-import numpy as np
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 
 class QHOTScreen(QVideoScreen):

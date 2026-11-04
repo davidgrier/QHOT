@@ -1,3 +1,4 @@
+'''Schedules the tasks of QHOT and advances them frame by frame.'''
 from __future__ import annotations
 
 import logging
@@ -91,12 +92,12 @@ class QTaskManager(QtCore.QObject):
         self.dvr = dvr
         self.save = save
         self.image = image
-        self._schedule:        list[QTask] = []
-        self._queue:           deque[QTask] = deque()
-        self._background:      list[QTask] = []
-        self._current:         QTask | None = None
-        self._currentStepped: bool = False
-        self._paused:          bool = False
+        self._schedule: list[QTask] = []
+        self._queue: deque[QTask] = deque()
+        self._background: list[QTask] = []
+        self._current: QTask | None = None
+        self._currentStepped = False
+        self._paused = False
 
     # ------------------------------------------------------------------
     # Public read-only properties
@@ -120,8 +121,8 @@ class QTaskManager(QtCore.QObject):
     def activeRaw(self) -> QTask | None:
         '''The activated blocking task whether or not it has been stepped.
 
-        Used internally.  Prefer ``active`` for display and ``queued``
-        for the full list of not-yet-completed tasks.
+        Prefer ``active`` for display and ``queued`` for the full list of
+        not-yet-completed tasks.
         '''
         return self._current
 
@@ -474,6 +475,11 @@ class QTaskManager(QtCore.QObject):
 
     def _activateNext(self,
                       previous: QTask | None = None) -> None:
+        '''Start the next blocking task, handing it the one that finished.
+
+        When none is left, a schedule that ran to its end is reset and
+        paused, ready to run again.
+        '''
         if self._queue:
             self._current = self._queue.popleft()
             self._currentStepped = False

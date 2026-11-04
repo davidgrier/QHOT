@@ -1,7 +1,7 @@
 '''Unit tests for QSLMWidget.'''
 import unittest
 import numpy as np
-from qtpy import QtWidgets
+from qtpy import QtCore, QtTest, QtWidgets
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 from QHOT.lib.QSLMWidget import QSLMWidget
 
@@ -115,6 +115,40 @@ class TestShowEvent(unittest.TestCase):
     def test_data_is_none_on_show_without_prior_setdata(self):
         self.w.show()
         self.assertIsNone(self.w.data)
+
+
+class TestResettingTheView(unittest.TestCase):
+    '''A double-click shows the whole hologram again.'''
+
+    def setUp(self):
+        self.w = QSLMWidget()
+        self.w.resize(640, 480)
+        self.w.show()
+        self.w.setData(_hologram())
+        QtTest.QTest.qWait(50)
+        self.addCleanup(self.w.close)
+
+    def whole(self):
+        x, y = self.w.view.viewRange()
+        return (x[0] <= 0 and x[1] >= SHAPE[1]
+                and y[0] <= 0 and y[1] >= SHAPE[0])
+
+    def doubleClick(self):
+        QtTest.QTest.mouseDClick(
+            self.w.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            pos=QtCore.QPoint(100, 100),
+        )
+        QtTest.QTest.qWait(50)
+
+    def test_it_starts_with_the_whole_hologram(self):
+        self.assertTrue(self.whole())
+
+    def test_a_double_click_restores_the_whole_hologram(self):
+        self.w.view.setRange(xRange=(100, 200), yRange=(100, 200), padding=0)
+        self.assertFalse(self.whole())
+        self.doubleClick()
+        self.assertTrue(self.whole())
 
 
 class TestDataProperty(unittest.TestCase):

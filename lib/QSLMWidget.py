@@ -23,6 +23,9 @@ class QSLMWidget(GraphicsLayoutWidget):
     The widget skips updates while hidden so that it imposes no
     rendering cost when it is not visible.
 
+    The preview zooms with the mouse wheel or the right button and pans
+    with the left button.  A double-click shows the whole hologram again.
+
     Inherits
     --------
     pyqtgraph.GraphicsLayoutWidget
@@ -52,6 +55,11 @@ class QSLMWidget(GraphicsLayoutWidget):
         self.view.setAspectLocked(True)
         self.image = ImageItem(axisOrder='row-major')
         self.view.addItem(self.image)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        '''Show the whole hologram again, however it was zoomed or panned.'''
+        self.view.autoRange()
+        event.accept()
 
     @property
     def data(self) -> Hologram | None:

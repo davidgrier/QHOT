@@ -11,6 +11,8 @@
 - **`LoadTraps` fails, and with it the queue, if it has no file name or the
   file cannot be read**, where it logged an error and went on with the
   wrong traps.  This is the policy of the recording tasks.
+- **A double-click on the preview of the hologram (SLM tab) shows the
+  whole hologram again** after it was zoomed or panned.
 - The help pages (Help tab) describe the program as it is: the recorder
   and its playback, the camera panel, the display filters, the traps and
   their gestures (including marking), the Tasks tab, the calibration, the

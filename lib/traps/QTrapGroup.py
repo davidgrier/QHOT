@@ -192,32 +192,13 @@ class QTrapGroup(QTrap):
             if isinstance(child, QTrapGroup):
                 child._rotateSilently(angle, cx, cy, snapshot)
 
-    def _broadcastChanged(self) -> None:
-        '''Emit ``changed`` for every descendant and then self.
-
-        Leaf ``changed`` signals drive CGH displacement-field cache
-        invalidation (``_field_cache[leaf]``) and propagate structure
-        invalidation up through all ancestor groups via
-        ``_invalidateStructureChain``.  Sub-group ``changed`` signals
-        additionally clear each inner group's displacement cache
-        (``_field_cache[inner]``).  ``self.changed`` at the end drives
-        the visual update in ``QTrapOverlay._onGroupChanged``.
-        '''
-        for child in self:
-            if isinstance(child, QTrapGroup):
-                child._broadcastChanged()
-            else:
-                child.changed.emit()
-        self.changed.emit()
-
     def rotate(self, angle: float, snapshot: dict) -> None:
         '''Rotate all children by angle around the group center.
 
         Applies the rotation from the snapshotted positions to avoid
         floating-point drift during interactive drag.  All sub-group
-        centers are updated recursively.  Calls ``_broadcastChanged``
-        so that the CGH displacement-field caches for every descendant
-        are invalidated and ``QTrapOverlay`` updates its spots.
+        centers are updated recursively.  Like a translation, it changes
+        the positions silently and emits ``changed`` once, on the group.
 
         Parameters
         ----------
@@ -230,7 +211,7 @@ class QTrapGroup(QTrap):
         '''
         cx, cy = self._r[0], self._r[1]
         self._rotateSilently(angle, cx, cy, snapshot)
-        self._broadcastChanged()
+        self.changed.emit()
 
     @QTrap.r.setter
     def r(self, r: npt.ArrayLike) -> None:

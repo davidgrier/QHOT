@@ -334,6 +334,11 @@ class TestQTrapWidgetFollowsGroup(unittest.TestCase):
         edit.updateValue()
         self.assertAlmostEqual(self.leaf.x, place)
 
+    def test_rows_follow_a_rotation_of_the_group(self):
+        snapshot = self.group._snapshot()
+        self.group.rotate(0.3, snapshot)
+        self.assertEqual(self.shown(), self.leaf.x)
+
     def test_unregistered_group_no_longer_updates(self):
         row = self.widget._trapWidgets[self.leaf]
         self.widget.unregisterTrap(self.group)

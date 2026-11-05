@@ -475,9 +475,10 @@ class QTrapOverlay(ScatterPlotItem):
     def _onGroupChanged(self) -> None:
         '''Slot called when a group is translated; updates all leaf spots.'''
         group: QTrapGroup = self.sender()
+        spots = self.points()
         for trap in group.leaves():
             if trap._index is not None:
-                spot = self.points()[trap._index]
+                spot = spots[trap._index]
                 spot._data['x'] = trap.x
                 spot._data['y'] = trap.y
                 spot.updateItem()
@@ -493,9 +494,10 @@ class QTrapOverlay(ScatterPlotItem):
         state : State
             Visual state to apply.
         '''
+        spots = self.points()
         for trap in group.leaves():
             if trap._index is not None:
-                spot = self.points()[trap._index]
+                spot = spots[trap._index]
                 spot.setBrush(self.brush[state])
                 spot.updateItem()
 

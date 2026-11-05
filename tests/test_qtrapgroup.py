@@ -126,6 +126,46 @@ class TestRSetter(unittest.TestCase):
         np.testing.assert_array_almost_equal(trap.r, [4., 0., 0.])
 
 
+class TestCoordinateProperties(unittest.TestCase):
+
+    '''Editing x, y or z of a group, as the trap panel does, moves it.'''
+
+    def setUp(self):
+        from QHOT.traps import QTextArray
+        self.group = QTextArray(text='NY', r=(300., 200., 0.))
+        self.before = [t.r for t in self.group.leaves()]
+
+    def test_members_move_with_the_center(self):
+        for name, axis in zip('xyz', range(3)):
+            with self.subTest(name=name):
+                self.group.setTrapProperty(name, 50.)
+                for t, r0 in zip(self.group.leaves(), self.before):
+                    expected = r0.copy()
+                    expected[axis] += 50. - (300., 200., 0.)[axis]
+                    np.testing.assert_allclose(
+                        t.r[axis], expected[axis])
+                self.group.setTrapProperty(name,
+                                           (300., 200., 0.)[axis])
+
+    def test_restoring_puts_members_back(self):
+        self.group.setTrapProperty('x', 350.)
+        self.group.setTrapProperty('x', 300.)
+        for t, r0 in zip(self.group.leaves(), self.before):
+            np.testing.assert_allclose(t.r, r0)
+
+    def test_center_survives_reshaping(self):
+        self.group.setTrapProperty('x', 350.)
+        shifted = [t.r for t in self.group.leaves()]
+        self.group.separation = 40.
+        for t, r0 in zip(self.group.leaves(), shifted):
+            np.testing.assert_allclose(t.r, r0)
+
+    def test_emits_changed_once(self):
+        spy = QtTest.QSignalSpy(self.group.changed)
+        self.group.setTrapProperty('y', 250.)
+        self.assertEqual(len(spy), 1)
+
+
 class TestIsWithin(unittest.TestCase):
 
     def setUp(self):

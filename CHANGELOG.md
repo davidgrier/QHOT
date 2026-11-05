@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Editing x, y or z of a group in the Traps tab moves the whole group.**
+  It changed only the center of the group and left its members where they
+  were, until the group was reshaped and they jumped to the new center.
+- **The rows of the members of a group follow the group** when it is
+  dragged or moved.  They kept showing the old positions, so
+  setting a trap and then resetting it put the trap where it would have
+  been had the group never moved.
+
+### Documented
+- README: QHOT has been demonstrated to work correctly on hardware, with a
+  Holoeye Pluto SLM on the secondary display of an Ubuntu system with an
+  NVIDIA graphics card.
+
 ## [2.2.0] — 2026-11-03
 
 ### Changed

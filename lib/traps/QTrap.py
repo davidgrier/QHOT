@@ -108,6 +108,17 @@ class QTrap(QtCore.QObject):
         self._r[:] = r
         self.changed.emit()
 
+    def _setCoordinate(self, axis: int, value: float) -> None:
+        '''Move the trap along one axis, through ``r``.
+
+        Going through ``r`` lets a subclass that overrides it, as a group
+        does to carry its members along, handle ``x``, ``y`` and ``z``
+        as well.
+        '''
+        r = self.r
+        r[axis] = value
+        self.r = r
+
     @property
     def x(self) -> float:
         '''x-coordinate of the trap [pixels].'''
@@ -115,8 +126,7 @@ class QTrap(QtCore.QObject):
 
     @x.setter
     def x(self, x: float) -> None:
-        self._r[0] = x
-        self.changed.emit()
+        self._setCoordinate(0, x)
 
     @property
     def y(self) -> float:
@@ -125,8 +135,7 @@ class QTrap(QtCore.QObject):
 
     @y.setter
     def y(self, y: float) -> None:
-        self._r[1] = y
-        self.changed.emit()
+        self._setCoordinate(1, y)
 
     @property
     def z(self) -> float:
@@ -135,8 +144,7 @@ class QTrap(QtCore.QObject):
 
     @z.setter
     def z(self, z: float) -> None:
-        self._r[2] = z
-        self.changed.emit()
+        self._setCoordinate(2, z)
 
     @property
     def amplitude(self) -> float:

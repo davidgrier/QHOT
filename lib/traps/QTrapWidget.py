@@ -121,6 +121,8 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
     def __init__(self, trap: QTrap, *args, indent: int = 0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._trap = trap
+        #: The rows of the members, if the trap is a group.
+        self.members: list[QTrapPropertyWidget] = []
         self._setupUi(trap, indent=indent)
 
     def _setupUi(self, trap: QTrap, indent: int = 0) -> None:
@@ -149,12 +151,23 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         for name in trap.properties.keys():
             self.wid[name].value = getattr(trap, name)
 
+    def updateMembers(self) -> None:
+        '''Refresh the rows of the members of a group.
+
+        Moving a group moves its members without a ``changed`` of their
+        own, so the row of the group says what the rows of the members
+        should show.
+        '''
+        for widget in self.members:
+            widget.updateValues(widget._trap)
+
     def cleanup(self) -> None:
         '''Disconnect from ``changed`` signal before deleting trap.'''
-        try:
-            self._trap.changed.disconnect(self._updateSlot)
-        except (TypeError, RuntimeError):
-            pass
+        for slot in (self._updateSlot, self.updateMembers):
+            try:
+                self._trap.changed.disconnect(slot)
+            except (TypeError, RuntimeError):
+                pass
 
 
 class QTrapWidget(QtWidgets.QFrame):
@@ -227,6 +240,9 @@ class QTrapWidget(QtWidgets.QFrame):
                 leafWidget = QTrapPropertyWidget(leaf, indent=20)
                 self._trapWidgets[leaf] = leafWidget
                 self._innerLayout.addWidget(leafWidget)
+            trapWidget.members = [self._trapWidgets[leaf]
+                                  for leaf in trap.leaves()]
+            trap.changed.connect(trapWidget.updateMembers)
 
     @QtCore.Slot(QTrap)
     def unregisterTrap(self, trap: QTrap) -> None:

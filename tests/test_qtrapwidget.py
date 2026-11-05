@@ -306,6 +306,41 @@ class TestQTrapWidgetGroups(unittest.TestCase):
         self.assertAlmostEqual(leaf_widget.wid['x'].value, initial_x, places=2)
 
 
+class TestQTrapWidgetFollowsGroup(unittest.TestCase):
+
+    '''The rows of a group's members show where a dragged group put them.'''
+
+    def setUp(self):
+        from QHOT.traps import QTextArray
+        self.widget = QTrapWidget()
+        self.group = QTextArray(text='NY', r=(300., 200., 0.))
+        self.widget.registerTrap(self.group)
+        self.leaf = next(self.group.leaves())
+
+    def shown(self):
+        return self.widget._trapWidgets[self.leaf].wid['x'].value
+
+    def test_rows_follow_a_move_of_the_group(self):
+        self.group.r = (400., 250., 0.)
+        self.assertEqual(self.shown(), self.leaf.x)
+
+    def test_edit_after_a_move_restores_the_moved_place(self):
+        self.group.r = (400., 250., 0.)
+        place = self.leaf.x
+        edit = self.widget._trapWidgets[self.leaf].wid['x']
+        edit.setText(f'{place + 30.:.2f}')
+        edit.updateValue()
+        edit.setText(f'{place:.2f}')
+        edit.updateValue()
+        self.assertAlmostEqual(self.leaf.x, place)
+
+    def test_unregistered_group_no_longer_updates(self):
+        row = self.widget._trapWidgets[self.leaf]
+        self.widget.unregisterTrap(self.group)
+        self.group.r = (400., 250., 0.)
+        self.assertNotEqual(row.wid['x'].value, self.leaf.x)
+
+
 class TestQTrapWidgetDuplicateLeaf(unittest.TestCase):
     '''Cover the "leaf already registered" warning path in registerTrap.'''
 

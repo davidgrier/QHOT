@@ -226,6 +226,16 @@ class TestSignals(unittest.TestCase):
         self.assertEqual(new_count[0], len(_char_positions('N')))
 
 
+class TestSerialization(unittest.TestCase):
+
+    def test_round_trip_keeps_the_character_and_its_dots(self):
+        letter = QLetterArray(char='N', separation=20., r=(50., 60., 0.))
+        loaded = QLetterArray.fromDict(letter.toDict())
+        self.assertEqual(loaded.char, 'N')
+        self.assertEqual(len(list(loaded.leaves())),
+                         len(list(letter.leaves())))
+
+
 class TestInMenu(unittest.TestCase):
 
     def test_in_all(self):

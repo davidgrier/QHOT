@@ -172,6 +172,14 @@ class QLetterArray(QTrapArray):
         self._char = str(char)
         self.mask = _char_mask(char)  # triggers _repopulate via mask.setter
 
+    def toDict(self) -> dict:
+        '''Serialize the array, and the character that its mask draws.
+
+        ``char`` is not a number for the trap panel to edit, so it is
+        added to the parameters and the mask that ``QTrapArray`` saves.
+        '''
+        return {**super().toDict(), 'char': self._char}
+
     @classmethod
     def fromDict(cls, d: dict) -> QLetterArray:
         '''Reconstruct a QLetterArray from a serialized dict.

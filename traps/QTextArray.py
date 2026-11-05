@@ -1,6 +1,7 @@
 '''A line of text made of tweezers.'''
 from qtpy import QtCore
 
+from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from .QLetterArray import QLetterArray
 
@@ -87,6 +88,24 @@ class QTextArray(QTrapGroup):
     def separation(self, separation: float) -> None:
         self._separation = max(1., float(separation))
         self._repopulate()
+
+    # --- serialization ---
+
+    def toDict(self) -> dict:
+        '''Serialize the parameters of the text, and not its letters.
+
+        The letter arrays are made again from ``text`` and ``separation``
+        when the group is created, so saving them as children as well
+        would put them in the pattern twice.  ``text`` is not a number
+        for the trap panel to edit, so it is added here.
+
+        Returns
+        -------
+        dict
+            A dict with ``'type'``, the registered properties, ``'text'``
+            and, when the group is locked, ``'locked': True``.
+        '''
+        return {**QTrap.toDict(self), 'text': self._text}
 
     # --- population ---
 

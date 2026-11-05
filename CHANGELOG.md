@@ -10,6 +10,10 @@
   dragged or moved.  They kept showing the old positions, so
   setting a trap and then resetting it put the trap where it would have
   been had the group never moved.
+- **A `QTextArray` is saved and loaded once, with its text.**  It saved
+  its letters as members and not its text, so loading it made the letters
+  again beside the saved ones: 31 traps came back as 73, and the text was
+  always `NYU`.  A `QLetterArray` also saves its character now.
 
 ### Documented
 - README: QHOT has been demonstrated to work correctly on hardware, with a

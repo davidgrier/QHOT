@@ -341,6 +341,36 @@ class TestSignals(unittest.TestCase):
         self.assertEqual(new_leaves[0], len(_char_positions('A')))
 
 
+class TestSerialization(unittest.TestCase):
+
+    '''A saved text comes back as the same text, once.'''
+
+    def setUp(self):
+        self.text = QTextArray(text='NY', separation=30., r=(300., 200., 0.))
+
+    def test_dict_has_the_text_and_no_children(self):
+        d = self.text.toDict()
+        self.assertEqual(d['text'], 'NY')
+        self.assertNotIn('children', d)
+
+    def test_dict_records_a_lock(self):
+        self.text.locked = True
+        self.assertTrue(self.text.toDict()['locked'])
+
+    def test_round_trip_through_the_overlay(self):
+        from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
+        overlay = QTrapOverlay()
+        overlay.addTrap(self.text)
+        before = sorted(map(tuple, (t.r for t in self.text.leaves())))
+        other = QTrapOverlay()
+        other.fromList(overlay.toList())
+        loaded = next(iter(other))
+        self.assertEqual(loaded.text, 'NY')
+        self.assertEqual(loaded.separation, 30.)
+        after = sorted(map(tuple, (t.r for t in loaded.leaves())))
+        np.testing.assert_allclose(after, before)
+
+
 class TestInMenu(unittest.TestCase):
 
     def test_in_all(self):

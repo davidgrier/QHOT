@@ -43,14 +43,13 @@ class StartRecording(QTask):
     )
 
     def __init__(self,
-                 *args,
+                 *,
                  filename: str = '',
                  nframes: int = 10_000,
                  nskip: int = 1,
                  overwrite: bool = False,
                  **kwargs) -> None:
-        super().__init__(**kwargs)
-        self.duration = 0
+        super().__init__(duration=0, **kwargs)
         self.filename = str(filename)
         self.nframes = int(nframes)
         self.nskip = int(nskip)

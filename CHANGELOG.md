@@ -14,11 +14,17 @@
   its letters as members and not its text, so loading it made the letters
   again beside the saved ones: 31 traps came back as 73, and the text was
   always `NYU`.  A `QLetterArray` also saves its character now.
+- **A `Repeat` that has no `BeginRepeat` fails the queue** when it is to
+  repeat, where it logged a warning and went on, so that the block ran
+  once and not `n` times.  A `Repeat` of one pass does not look for one.
 
 ### Changed
 - Rotating a group is a change of the group, like moving it: the positions
   change silently and the group emits `changed` once, where every trap of
   it emitted its own.  Rotating 900 traps takes 14 ms, not 60 ms.
+- The tasks take keywords only, as `QTask` does.  `StartRecording` took
+  positional arguments and ignored them; the others raised a `TypeError`
+  from the base class.  `MoveTraps` makes its duration in one place.
 
 ### Documented
 - README: QHOT has been demonstrated to work correctly on hardware, with a

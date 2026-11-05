@@ -1,9 +1,4 @@
-import logging
-
 from QHOT.lib.tasks.QTask import QTask
-
-
-logger = logging.getLogger(__name__)
 
 
 def _opening(kinds: list[str], closing: int) -> int | None:
@@ -124,9 +119,17 @@ class Repeat(QTask):
         that the user changed since the last run is the one that repeats.
         A copy is not in the schedule, so each ``Repeat`` in it is told
         its block (:func:`_resolve`).
+
+        Raises
+        ------
+        ValueError
+            If the block is to be repeated and there is no ``BeginRepeat``
+            for it: the queue would run it once, not ``n`` times.
         '''
+        if self._n <= 1:
+            return
         specs = self._specs if self._specs is not None else self._findSpecs()
-        if self._n <= 1 or not specs:
+        if not specs:
             return
         new_tasks = [QTask.fromDict(s) for s in _resolve(specs)]
         new_tasks.append(Repeat(n=self._n - 1, _specs=specs))
@@ -139,19 +142,21 @@ class Repeat(QTask):
         -------
         list[dict]
             Serialized specs of every task between ``BeginRepeat`` and
-            this ``Repeat``, in execution order.  Empty list if no
-            matching bracket is found.
+            this ``Repeat``, in execution order.
+
+        Raises
+        ------
+        ValueError
+            If this ``Repeat`` is not in the schedule or has no
+            ``BeginRepeat``.
         '''
         schedule = self.manager.scheduled
-        try:
-            mine = next(i for i, t in enumerate(schedule) if t is self)
-        except StopIteration:
-            logger.warning('Repeat: task not found in schedule')
-            return []
-        begin = _opening([type(t).__name__ for t in schedule], mine)
+        mine = next((i for i, t in enumerate(schedule) if t is self), None)
+        begin = (None if mine is None else
+                 _opening([type(t).__name__ for t in schedule], mine))
         if begin is None:
-            logger.warning('Repeat: no matching BeginRepeat found in schedule')
-            return []
+            raise ValueError(f'Repeat(n={self._n}) has no BeginRepeat '
+                             'to repeat from')
         return [t.toDict() for t in schedule[begin + 1:mine]]
 
     def toDict(self) -> dict:

@@ -116,10 +116,24 @@ class TestRepeatNoOp(TestRepeatSetup):
         self.assertEqual(len(spy), 1)
 
     def test_n1_without_bracket_completes(self):
-        '''Repeat with no BeginRepeat in schedule: logs warning, completes.'''
-        self.manager.register(Repeat(n=3))
+        '''Nothing to repeat, so nothing to look for.'''
+        repeat = Repeat(n=1)
+        self.manager.register(repeat)
+        spy = QtTest.QSignalSpy(repeat.finished)
         self._pump()
-        self.assertTrue(self.manager.paused)
+        self.assertEqual(len(spy), 1)
+
+    def test_n3_without_bracket_fails_the_queue(self):
+        '''The block would run once, not three times.'''
+        repeat = Repeat(n=3)
+        after = Tick()
+        self.manager.register(repeat)
+        self.manager.register(after)
+        spy = QtTest.QSignalSpy(repeat.failed)
+        self.screen.rendered.emit()
+        self.assertEqual(len(spy), 1)
+        self.assertIs(repeat.state, QTask.State.FAILED)
+        self.assertEqual(self.manager.queueSize, 0)
 
     def test_manager_is_set_after_register(self):
         repeat = Repeat(n=1)

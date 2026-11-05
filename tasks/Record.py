@@ -47,13 +47,13 @@ class Record(QTask):
     )
 
     def __init__(self,
-                 *args,
+                 *,
                  filename: str = '',
                  nframes: int = 0,
                  overwrite: bool = False,
                  **kwargs) -> None:
         duration = nframes if nframes > 0 else None
-        super().__init__(*args, duration=duration, **kwargs)
+        super().__init__(duration=duration, **kwargs)
         self.filename = filename
         self.overwrite = bool(overwrite)
         self._nframes = int(nframes)

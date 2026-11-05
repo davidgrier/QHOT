@@ -22,8 +22,8 @@ class ClearTraps(QTask):
         manager.register(AddTweezer(x=320., y=240.))
     '''
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, duration=0, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(duration=0, **kwargs)
 
     def initialize(self) -> None:
         self.overlay.clearTraps()

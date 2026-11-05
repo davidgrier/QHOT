@@ -60,33 +60,19 @@ class MoveTraps(QTask):
         if 'duration' in kwargs:
             raise TypeError("'duration' may not be set on MoveTraps; "
                             'duration is computed from dx, dy, dz, step')
-        # Compute duration using local variables; self cannot be used
-        # safely before super().__init__() in PyQt.
-        _dx = float(dx)
-        _dy = float(dy)
-        _dz = float(dz)
-        _stepSize = max(1e-6, float(step))
-        _dist = math.sqrt(_dx**2 + _dy**2 + _dz**2)
-        _n = max(1, math.ceil(_dist / _stepSize))
-        super().__init__(duration=_n, **kwargs)
-        self._dx = _dx
-        self._dy = _dy
-        self._dz = _dz
-        self._stepSize = _stepSize
+        super().__init__(duration=1, **kwargs)
+        self._dx = float(dx)
+        self._dy = float(dy)
+        self._dz = float(dz)
+        self._stepSize = max(1e-6, float(step))
         self.selected_only = bool(selected_only)
         self._starts: dict = {}
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-
-    def _frames(self) -> int:
-        '''Compute duration from current displacement and step size.'''
-        distance = math.sqrt(
-            self._dx**2 + self._dy**2 + self._dz**2)
-        return max(1, math.ceil(distance / self._stepSize))
+        self._updateDuration()
 
     def _updateDuration(self) -> None:
-        self.duration = self._frames()
+        '''Set ``duration`` to the frames that the displacement needs.'''
+        distance = math.sqrt(self._dx**2 + self._dy**2 + self._dz**2)
+        self.duration = max(1, math.ceil(distance / self._stepSize))
 
     # ------------------------------------------------------------------
     # Parameter properties (each setter updates duration)

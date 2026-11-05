@@ -24,9 +24,8 @@ class StopRecording(QTask):
 
     parameters = ()
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.duration = 0
+    def __init__(self, **kwargs) -> None:
+        super().__init__(duration=0, **kwargs)
 
     def initialize(self) -> None:
         self.dvr.recorder.stop()

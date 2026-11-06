@@ -34,6 +34,12 @@ in real time using a live camera feed.
 - tomlkit ≥ 0.11
 - QVideo ≥ 4.13.0
 
+## Tested hardware
+
+QHOT has been demonstrated to work correctly on hardware: it controlled a
+Holoeye Pluto spatial light modulator attached as the secondary display of
+an Ubuntu system with an NVIDIA graphics card.
+
 ## Installation
 
 ```bash

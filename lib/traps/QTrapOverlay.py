@@ -123,6 +123,10 @@ class QTrapOverlay(ScatterPlotItem):
     Description = tuple[tuple[str, str], str]
     Descriptions = tuple[Description, ...]
 
+    #: Height at which a marker is twice as large as in the focal plane
+    #: [pixels].
+    ZSCALE: float = 100.
+
     default: Descriptions = ((('left', 'shift'), 'addTrap'),
                              (('left', 'ctrl|shift'), 'removeTrap'),
                              (('left', 'alt|shift'), 'breakGroup'),
@@ -243,6 +247,30 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Operations on traps
 
+    def _markerSize(self, trap: QTrap) -> float:
+        '''Return the size of the marker of a trap [pixels].
+
+        A focus out of the focal plane is defocused, and so is the marker:
+        its size is that of the markers in the plane, ``size``, times
+        :math:`1 + |z| / z_0` with the height :math:`z_0` of ``ZSCALE``.
+        '''
+        return self.opts['size'] * (1. + abs(trap.z) / self.ZSCALE)
+
+    def _spot(self, trap: QTrap, brush: QtGui.QBrush) -> dict:
+        '''Return the description of the marker of a trap.'''
+        return {'pos': (trap.x, trap.y),
+                'size': self._markerSize(trap),
+                'brush': brush,
+                'data': trap,
+                **trap.appearance()}
+
+    def _follow(self, spot, trap: QTrap) -> None:
+        '''Move and resize the marker of a trap to where the trap is.'''
+        spot._data['x'] = trap.x
+        spot._data['y'] = trap.y
+        spot._data['size'] = self._markerSize(trap)
+        spot.updateItem()
+
     def _addTrap(self, traps: QTrap) -> None:
         '''Register a trap or group with the overlay (internal).
 
@@ -262,11 +290,7 @@ class QTrapOverlay(ScatterPlotItem):
         for trap in traps.leaves():
             trap._index = len(self._traps)
             self._traps.append(trap)
-            spot = {'pos': (trap.x, trap.y),
-                    'brush': self.brush[brush_state],
-                    'data': trap,
-                    **trap.appearance()}
-            self.addPoints([spot])
+            self.addPoints([self._spot(trap, self.brush[brush_state])])
             trap.changed.connect(self._onTrapChanged)
         if hasattr(traps, 'reshaping'):
             traps.reshaping.connect(
@@ -397,10 +421,7 @@ class QTrapOverlay(ScatterPlotItem):
             group = self.groupOf(trap)
             brush_state = (self.State.STATIC if group.locked
                            else self.State.NORMAL)
-            spots.append({'pos': (trap.x, trap.y),
-                          'brush': self.brush[brush_state],
-                          'data': trap,
-                          **trap.appearance()})
+            spots.append(self._spot(trap, self.brush[brush_state]))
         self.addPoints(spots)
 
     @staticmethod
@@ -465,10 +486,7 @@ class QTrapOverlay(ScatterPlotItem):
     def _onTrapChanged(self) -> None:
         '''Slot called when a trap's position changes; updates its spot.'''
         trap: QTrap = self.sender()
-        spot = self.points()[trap._index]
-        spot._data['x'] = trap.x
-        spot._data['y'] = trap.y
-        spot.updateItem()
+        self._follow(self.points()[trap._index], trap)
         self.patternChanged.emit()
 
     @QtCore.Slot()
@@ -478,10 +496,7 @@ class QTrapOverlay(ScatterPlotItem):
         spots = self.points()
         for trap in group.leaves():
             if trap._index is not None:
-                spot = spots[trap._index]
-                spot._data['x'] = trap.x
-                spot._data['y'] = trap.y
-                spot.updateItem()
+                self._follow(spots[trap._index], trap)
         self.patternChanged.emit()
 
     def _setGroupBrush(self, group: QTrap, state: State) -> None:

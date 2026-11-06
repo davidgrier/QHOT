@@ -1510,6 +1510,56 @@ class TestLockedSerialization(unittest.TestCase):
         self.assertNotIn('locked', data[0])
 
 
+class TestMarkerSize(unittest.TestCase):
+
+    '''A marker is as large as the defocus of its trap: bigger with |z|.'''
+
+    def setUp(self):
+        self.overlay = QTrapOverlay()
+        self.base = self.overlay.opts['size']
+
+    def size(self, trap):
+        return self.overlay.points()[trap._index].size()
+
+    def test_a_trap_in_the_focal_plane_has_the_size_of_the_overlay(self):
+        trap = QTweezer(r=(50., 60., 0.))
+        self.overlay.addTrap(trap)
+        self.assertAlmostEqual(self.size(trap), self.base)
+
+    def test_a_trap_at_the_scale_height_is_twice_as_large(self):
+        trap = QTweezer(r=(50., 60., self.overlay.ZSCALE))
+        self.overlay.addTrap(trap)
+        self.assertAlmostEqual(self.size(trap), 2. * self.base)
+
+    def test_above_and_below_the_focal_plane_are_alike(self):
+        above = QTweezer(r=(50., 60., 70.))
+        below = QTweezer(r=(80., 60., -70.))
+        self.overlay.addTrap([above, below])
+        self.assertAlmostEqual(self.size(above), self.size(below))
+
+    def test_the_marker_follows_the_z_of_the_trap(self):
+        trap = QTweezer(r=(50., 60., 0.))
+        self.overlay.addTrap(trap)
+        trap.z = self.overlay.ZSCALE
+        self.assertAlmostEqual(self.size(trap), 2. * self.base)
+
+    def test_the_markers_of_a_group_follow_a_move_of_the_group(self):
+        traps = [QTweezer(r=(50., 60., 0.)), QTweezer(r=(80., 60., 0.))]
+        group = QTrapGroup(r=(65., 60., 0.))
+        group.addTrap(traps)
+        self.overlay.addTrap(group)
+        group.r = (65., 60., self.overlay.ZSCALE)
+        for trap in traps:
+            self.assertAlmostEqual(self.size(trap), 2. * self.base)
+
+    def test_the_markers_are_kept_when_the_spots_are_rebuilt(self):
+        gone = QTweezer(r=(20., 30., 0.))
+        kept = QTweezer(r=(50., 60., self.overlay.ZSCALE))
+        self.overlay.addTrap([gone, kept])
+        self.overlay.removeTrap(gone)
+        self.assertAlmostEqual(self.size(kept), 2. * self.base)
+
+
 class TestToggleMark(unittest.TestCase):
 
     def setUp(self):

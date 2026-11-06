@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **The marker of a trap grows with its height above the focal plane**,
+  as the hologram of a sphere does: it is twice as large 100 pixels from the
+  plane, in either direction (`QTrapOverlay.ZSCALE`).  The markers followed
+  the x and y of a trap and ignored its z.  The help page on traps says so.
+
 ### Fixed
 - **Editing x, y or z of a group in the Traps tab moves the whole group.**
   It changed only the center of the group and left its members where they

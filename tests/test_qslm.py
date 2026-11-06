@@ -27,8 +27,10 @@ class TestInit(unittest.TestCase):
     def test_is_visible(self):
         self.assertTrue(self.slm.isVisible())
 
-    def test_fake_mode_not_maximized(self):
-        self.assertFalse(self.slm.isMaximized())
+    def test_fake_mode_is_a_small_window_not_a_whole_screen(self):
+        # Not isMaximized(): AppKit counts any window that cannot be
+        # resized as zoomed.
+        self.assertEqual(self.slm.shape, (480, 640))
 
     def test_the_window_on_the_primary_screen_cannot_be_resized(self):
         # The hologram has the shape of the window: a window that is

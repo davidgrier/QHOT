@@ -12,6 +12,11 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **A camera whose controls cannot be made ends QHOT with a message.**  A
+  camera that opened but gave the controls trouble (a feature that it
+  reports and will not read, say) ended the program with a traceback; the
+  SLM, the hologram engine and the camera itself had a line, `Error: ...`,
+  and a status of 1.  All four do now, and are tested through the program.
 - **A window closes when the file system will not take its configuration.**
   `saveSettings` raised, from `closeEvent`, when the configuration could
   not be written (a full disk, a file system that is read-only), so that

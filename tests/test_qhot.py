@@ -599,6 +599,41 @@ class TestTheCommandLine(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertTrue(done.stdout.startswith(f'QHOT {__version__} '))
 
+    def run_main_that(self, *failures: str) -> subprocess.CompletedProcess:
+        '''Run the program, with the parts named in ``failures`` broken.'''
+        script = (
+            'from contextlib import ExitStack\n'
+            'from unittest.mock import patch\n'
+            'import QHOT.qhot as q\n'
+            'with ExitStack() as broken:\n'
+            + ''.join(f'    broken.enter_context({f})\n' for f in failures)
+            + '    q.main()\n')
+        env = dict(os.environ, QT_QPA_PLATFORM='offscreen')
+        return subprocess.run([sys.executable, '-c', script],
+                              capture_output=True,
+                              text=True,
+                              timeout=120,
+                              env=env)
+
+    def test_what_cannot_be_made_ends_with_a_message_not_a_traceback(self):
+        raises = 'side_effect=RuntimeError("it is broken")'
+        for what, failures in (
+                ('the SLM',
+                 (f'patch.object(q, "choose_slm", {raises})',)),
+                ('the hologram engine',
+                 (f'patch.object(q, "choose_cgh", {raises})',)),
+                ('the camera',
+                 ('patch.object(q.QCameraOpener, "waitForCamera", '
+                  'lambda self: setattr(self, "reason", "it is broken") '
+                  'or False)',)),
+                ('the controls of the camera',
+                 (f'patch.object(q.chooser, "make_tree", {raises})',))):
+            with self.subTest(what):
+                done = self.run_main_that(*failures)
+                self.assertEqual(done.returncode, 1, done.stderr)
+                self.assertIn('Error: it is broken', done.stderr)
+                self.assertNotIn('Traceback', done.stderr)
+
     def test_a_bad_value_ends_with_a_message(self):
         done = self.run_qhot('-c', 'abc')
         self.assertEqual(done.returncode, 2, done.stderr)

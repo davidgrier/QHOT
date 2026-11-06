@@ -9,6 +9,7 @@ it is what the command ``qhot`` runs.
 import logging
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
@@ -416,6 +417,20 @@ class QHOT(QtWidgets.QMainWindow):
         super().closeEvent(event)
 
 
+def _quit(screen: QtWidgets.QWidget,
+          opener: QCameraOpener,
+          message: object) -> NoReturn:
+    '''End the program with a message, before there is a window.
+
+    The thread that opens the camera must not outlive the program, and the
+    camera that it holds is closed with it.  ``SystemExit`` with a message
+    prints it, and ends the program with a status of 1.
+    '''
+    opener.stop()
+    screen.close()
+    sys.exit(f'Error: {message}')
+
+
 def main() -> None:
     '''Launch the QHOT application.
 
@@ -428,6 +443,10 @@ def main() -> None:
     flags) and the CGH backend (QHOT flags) from a shared parser, so
     that ``-h`` shows all options together.  The CGH backend is
     auto-selected (PyTorch, then numba, then NumPy) when no flag is given.
+
+    The SLM, the hologram engine, the camera, or the controls of the
+    camera, that cannot be made end the program with a message on a line
+    and a status of 1, not with a traceback.
     '''
     parser = build_parser()
     # -h and a bad value end the program here, before there is a window or
@@ -448,16 +467,16 @@ def main() -> None:
         slm = choose_slm(parser)
         say(screen, 'Starting the hologram engine...')
         cgh = choose_cgh(parser, shape=slm.shape)
-    except Exception as error:      # the camera thread must not outlive us
-        opener.stop()
-        screen.close()
-        sys.exit(f'Error: {error}')
+    except Exception as error:
+        _quit(screen, opener, error)
     say(screen, 'Waiting for the camera...')
     if not opener.waitForCamera():
-        screen.close()
-        sys.exit(f'Error: {opener.reason}')
+        _quit(screen, opener, opener.reason)
     say(screen, 'Building the interface...')
-    tree = chooser.make_tree(opener.key, opener.camera).start()
+    try:
+        tree = chooser.make_tree(opener.key, opener.camera).start()
+    except Exception as error:      # the camera opened, and will do no more
+        _quit(screen, opener, error)
     opener.camera = None  # the interface has it now
     hot = QHOT(tree, slm=slm, cgh=cgh)
     hot.show()

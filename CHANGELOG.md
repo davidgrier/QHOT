@@ -36,6 +36,8 @@
   `screen.newFrame` to the task manager, whose `step()` takes none.
 
 ### Documented
+- README: the screenshot is the real window on a frame of simulated
+  holograms, made by `devel/screenshot.py`, with traps at several heights.
 - README: QHOT has been demonstrated to work correctly on hardware, with a
   Holoeye Pluto SLM on the secondary display of an Ubuntu system with an
   NVIDIA graphics card.

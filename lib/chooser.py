@@ -26,6 +26,7 @@ import logging
 from argparse import ArgumentParser
 from typing import NamedTuple
 
+from QHOT import __version__
 from QHOT.lib.holograms import Backend, CGH, NumpyBackend
 from QHOT.lib.QSLM import QSLM
 
@@ -148,8 +149,14 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
             CGH backend:
                 -t  PyTorch  -u  CuPy
     '''
+    from QVideo import __version__ as qvideo_version
     from QVideo.cameras.chooser import BACKENDS
     parser = ArgumentParser(description=description)
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'QHOT {__version__} (QVideo {qvideo_version})',
+    )
     cam_group = parser.add_argument_group('camera backend')
     cam_mutex = cam_group.add_mutually_exclusive_group()
     for dest, entry in BACKENDS.items():

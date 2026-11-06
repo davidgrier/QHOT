@@ -93,7 +93,8 @@ the SLM:
 | `-s` | the SLM window on the primary screen, even with a second screen |
 
 With no camera flag, QHOT shows a simulated camera.  `qhot -h` lists them
-all.
+all, and `qhot --version` says which versions of QHOT and QVideo are
+installed.
 
 Or from Python:
 

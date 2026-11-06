@@ -583,6 +583,12 @@ class TestTheCommandLine(unittest.TestCase):
         self.assertIn('camera backend', done.stdout)
         self.assertIn('CGH backend', done.stdout)
 
+    def test_version_prints_and_ends(self):
+        from QHOT import __version__
+        done = self.run_qhot('--version')
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.startswith(f'QHOT {__version__} '))
+
     def test_a_bad_value_ends_with_a_message(self):
         done = self.run_qhot('-c', 'abc')
         self.assertEqual(done.returncode, 2, done.stderr)

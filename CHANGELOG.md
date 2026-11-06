@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- **`qhot --version`** prints the versions of QHOT and QVideo and ends the
+  program.  Before, the option was ignored, like any that the parser does
+  not know, and the window opened.
 - **The marker of a trap grows with its height above the focal plane**,
   as the hologram of a sphere does: it is twice as large 100 pixels from the
   plane, in either direction (`QTrapOverlay.ZSCALE`).  The markers followed

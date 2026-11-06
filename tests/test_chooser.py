@@ -1,5 +1,7 @@
 '''Unit tests for QHOT CGH backend chooser.'''
 import sys
+import contextlib
+import io
 import unittest
 from argparse import ArgumentParser
 from unittest.mock import patch, MagicMock
@@ -298,6 +300,17 @@ class TestBuildParser(unittest.TestCase):
     def test_cameraid_registered(self):
         self.assertTrue(
             any(a.dest == 'cameraID' for a in self.parser._actions))
+
+    def test_version_names_qhot_and_qvideo_and_ends_the_program(self):
+        from QVideo import __version__ as qvideo_version
+        from QHOT import __version__
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), \
+                self.assertRaises(SystemExit) as ended:
+            self.parser.parse_args(['--version'])
+        self.assertEqual(ended.exception.code, 0)
+        self.assertEqual(out.getvalue().strip(),
+                         f'QHOT {__version__} (QVideo {qvideo_version})')
 
     def test_custom_description(self):
         parser = build_parser(description='My app')

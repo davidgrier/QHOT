@@ -16,6 +16,10 @@ QHOT::
     python devel/screenshot.py --make-frame frame.npy      # pylorenzmie
     python devel/screenshot.py --frame frame.npy shot.png  # QHOT
 
+``--camera viva`` makes the camera tree of a GenICam camera that is made up
+too: the fake GigE Vision camera that viva-genicam ships, which runs in this
+process.  It needs a QVideo that has the viva backend.
+
 Run the second with ``QT_QPA_PLATFORM=cocoa`` on a Mac, so that the window
 has the look of the platform, which the offscreen platform cannot draw.  The
 window is not shown, so the display need not be as large as the window.
@@ -24,7 +28,7 @@ import argparse
 import importlib
 import sys
 import tempfile
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -64,6 +68,24 @@ def make_frame(seed: int = 3) -> np.ndarray:
     return np.clip(hologram, 0, 255).astype(np.uint8)
 
 
+@contextmanager
+def fake_gige_camera():
+    '''Run the fake camera of viva-genicam, and let QVideo find it.
+
+    Discovery looks on the network and not on the loopback interface, where
+    the fake camera is, unless it is asked to.
+    '''
+    import viva_genicam as vg
+    from viva_genicam.testing import FakeGigeCamera
+
+    discover = vg.discover
+    with FakeGigeCamera(width=SHAPE[1], height=SHAPE[0], fps=10), \
+            patch.object(vg, 'discover',
+                         lambda *args, **kwargs: discover(*args, all=True,
+                                                          **kwargs)):
+        yield
+
+
 class Display:
 
     '''A display of a given size, as far as the window asks about it.'''
@@ -77,7 +99,11 @@ class Display:
         return QtCore.QRect(0, 0, self.width, self.height)
 
 
-def grab(frame: np.ndarray, path: str, width: int) -> None:
+def grab(frame: np.ndarray,
+         path: str,
+         width: int,
+         tab: str,
+         camera: str) -> None:
     '''Build the window, show the frame and the traps, and save the window.'''
     from qtpy import QtCore, QtWidgets
     from QVideo.cameras import chooser
@@ -94,12 +120,15 @@ def grab(frame: np.ndarray, path: str, width: int) -> None:
                 patch.object(qhot.QHOT, 'saveSettings'),
                 patch.object(qhot.QHOT, 'restoreSettings'),
                 patch.object(Path, 'home', return_value=Path(home.name)),
-                patch.object(sys, 'argv', ['qhot']),
+                patch.object(sys, 'argv',
+                             ['qhot'] + (['-g'] if camera == 'viva' else [])),
                 patch.object(QtWidgets.QApplication, 'primaryScreen',
                              return_value=display)):
             patches.enter_context(patched)
-        key, camera = chooser.open_camera()
-        tree = chooser.make_tree(key, camera).start()
+        if camera == 'viva':
+            patches.enter_context(fake_gige_camera())
+        key, device = chooser.open_camera()
+        tree = chooser.make_tree(key, device).start()
         slm = QSLM(fake=True)
         slm.hide()
         window = qhot.QHOT(tree, slm=slm, cgh=CGH(shape=slm.shape))
@@ -121,6 +150,7 @@ def grab(frame: np.ndarray, path: str, width: int) -> None:
         window.setAttribute(QtCore.Qt.WidgetAttribute.WA_DontShowOnScreen)
         window.resize(*DISPLAY)
         window.show()
+        QtWidgets.QApplication.setActiveWindow(window)   # tabs look selected
         spin(500)
         chrome = window.height() - window.centralWidget().height()
         video = (DISPLAY[1] - chrome) * SHAPE[1] // SHAPE[0]
@@ -129,6 +159,7 @@ def grab(frame: np.ndarray, path: str, width: int) -> None:
         spin(500)
         window.resize(*DISPLAY)             # the window snaps to the video
         spin(500)
+        window.dvr.filename = '/home/user/default.mkv'   # not a temporary one
         window.screen.setImage(frame)
         overlay = window.screen.overlay
         members = []
@@ -142,7 +173,12 @@ def grab(frame: np.ndarray, path: str, width: int) -> None:
         group = QTrapGroup(r=np.mean([m.r for m in members], axis=0))
         group.addTrap(members)
         overlay.addTrap(group)
-        window.tabWidget.setCurrentIndex(1)       # the Traps tab
+        for video_filter in window.filter.filters:
+            if video_filter.title() == 'Sample and Hold':
+                video_filter.setChecked(True)     # the frame is normalized
+        tabs = window.tabWidget
+        names = [tabs.tabText(i).lower() for i in range(tabs.count())]
+        tabs.setCurrentIndex(names.index(tab))
         spin(800)
         image = window.grab()
         print(f'window {window.width()}x{window.height()}, '
@@ -154,7 +190,7 @@ def grab(frame: np.ndarray, path: str, width: int) -> None:
         image.save(path)
         window.close()
         tree.stop()
-        camera.close()
+        device.close()
     home.cleanup()
 
 
@@ -169,12 +205,20 @@ def main() -> None:
                         help='width of the image [pixels]; 0 keeps the '
                         'size at which the window was drawn (default: the '
                         'width of the display, one pixel to a pixel)')
+    parser.add_argument('--tab', default='video',
+                        choices=('video', 'traps', 'tasks', 'cgh', 'slm'),
+                        help='the tab of the panel to show (default: video)')
+    parser.add_argument('--camera', default='noise',
+                        choices=('noise', 'viva'),
+                        help='the camera whose controls the Video tab shows '
+                        '(default: noise)')
     parser.add_argument('image', nargs='?', help='where to save the image')
     args = parser.parse_args()
     if args.make_frame:
         np.save(args.make_frame, make_frame())
     elif args.frame and args.image:
-        grab(np.load(args.frame), args.image, args.width)
+        grab(np.load(args.frame), args.image, args.width, args.tab,
+             args.camera)
     else:
         parser.error('give --make-frame FILE, or --frame FILE and an image')
 

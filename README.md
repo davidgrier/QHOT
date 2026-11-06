@@ -7,12 +7,13 @@
 [![License](https://img.shields.io/github/license/davidgrier/QHOT.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19254265.svg)](https://doi.org/10.5281/zenodo.19254265)
 
-![The QHOT window: holograms of colloidal spheres on the video screen, with optical traps on seven of them, and the table of the traps beside it](https://raw.githubusercontent.com/davidgrier/QHOT/main/docs/_static/screenshot.png)
+![The QHOT window on a 1080p display: holograms of colloidal spheres on the video screen, with optical traps on seven of them, and the Video tab beside it with the recorder, the controls of a GenICam camera and the filter rack](https://raw.githubusercontent.com/davidgrier/QHOT/main/docs/_static/screenshot.png)
 
 *The QHOT window on a simulated video frame: holograms of colloidal spheres,
 computed with [pylorenzmie](https://github.com/davidgrier/pylorenzmie), with
-traps on seven of them.  The Traps tab lists the three tweezers, the vortex
-(`V`) and the group of three tweezers.*
+traps on seven of them at heights from 35 to 240 pixels, so that the markers
+differ in size.  The Video tab shows the recorder, the controls of a
+simulated GenICam camera and the filter rack, with Sample and Hold on.*
 
 **QHOT** is a Python framework for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps

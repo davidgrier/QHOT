@@ -86,6 +86,8 @@
 - The quantizer is described as it is: the phase in levels of π/128 with
   the fraction dropped (`trunc`), not the floor.  The two differ only for
   the phases within one level of −π.
+- The documentation of `QSLM.setData`
+  says why a hologram of the wrong shape raises.
 - **The video screen of the window is `QHOT.videoScreen`, not `QHOT.screen`.**
   A widget called `screen` hid `QWidget.screen()`, which the window, being a
   widget, has.  A script that reaches into the window, as

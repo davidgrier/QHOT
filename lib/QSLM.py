@@ -106,7 +106,11 @@ class QSLM(GraphicsLayoutWidget):
         Raises
         ------
         ValueError
-            If ``hologram.shape`` does not match the SLM dimensions.
+            If ``hologram.shape`` does not match the SLM dimensions.  The
+            holograms are made for the size of this window, so a different
+            shape means that the display was reconfigured under the
+            pipeline, which is a fault in the set-up to be seen and not
+            to be worked around.
         '''
         if hologram.shape != self.shape:
             raise ValueError(

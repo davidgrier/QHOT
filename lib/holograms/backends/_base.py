@@ -105,9 +105,9 @@ class Backend:
         families = self._families(pattern, optics)
         psi = self.zeros(context)
         for key, (positions, amplitudes) in families.items():
-            positions = optics.toSLM(np.array(positions, dtype=float))
-            amplitudes = np.array(amplitudes, dtype=complex)
-            phasors = self.phasors(context, positions, amplitudes)
+            r = optics.toSLM(np.array(positions, dtype=float))
+            a = np.array(amplitudes, dtype=complex)
+            phasors = self.phasors(context, r, a)
             structure = None if key is None else self._structure(key, optics)
             psi = self.superpose(psi, phasors, structure)
         return self.quantize(psi)

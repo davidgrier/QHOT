@@ -298,6 +298,35 @@ class TestTheAspectRatioDoesNotChaseItself(WindowCase):
         self.assertEqual(self.chase(5, [900]), 1)
 
 
+class TestTheConfigurationThatCannotBeSaved(WindowCase):
+
+    '''A window closes even if the file system will not take its settings.'''
+
+    def save(self, error):
+        # Neither the settings nor the configuration of the user.
+        with patch.object(qhot.QtCore, 'QSettings'), \
+                patch.object(self.window.save, 'toToml', side_effect=error):
+            self.window.saveSettings()
+
+    def test_it_is_reported(self):
+        self.save(PermissionError('read-only file system'))
+        message = self.window.statusBar().currentMessage()
+        self.assertIn('Could not save the configuration', message)
+        self.assertIn('read-only file system', message)
+
+    def test_it_is_logged_with_its_traceback(self):
+        with self.assertLogs(qhot.logger, 'ERROR') as logged:
+            self.save(OSError('disk full'))
+        self.assertIsNotNone(logged.records[0].exc_info)
+
+    def test_a_saved_configuration_is_reported_with_its_name(self):
+        name = '/somewhere/QHOT.toml'
+        with patch.object(qhot.QtCore, 'QSettings'), \
+                patch.object(self.window.save, 'toToml', return_value=name):
+            self.window.saveSettings()
+        self.assertIn(name, self.window.statusBar().currentMessage())
+
+
 class TestTheFileMenu(WindowCase):
 
     '''The actions of the File menu write and read the files that they name.'''

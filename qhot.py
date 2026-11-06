@@ -1,3 +1,11 @@
+'''QHOT: holographic optical trapping, in one window.
+
+The window shows the live video, with the traps that the user places on it,
+and the controls of the camera, the recorder, the filters, the traps, the
+tasks and the calibration.  A spatial light modulator, on a display of its
+own, shows the hologram that makes the traps.  ``main`` is the program:
+it is what the command ``qhot`` runs.
+'''
 import logging
 import sys
 from pathlib import Path
@@ -7,18 +15,20 @@ import pyqtgraph as pg
 
 from QVideo.cameras import chooser
 from QVideo.lib import QCameraOpener, QCameraTree, QFilterRack
-from QHOT.lib import (QSLM, QSLMWidget, QSaveFile,  # noqa: F401
-                      build_parser, choose_cgh, choose_slm)
-from QHOT.lib.holograms import CGH, QCGHTree  # noqa: F401
+from QHOT.lib import (QSLM, QSaveFile, build_parser, choose_cgh,
+                      choose_slm)
+from QHOT.lib.holograms import CGH
 from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.QJsonDocument import QJsonDocument
 from QHOT.lib.QTomlDocument import QTomlDocument
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager
-from QHOT.lib.traps import QTrap, QTrapMenu  # noqa: F401
+from QHOT.lib.traps import QTrap
 
 
 logger = logging.getLogger(__name__)
+
+__all__ = 'QHOT QUEUE_HEADER main'.split()
 
 
 #: What a queue file says about itself, at the top.
@@ -274,11 +284,22 @@ class QHOT(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def saveSettings(self) -> None:
-        '''Save window geometry and CGH calibration settings.'''
+        '''Save window geometry and CGH calibration settings.
+
+        A configuration that cannot be written (a full disk, a file system
+        that is read-only) is reported and logged.  The window closes with
+        this, so an exception would leave the SLM window open and the
+        thread of the CGH running.
+        '''
         settings = QtCore.QSettings(*self.SETTINGS)
         settings.setValue('geometry', self.saveGeometry())
-        filename = self.save.toToml(self.cghTree)
-        self.setStatus(f'Configuration saved to {filename}')
+        try:
+            filename = self.save.toToml(self.cghTree)
+        except OSError as error:
+            logger.exception('Could not save the configuration')
+            self.setStatus(f'Could not save the configuration: {error}')
+        else:
+            self.setStatus(f'Configuration saved to {filename}')
 
     @QtCore.Slot()
     def restoreSettings(self) -> None:

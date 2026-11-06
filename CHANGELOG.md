@@ -9,6 +9,11 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **A window closes when the file system will not take its configuration.**
+  `saveSettings` raised, from `closeEvent`, when the configuration could
+  not be written (a full disk, a file system that is read-only), so that
+  the SLM window stayed open and the thread of the CGH kept running.  The
+  failure is logged, with its traceback, and shown in the status bar.
 - **The fields of the Traps tab no longer clip the digits.**  A field was as
   wide as the text of a value and no wider, so that the frame and the margin
   of the line edit took the left digit of a value of four digits, such as an

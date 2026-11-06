@@ -78,8 +78,9 @@ The tasks
        name in the data directory.
    * - ``Snapshot``
      - Saves the video image to a file.
-     - ``filename``: the file.  If left out, a file named from ``prefix``
-       (default ``"snapshot"``) and the time.
+     - ``filename``: the file, which ends in ``.png``, ``.tif`` or
+       ``.tiff``: the formats that keep every pixel.  If left out, a PNG file
+       named from ``prefix`` (default ``"snapshot"``) and the time.
    * - ``StartRecording``
      - Starts recording the video, and goes on to the next task.
      - ``filename``, ``nframes`` (most frames to record, default 10000),

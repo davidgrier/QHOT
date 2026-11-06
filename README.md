@@ -11,23 +11,23 @@
 
 *The QHOT window on a simulated video frame: holograms of colloidal spheres,
 computed with [pylorenzmie](https://github.com/davidgrier/pylorenzmie), with
-traps on seven of them at heights from 35 to 240 pixels, so that the markers
+traps on seven of them at heights from 35 to 180 pixels, so that the markers
 differ in size.  The Video tab shows the recorder, the controls of a
 simulated GenICam camera and the filter rack, with Sample and Hold on.*
 
-**QHOT** is a Python framework for holographic optical trapping — controlling
+**QHOT** is a Python application for holographic optical trapping — controlling
 spatial light modulators (SLMs) to create, move, and reconfigure optical traps
 in real time using a live camera feed.
 
 ## Features
 
 - Real-time hologram computation (CGH) with GPU-optional acceleration
-- Interactive trap manipulation via camera overlay
+- Interactive trap manipulation via camera overlay, with undo and redo
 - Modular trap types: single tweezers, vortex beams, ring traps, arrays, and
   dot-matrix text patterns
 - Interactive display filter pipeline (smoothing, edge detection, RGB selection, sample-hold)
 - Configuration save/restore via TOML
-- Full unit-test suite (1700+ tests)
+- Full unit-test suite (1800+ tests)
 
 ## Requirements
 
@@ -38,7 +38,7 @@ in real time using a live camera feed.
 - numpy ≥ 1.24
 - scipy ≥ 1.10
 - tomlkit ≥ 0.11
-- QVideo ≥ 4.13.0
+- QVideo ≥ 4.17.0
 
 ## Tested hardware
 
@@ -91,6 +91,7 @@ the SLM:
 | `-c`, `-p` | an OpenCV camera, a Raspberry Pi camera |
 | `-t`, `-j`, `-n`, `-u` | the hologram backend: PyTorch, numba, NumPy, CuPy |
 | `-s` | the SLM window on the primary screen, even with a second screen |
+| `--log-level LEVEL` | show the log messages of QHOT and QVideo at this level and above (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
 
 With no camera flag, QHOT shows a simulated camera.  `qhot -h` lists them
 all, and `qhot --version` says which versions of QHOT and QVideo are
@@ -110,7 +111,7 @@ main()
 | `QTweezer` | Single Gaussian tweezer |
 | `QVortex` | Laguerre-Gaussian vortex beam |
 | `QRingTrap` | Ring-shaped optical trap |
-| `QTrapArray` | Rectangular grid of tweezers with optional mask and position jitter |
+| `QTrapArray` | Rectangular grid of tweezers with optional mask and position jitter (`fuzz`, reproducible with a `seed`) |
 | `QLetterArray` | Single dot-matrix character (A-Z, a-z, 0-9) rendered as tweezers |
 | `QTextArray` | String of `QLetterArray` characters |
 

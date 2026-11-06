@@ -37,6 +37,18 @@ QSaveFile
 .. automodule:: QHOT.lib.QSaveFile
    :members:
 
+Command line
+------------
+
+.. automodule:: QHOT.lib.chooser
+   :members:
+
+Letter symbols
+--------------
+
+.. automodule:: QHOT.lib.lettersymbol
+   :members:
+
 Files that the menu opens and saves
 -----------------------------------
 

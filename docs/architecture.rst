@@ -29,7 +29,8 @@ silently ignores move, scroll, and rotate gestures on that trap.
 :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` provides recursive grouping.
 Translating a group moves all contained traps together and emits ``changed``
 once on the group.  Rotating a group updates every child position in place and
-calls ``_broadcastChanged()`` to emit ``changed`` from each descendant in turn.
+emits ``changed`` once, on the group, like a translation.  A group keeps its
+own center: move it as a whole (``group.r = ...``), not trap by trap.
 
 A group is a way to handle traps together, not a trap with an amplitude of its
 own: a member means the same in a group as alone.  A *composite*, a group that
@@ -46,16 +47,20 @@ is computed from such a pattern, never from the live traps.
 dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
 rotate, lock, and break traps.  Every interactive gesture pushes an undoable
 command onto an embedded ``QUndoStack`` so that all operations can be reversed
-with Ctrl+Z / Cmd+Z.
+with Ctrl+Z / Cmd+Z; so is an edit in the Traps tab
+(:meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.editTrap`).
 
 **Serialization.**  Every trap class implements ``toDict()``, which returns a
 plain ``dict`` containing a ``'type'`` key (the class name), all registered
 properties, and ``'locked': True`` when the trap is locked (omitted otherwise
 to keep JSON compact).  :class:`~QHOT.lib.traps.QTrapGroup.QTrapGroup` adds a
 ``'children'`` list; :class:`~QHOT.traps.QTrapArray.QTrapArray` overrides
-this to omit the auto-generated children and instead stores the ``mask``.
-``QTrapOverlay.save(path)`` and ``QTrapOverlay.load(path)`` write and read
-these dicts as a JSON array.
+this to omit the auto-generated children and instead stores the ``mask`` and,
+if it has random displacements (``fuzz``), their ``seed``, so that a loaded
+array is the array that was saved.  ``QTrapOverlay.toList()`` and
+``fromList()`` make and read the list of these dicts, which
+:class:`~QHOT.lib.QJsonDocument.QJsonDocument` writes and reads as a JSON
+array.
 
 **Undo/redo commands** (``QHOT.lib.traps.commands``).
 Each interactive gesture is wrapped in a ``QUndoCommand`` subclass and pushed
@@ -82,6 +87,10 @@ onto the overlay's ``QUndoStack``:
    * - ``LockCommand``
      - Toggle the locked state of a trap or group; undo and redo are both
        a toggle.
+   * - ``PropertyCommand``
+     - Set a registered property of a trap or group: an edit in the Traps
+       tab.  Not pre-executed.  Undoing a reshape of an array gives its
+       mask back.
 
 New trap types are registered automatically via
 :meth:`QTrap.__init_subclass__ <QHOT.lib.traps.QTrap.QTrap.__init_subclass__>`,
@@ -115,7 +124,9 @@ add up to one matrix product.  Traps that share a structure are summed first
 and the structure applied once; structuring fields are kept by value (kind of
 trap and parameters), so a cache cannot go stale.  Nothing else is remembered
 between holograms.  There is a backend for each kind of hardware, and all
-are tested against the reference.  ``NumpyBackend`` computes on the CPU and
+are tested against the reference.  The result is the phase of the field in
+levels of :math:`\pi/128`, as 8-bit integers with the fraction dropped
+(:func:`~QHOT.lib.holograms.reference.quantize`).  ``NumpyBackend`` computes on the CPU and
 needs nothing else.  ``NumbaBackend`` does the parts that NumPy does in
 several passes over memory in one parallel pass each, on all the cores.
 ``TorchBackend`` computes on an Apple GPU, CUDA or the CPU, quantizing on the
@@ -142,7 +153,16 @@ coordinate system and forwards them for trap interaction.
 :class:`~QHOT.lib.holograms.QCGHTree.QCGHTree` is a
 ``pyqtgraph.ParameterTree`` widget that exposes every CGH calibration
 attribute as an editable spin box.  Writing to any parameter directly
-updates the corresponding ``CGH`` attribute.
+updates the corresponding ``CGH`` attribute.  The defaults are those of
+:class:`~QHOT.lib.holograms.optics.Optics`, and what the calibration divides
+by (the wavelength, the magnification, the focal length, the pixel pitches,
+the scale) must be positive.
+
+:class:`~QHOT.lib.traps.QTrapWidget.QTrapWidget` is the Traps tab: a table
+with a row for each trap and, beneath a group, a row for each of its members.
+It shows positions in screen coordinates.  It does not change the traps
+itself: an edit is announced (``edited``), and the window connects it to
+``QTrapOverlay.editTrap``, which makes it so that it can be undone.
 
 :class:`~QHOT.lib.QSLM.QSLM` manages the SLM display window on a secondary
 screen and exposes a ``setData`` slot that accepts a uint8 phase array.
@@ -285,7 +305,7 @@ uses this for ``load()``, ``restart()``, and loop injection.
      - Move all traps and groups in the overlay, each as a whole, by a
        common displacement.
    * - :class:`~QHOT.tasks.Snapshot.Snapshot`
-     - Capture a single camera frame to a file.
+     - Capture a single camera frame to a file (PNG or TIFF).
    * - :class:`~QHOT.tasks.Record.Record`
      - Record for a fixed number of frames as a background task, on the
        recorder of the DVR.
@@ -310,7 +330,18 @@ a thread of its own: opening one can take seconds.  Meanwhile it opens the
 SLM and makes the hologram engine, then waits for the camera with the event
 loop running and builds the window.  If the SLM or the engine cannot be
 made, the camera thread is stopped, the splash screen closes and the
-program ends with the message.
+program ends with the message.  So does a camera whose controls cannot be
+made.
+
+**The command line.**  The options of the camera backend come from QVideo
+(``-b``, ``-c``, ``-f``, ``-g``, ...), those of the hologram backend from
+:func:`~QHOT.lib.chooser.cgh_parser` (``-t``, ``-j``, ``-n``, ``-u``), and
+:func:`~QHOT.lib.chooser.build_parser` puts them in one parser, so that
+``-h`` shows all of them.  ``--version`` prints the versions of QHOT and
+QVideo.  ``--log-level LEVEL`` (``DEBUG`` to ``CRITICAL``) shows the log
+messages of QHOT and QVideo at that level and above
+(:func:`~QHOT.lib.chooser.configure_logging`); the level is set on those two
+loggers and not on the root, so ``DEBUG`` does not turn on every library.
 
 **File menu.**  The File menu is organized into three groups:
 
@@ -326,15 +357,16 @@ program ends with the message.
   :class:`~QHOT.lib.QImageFile.QImageFile`.  The files are named and
   written by :class:`~QHOT.lib.QSaveFile.QSaveFile`, which knows nothing
   of dialogs: a name that is taken gets a counter, so a save never replaces
-  an earlier one.
+  an earlier one.  An image is saved as PNG or TIFF, which keep every pixel;
+  any other extension is refused.
 * **Preferences** submenu — CGH calibration settings (saved to
   ``~/.qhot/QCGHTree.toml``).  A configuration file that cannot be used
   (it is not TOML, or has no ``settings``) is reported and the defaults
   are used; the first launch has none, which is not an error.
 
 A save that fails, for any reason, is reported in the status bar and leaves
-the file that was there as it was: the text of a file is made before the
-file is opened.  Nothing but a bug of the program leaves a Qt slot, because
+the file that was there as it was: the text of a file is made first, written
+beside the file, and then replaces it in one step.  Nothing but a bug of the program leaves a Qt slot, because
 PyQt ends the program.
 
 **Edit menu.**  Added programmatically by ``_setupEditMenu()`` and inserted
@@ -437,7 +469,8 @@ The :mod:`QHOT.traps` package provides ready-to-use trap classes:
    * - :class:`~QHOT.traps.QRingTrap.QRingTrap`
      - Ring-shaped optical trap
    * - :class:`~QHOT.traps.QTrapArray.QTrapArray`
-     - Rectangular grid of tweezers with optional mask and position jitter
+     - Rectangular grid of tweezers with optional mask and position jitter,
+       which a ``seed`` makes reproducible
    * - :class:`~QHOT.traps.QLetterArray.QLetterArray`
      - Single dot-matrix character rendered as tweezers
    * - :class:`~QHOT.traps.QTextArray.QTextArray`

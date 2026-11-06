@@ -10,6 +10,9 @@ Core abstractions
 .. automodule:: QHOT.lib.tasks.QTaskManager
    :members:
 
+.. automodule:: QHOT.lib.tasks.recording
+   :members:
+
 UI
 --
 

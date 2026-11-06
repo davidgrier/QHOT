@@ -243,7 +243,7 @@ class TestOverlayPos(unittest.TestCase):
 
 
 class TestSetImageRendered(unittest.TestCase):
-    '''Cover the rendered signal branch in setImage.'''
+    '''``rendered`` says that a frame was drawn, and only then.'''
 
     def setUp(self):
         self.screen = make_screen()

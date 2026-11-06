@@ -25,6 +25,9 @@
 - The tasks take keywords only, as `QTask` does.  `StartRecording` took
   positional arguments and ignored them; the others raised a `TypeError`
   from the base class.  `MoveTraps` makes its duration in one place.
+- `QHOTScreen.rendered` is the `newFrame` of `QVideoScreen` without its
+  arguments, where it was made by reading the private `_ready` flag of the
+  base class before and after each frame.
 
 ### Documented
 - README: QHOT has been demonstrated to work correctly on hardware, with a

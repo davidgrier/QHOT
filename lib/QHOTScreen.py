@@ -1,5 +1,4 @@
 '''The video screen on which the traps are placed and moved.'''
-import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 
 from QVideo.lib import QVideoScreen
@@ -46,6 +45,7 @@ class QHOTScreen(QVideoScreen):
         super()._setupUi()
         self.overlay = QTrapOverlay()
         self.addOverlay(self.overlay)
+        self.newFrame.connect(self.rendered)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                            QtWidgets.QSizePolicy.Policy.Expanding)
 
@@ -68,20 +68,6 @@ class QHOTScreen(QVideoScreen):
               if hasattr(event, 'position')
               else event.pos())
         return self.overlay.mapFromScene(self.mapToScene(pt))
-
-    @QtCore.Slot(np.ndarray)
-    @QtCore.Slot(np.ndarray, object)
-    def setImage(self, image: np.ndarray, info=None) -> None:
-        '''Render a frame and emit ``rendered`` if the display rate
-        allows it.
-
-        ``info`` is the ``FrameInfo`` of the frame, passed on to
-        ``QVideoScreen``.  The base class calls this method with both
-        arguments when it displays a throttled frame.'''
-        was_ready = self._ready
-        super().setImage(image, info)
-        if was_ready:
-            self.rendered.emit()
 
     @QtCore.Slot()
     def clearTraps(self) -> None:

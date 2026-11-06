@@ -94,6 +94,20 @@ class TestSaveAs(ImageCase):
         np.testing.assert_array_equal(
             self.pixels(self.data / 'chosen.png'), self.image)
 
+    def test_a_lossy_format_is_reported_and_nothing_is_written(self):
+        path = self.data / 'chosen.jpg'
+        with self.answering('getSaveFileName', path):
+            with self.assertLogs('QHOT.lib.QFileAction', level='ERROR'):
+                self.file.saveAs()
+        self.assertFalse(path.exists())
+        self.assertTrue(self.message().startswith('Could not save hologram'))
+
+    def test_a_tiff_keeps_every_pixel(self):
+        path = self.data / 'chosen.tiff'
+        with self.answering('getSaveFileName', path):
+            self.file.saveAs()
+        np.testing.assert_array_equal(self.pixels(path), self.image)
+
     def test_a_canceled_dialog_writes_nothing(self):
         with self.answering('getSaveFileName'):
             self.file.saveAs()
@@ -107,8 +121,9 @@ class TestSaveAs(ImageCase):
         self.assertIs(args[0], self.window)
         self.assertIn('holo_', args[2])
         self.assertTrue(args[2].endswith('.png'))
-        for kind in ('png', 'jpg', 'tif'):
+        for kind in ('png', 'tif'):
             self.assertIn(kind, args[3])
+        self.assertNotIn('jpg', args[3])
 
     def test_a_file_that_cannot_be_written_is_reported(self):
         path = self.home / 'no' / 'such' / 'x.png'

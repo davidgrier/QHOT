@@ -70,6 +70,11 @@
   once and not `n` times.  A `Repeat` of one pass does not look for one.
 
 ### Changed
+- **Images are saved only in formats that keep every pixel: PNG and TIFF.**
+  Save Image As and Save Hologram As no longer offer JPEG, and a name that
+  ends in anything else (`.jpg`, or no extension through `QSaveFile.image`
+  and the `Snapshot` task) is refused with a message, where the file would
+  have been written lossy.
 - **The video screen of the window is `QHOT.videoScreen`, not `QHOT.screen`.**
   A widget called `screen` hid `QWidget.screen()`, which the window, being a
   widget, has.  A script that reaches into the window, as

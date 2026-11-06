@@ -292,6 +292,19 @@ class TestImageWithArray(_Base):
             self.save.image(np.zeros((4, 4), dtype=np.uint8),
                             filename=missing)
 
+    def test_only_the_formats_that_keep_every_pixel_are_written(self):
+        image = np.zeros((4, 4), dtype=np.uint8)
+        for suffix in ('.png', '.tif', '.tiff', '.PNG'):
+            with self.subTest(suffix=suffix):
+                path = str(self.home / f'x{suffix}')
+                self.assertEqual(self.save.image(image, path), path)
+        for name in ('x.jpg', 'x.jpeg', 'x.bmp', 'x'):
+            with self.subTest(name=name):
+                path = self.home / name
+                with self.assertRaises(ValueError):
+                    self.save.image(image, str(path))
+                self.assertFalse(path.exists())
+
     def test_returns_the_filename(self):
         result = self.save.image(np.zeros((4, 4), dtype=np.uint8),
                                  filename=self.path)

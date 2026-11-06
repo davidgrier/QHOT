@@ -32,6 +32,10 @@ class QSaveFile(QtCore.QObject):
         the configuration directory.
     '''
 
+    #: The extensions of the files that images are saved in.  Both keep
+    #: every pixel: an image is data, and a lossy format would change it.
+    IMAGE_SUFFIXES = ('.png', '.tif', '.tiff')
+
     def __init__(self, parent: QtWidgets.QMainWindow) -> None:
         super().__init__(parent)
         self._makeDirs()
@@ -116,8 +120,10 @@ class QSaveFile(QtCore.QObject):
         data : ImageItem or numpy.ndarray
             Image to save.
         filename : str or None
-            Destination path.  If ``None``, a timestamped ``.png`` file
-            is created in the data directory.
+            Destination path, which ends in ``.png``, ``.tif`` or
+            ``.tiff`` (:attr:`IMAGE_SUFFIXES`): the formats keep every
+            pixel.  If ``None``, a timestamped ``.png`` file is created in
+            the data directory.
         prefix : str
             Prefix for the auto-generated filename.  Default: ``'qhot'``.
 
@@ -129,11 +135,16 @@ class QSaveFile(QtCore.QObject):
         Raises
         ------
         ValueError
-            If an array is not ``uint8`` of one of the shapes above.
+            If the name does not end in one of the extensions above, or
+            an array is not ``uint8`` of one of the shapes above.
         OSError
             If the file cannot be written.
         '''
         filename = filename or self.filename(prefix=prefix, suffix='.png')
+        if Path(filename).suffix.lower() not in self.IMAGE_SUFFIXES:
+            raise ValueError(
+                f'an image is saved as PNG or TIFF, which keep every '
+                f'pixel, not as {filename}')
         if isinstance(data, ImageItem):
             ImageExporter(data).export(filename)
         elif not self._qimage(data).save(filename):

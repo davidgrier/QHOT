@@ -37,7 +37,6 @@ class QImageFile(QFileAction):
 
     #: The file types of the dialogs.
     FORMATS = ('PNG Image (*.png);;'
-               'JPEG Image (*.jpg *.jpeg);;'
                'TIFF Image (*.tif *.tiff)')
 
     def __init__(self,
@@ -62,6 +61,8 @@ class QImageFile(QFileAction):
 
         Qt chooses the format of an image from the extension of the file,
         so a name that has none is given ``.png``, the first of the types.
+        Only the formats that keep every pixel are offered, and a name
+        with another extension (``.jpg``) is reported and not saved.
         '''
         default = self.files.filename(prefix=self.prefix, suffix='.png')
         path = self.chooseToSave(default)

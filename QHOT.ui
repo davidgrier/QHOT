@@ -32,7 +32,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QHOTScreen" name="screen"/>
+      <widget class="QHOTScreen" name="videoScreen"/>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
         <number>0</number>
@@ -516,7 +516,7 @@
   <connection>
    <sender>actionClearTraps</sender>
    <signal>triggered()</signal>
-   <receiver>screen</receiver>
+   <receiver>videoScreen</receiver>
    <slot>clearTraps()</slot>
    <hints>
     <hint type="sourcelabel">

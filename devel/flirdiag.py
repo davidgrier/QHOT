@@ -97,7 +97,7 @@ def worker(camera: str, mode: str, duration: float) -> dict:
         sys.exit(f'{camera}: fell back to the noise camera')
     window = QHOT(tree, slm=slm, cgh=cgh)
     window.show()
-    screen = window.screen
+    screen = window.videoScreen
 
     events = {}
     sizes = []

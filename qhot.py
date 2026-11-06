@@ -95,13 +95,13 @@ class QHOT(QtWidgets.QMainWindow):
         self._addFilters()
         self.save = QSaveFile(self)
         self.manager = QTaskManager(
-            overlay=self.screen.overlay,
+            overlay=self.videoScreen.overlay,
             cgh=self.cgh,
             dvr=self.dvr,
             save=self.save,
-            image=self.screen.image,
+            image=self.videoScreen.image,
             parent=self)
-        self.screen.newFrame.connect(self.manager.step)
+        self.videoScreen.newFrame.connect(self.manager.step)
         self.taskManagerWidget.manager = self.manager
         self.menuQueue.manager = self.manager
         self._setupFiles()
@@ -114,8 +114,8 @@ class QHOT(QtWidgets.QMainWindow):
         self.videoTab.layout().addWidget(self.cameraTree)
         self.filter = QFilterRack(source=self.source)
         self.videoTab.layout().addWidget(self.filter)
-        self.screen.framerate = 30
-        self.screen.source = self.filter.pipeline
+        self.videoScreen.framerate = 30
+        self.videoScreen.source = self.filter.pipeline
         self.dvr.source = self.source
         self.cghTree.cgh = self.cgh
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])
@@ -125,7 +125,7 @@ class QHOT(QtWidgets.QMainWindow):
 
     def _setupFiles(self) -> None:
         '''Make the files that the File menu opens and saves, and wire it.'''
-        overlay = self.screen.overlay
+        overlay = self.videoScreen.overlay
         self.trapFile = QJsonDocument(
             'traps',
             'Trap Configuration',
@@ -147,7 +147,7 @@ class QHOT(QtWidgets.QMainWindow):
         self.imageFile = QImageFile(
             'image',
             prefix='qhot',
-            source=lambda: self.screen.image,
+            source=lambda: self.videoScreen.image,
             files=self.save,
             parent=self,
         )
@@ -175,7 +175,7 @@ class QHOT(QtWidgets.QMainWindow):
     def _setupEditMenu(self) -> None:
         '''Insert an Edit menu with Undo/Redo/Toggle Overlay between
         File and Tasks.'''
-        stack = self.screen.overlay.undoStack
+        stack = self.videoScreen.overlay.undoStack
         undoAction = stack.createUndoAction(self, '&Undo')
         undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
         redoAction = stack.createRedoAction(self, '&Redo')
@@ -225,9 +225,9 @@ class QHOT(QtWidgets.QMainWindow):
         self.cgh.hologramReady.connect(self.slm.setData)
         self.cgh.hologramReady.connect(self.slmView.setData)
         self.cgh.computeFailed.connect(self._onComputeFailed)
-        self.screen.status.connect(self.setStatus)
+        self.videoScreen.status.connect(self.setStatus)
         self.taskManagerWidget.status.connect(self.setStatus)
-        overlay = self.screen.overlay
+        overlay = self.videoScreen.overlay
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
         self.cgh.follow(overlay)
@@ -252,7 +252,7 @@ class QHOT(QtWidgets.QMainWindow):
     def _onTrapRequested(self, pos: QtCore.QPointF, trap: QTrap) -> None:
         '''Add a trap from the menu at the requested position.'''
         trap.r = (pos.x(), pos.y(), 0.)
-        self.screen.overlay.addTrap(trap)
+        self.videoScreen.overlay.addTrap(trap)
 
     @QtCore.Slot(str)
     def _onComputeFailed(self, reason: str) -> None:
@@ -275,12 +275,12 @@ class QHOT(QtWidgets.QMainWindow):
     def addTweezerAtCenter(self) -> None:
         '''Add a tweezer at the optical axis (CGH center).'''
         pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
-        self.screen.overlay.addTrap(pos)
+        self.videoScreen.overlay.addTrap(pos)
 
     @QtCore.Slot()
     def toggleOverlay(self) -> None:
         '''Toggle the visibility of the trap overlay.'''
-        self.screen.overlaysVisible = not self.screen.overlaysVisible
+        self.videoScreen.overlaysVisible = not self.videoScreen.overlaysVisible
 
     @QtCore.Slot()
     def saveSettings(self) -> None:
@@ -335,7 +335,7 @@ class QHOT(QtWidgets.QMainWindow):
         display geometry.  Only called on first launch when no saved
         geometry exists.
         '''
-        cam = self.screen.sizeHint()
+        cam = self.videoScreen.sizeHint()
         if not cam.isValid():
             return
         panel_w = self.tabWidget.sizeHint().width()
@@ -378,10 +378,10 @@ class QHOT(QtWidgets.QMainWindow):
         the window, so the same request may be right again) and
         :attr:`CORRECTION_PAUSE` milliseconds after the last correction.
         '''
-        cam = self.screen.sizeHint()
+        cam = self.videoScreen.sizeHint()
         if not cam.isValid() or cam.width() == 0:
             return
-        screen_w = self.screen.width()
+        screen_w = self.videoScreen.width()
         if screen_w <= 0:
             return
         ideal_h = screen_w * cam.height() // cam.width()

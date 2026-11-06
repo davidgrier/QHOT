@@ -104,8 +104,8 @@ def worker(camera: str, traps: bool, duration: float) -> dict:
     threading.Thread(target=sampler, daemon=True).start()
 
     def addTrap():
-        n = len(window.screen.overlay._traps) + 1
-        window.screen.overlay.addTrap(QtCore.QPointF(200 + 5 * n, 200 + 3 * n))
+        n = len(window.videoScreen.overlay._traps) + 1
+        window.videoScreen.overlay.addTrap(QtCore.QPointF(200 + 5 * n, 200 + 3 * n))
 
     trapTimer = QtCore.QTimer()
     trapTimer.timeout.connect(addTrap)

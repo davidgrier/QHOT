@@ -38,6 +38,11 @@
   once and not `n` times.  A `Repeat` of one pass does not look for one.
 
 ### Changed
+- **The video screen of the window is `QHOT.videoScreen`, not `QHOT.screen`.**
+  A widget called `screen` hid `QWidget.screen()`, which the window, being a
+  widget, has.  A script that reaches into the window, as
+  `window.screen.overlay`, must say `window.videoScreen.overlay`.  A test
+  checks that no attribute of the window hides a method of Qt.
 - Rotating a group is a change of the group, like moving it: the positions
   change silently and the group emits `changed` once, where every trap of
   it emitted its own.  Rotating 900 traps takes 14 ms, not 60 ms.

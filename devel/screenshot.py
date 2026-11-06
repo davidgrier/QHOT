@@ -143,7 +143,7 @@ def grab(frame: np.ndarray,
         spin(500)
         tree.stop()             # the camera of noise sends no more frames
         # What a camera of this frame size would tell the screen.
-        window.screen.updateShape(QtCore.QSize(SHAPE[1], SHAPE[0]))
+        window.videoScreen.updateShape(QtCore.QSize(SHAPE[1], SHAPE[0]))
         window.menuBar().setNativeMenuBar(False)
         # The window is laid out at the size of the display, but is not
         # put on the screen, which may be smaller.
@@ -160,8 +160,8 @@ def grab(frame: np.ndarray,
         window.resize(*DISPLAY)             # the window snaps to the video
         spin(500)
         window.dvr.filename = '/home/user/default.mkv'   # not a temporary one
-        window.screen.setImage(frame)
-        overlay = window.screen.overlay
+        window.videoScreen.setImage(frame)
+        overlay = window.videoScreen.overlay
         members = []
         for x, y, z, _, trap in SPHERES:
             if trap == 'tweezer':
@@ -182,7 +182,7 @@ def grab(frame: np.ndarray,
         spin(800)
         image = window.grab()
         print(f'window {window.width()}x{window.height()}, '
-              f'video {window.screen.width()}x{window.screen.height()}, '
+              f'video {window.videoScreen.width()}x{window.videoScreen.height()}, '
               f'image {image.width()}x{image.height()}')
         if width:
             image = image.scaledToWidth(

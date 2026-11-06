@@ -20,6 +20,7 @@ from qtpy import QtCore, QtGui, QtTest, QtWidgets
 from QVideo.cameras import chooser
 
 from QHOT.lib import QSLM
+from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.holograms import CGH
 from QHOT.lib.holograms import reference as ref
 from QHOT.traps import QTweezer
@@ -62,7 +63,7 @@ class Window:
             slm = QSLM()
             cls.window = qhot.QHOT(cls.tree, slm=slm, cgh=CGH(shape=slm.shape))
             cls.window.ready = QtTest.QSignalSpy(cls.window.cgh.hologramReady)
-        wait_for(lambda: cls.window.screen.image.image is not None)
+        wait_for(lambda: cls.window.videoScreen.image.image is not None)
 
     @classmethod
     def close(cls) -> None:
@@ -86,7 +87,7 @@ class WindowCase(unittest.TestCase):
     def setUp(self):
         self.window = Window.window
         self.cgh = self.window.cgh
-        self.overlay = self.window.screen.overlay
+        self.overlay = self.window.videoScreen.overlay
         self.overlay.clearTraps()
         self.settle()
 
@@ -215,13 +216,22 @@ class TestTheWindow(WindowCase):
         self.assertIs(manager.dvr, self.window.dvr)
         self.assertIs(manager.save, self.window.save)
 
+    def test_no_attribute_of_the_window_hides_a_method_of_qt(self):
+        # The window is a QMainWindow, and a widget of the .ui file or an
+        # attribute that takes the name of one of its methods (a widget
+        # called ``screen`` once hid QWidget.screen) hides it from Python.
+        hidden = [name for name in vars(self.window)
+                  if hasattr(QtWidgets.QMainWindow, name)]
+        self.assertEqual(hidden, [])
+        self.assertIsInstance(self.window.videoScreen, QHOTScreen)
+
     def test_a_frame_of_the_screen_steps_the_tasks(self):
         from QHOT.tasks import Delay
         manager = self.window.manager
         manager.clear()
         manager.register(Delay(frames=5))
         self.assertIsNone(manager.active)
-        self.window.screen.newFrame.emit(np.zeros((4, 4), np.uint8), None)
+        self.window.videoScreen.newFrame.emit(np.zeros((4, 4), np.uint8), None)
         self.assertIsInstance(manager.active, Delay)
         manager.clear()
 
@@ -254,7 +264,7 @@ class TestTheAspectRatioDoesNotChaseItself(WindowCase):
         # next of widths.
         # The display is big enough that no height is cut to fit it: the
         # test is about the requests, not about the size of a screen.
-        screen = self.window.screen
+        screen = self.window.videoScreen
         frame = MagicMock(return_value=QtCore.QRect(0, 0, 1, 1))
         QApplication = qhot.QtWidgets.QApplication
         display = MagicMock()
@@ -482,7 +492,7 @@ type = "ClearTraps"
         self.assertEqual(path.suffix, '.png')
         image = QtGui.QImage(str(path))
         self.assertEqual((image.width(), image.height()),
-                         self.window.screen.image.image.shape[:2][::-1])
+                         self.window.videoScreen.image.image.shape[:2][::-1])
 
     def test_save_the_image_as(self):
         (path,) = self.trigger('actionSaveImageAs', name='frame.png')
@@ -521,7 +531,7 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
         cls.window.hide()
 
     def camera(self):
-        size = self.window.screen.sizeHint()
+        size = self.window.videoScreen.sizeHint()
         return size.width(), size.height()
 
     def test_the_screen_has_the_shape_of_the_camera_at_any_width(self):
@@ -530,7 +540,7 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
             with self.subTest(width=w):
                 self.window.resize(w, 700)
                 QtTest.QTest.qWait(150)
-                screen = self.window.screen
+                screen = self.window.videoScreen
                 self.assertAlmostEqual(
                     screen.height(),
                     screen.width() * height // width,

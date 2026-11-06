@@ -103,15 +103,15 @@ def worker(camera: str, config: str, duration: float) -> dict:
         last[0] = now
 
     def addTrap() -> None:
-        n = len(window.screen.overlay._traps) + 1
-        window.screen.overlay.addTrap(
+        n = len(window.videoScreen.overlay._traps) + 1
+        window.videoScreen.overlay.addTrap(
             QtCore.QPointF(200 + 5 * n, 200 + 3 * n))
 
     def start() -> None:
         rendered.clear()
         holograms.clear()
         intervals.clear()
-        window.screen.newFrame.connect(
+        window.videoScreen.newFrame.connect(
             lambda *_: rendered.append(time.perf_counter()))
         cgh.hologramReady.connect(
             lambda *_: holograms.append(time.perf_counter()))

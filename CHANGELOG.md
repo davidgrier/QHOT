@@ -18,6 +18,15 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **A file that cannot be written whole leaves the old file as it was.**
+  Saving traps, a queue or the configuration emptied the file before it
+  wrote, so a full disk or a stopped program left half a file (or none) in
+  place of a good one.  `QSaveFile` now writes beside the file and replaces
+  it in one step.
+- **A configuration file that has been edited into a value that the
+  calibration refuses** (`wavelength = "abc"`) is reported in the log and
+  the defaults are used, as for a file that is not TOML.  The error left
+  `restoreSettings` and ended the program at start-up.
 - **A camera whose controls cannot be made ends QHOT with a message.**  A
   camera that opened but gave the controls trouble (a feature that it
   reports and will not read, say) ended the program with a traceback; the

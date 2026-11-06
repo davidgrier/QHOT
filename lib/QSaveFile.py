@@ -1,6 +1,7 @@
 '''Saves the images, data and settings of QHOT in files.'''
 import json
 import logging
+import os
 import tomllib
 from datetime import datetime
 from pathlib import Path
@@ -159,6 +160,27 @@ class QSaveFile(QtCore.QObject):
         image = QtGui.QImage(array.data, width, height, array.strides[0], fmt)
         return image.copy()             # the copy owns its pixels
 
+    @staticmethod
+    def _write(filename: str, text: str) -> None:
+        '''Replace the file with the text, or leave the file as it is.
+
+        The text goes to a file beside the destination, which then
+        replaces it in one step, so that a disk that fills up or a program
+        that is stopped while it writes cannot leave half a file in the
+        place of a good one.
+        '''
+        temporary = f'{filename}.part'
+        try:
+            with open(temporary, 'w', encoding='utf-8') as f:
+                f.write(text)
+            os.replace(temporary, filename)
+        except BaseException:
+            try:
+                os.remove(temporary)
+            except OSError:
+                pass
+            raise
+
     def writeJson(self,
                   data: object,
                   filename: str | None = None,
@@ -189,9 +211,7 @@ class QSaveFile(QtCore.QObject):
             left as it was.
         '''
         filename = filename or self.filename(prefix=prefix, suffix='.json')
-        text = json.dumps(data, indent=2)   # before the file is touched
-        with open(filename, 'w') as f:
-            f.write(text)
+        self._write(filename, json.dumps(data, indent=2))
         return filename
 
     @staticmethod
@@ -215,7 +235,7 @@ class QSaveFile(QtCore.QObject):
         ValueError
             If the file is not JSON.
         '''
-        with open(filename) as f:
+        with open(filename, encoding='utf-8') as f:
             return json.load(f)
 
     def writeToml(self,
@@ -257,9 +277,7 @@ class QSaveFile(QtCore.QObject):
             doc.add(tomlkit.nl())
         for key, value in data.items():
             doc[key] = value
-        text = tomlkit.dumps(doc)           # before the file is touched
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(text)
+        self._write(filename, tomlkit.dumps(doc))
         return filename
 
     @staticmethod
@@ -302,9 +320,7 @@ class QSaveFile(QtCore.QObject):
         doc = tomlkit.document()
         doc['settings'] = qobj.settings
         filename = self.configname(qobj)
-        text = tomlkit.dumps(doc)           # before the file is touched
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(text)
+        self._write(filename, tomlkit.dumps(doc))
         return filename
 
     def fromToml(self, qobj: QtCore.QObject) -> str:
@@ -319,17 +335,18 @@ class QSaveFile(QtCore.QObject):
         -------
         str
             Path of the configuration file that was read, or an empty
-            string if there is none or it holds no settings (a file that
-            is not TOML, say, or that a person has edited): the object
-            keeps the settings that it has, and the reason is logged.
+            string if there is none or it cannot be used (a file that is
+            not TOML, say, or that a person has edited into settings that
+            the object refuses): the reason is logged, and the object keeps
+            the settings that it has, except any that it took before it
+            met the one that it refused.
         '''
         filename = self.configname(qobj)
         try:
-            settings = self.readToml(filename)['settings']
+            qobj.settings = self.readToml(filename)['settings']
         except FileNotFoundError:
             return ''
-        except (OSError, ValueError, KeyError) as ex:
+        except (OSError, ValueError, TypeError, KeyError) as ex:
             logger.warning(f'Cannot use {filename}: {ex!r}')
             return ''
-        qobj.settings = settings
         return filename

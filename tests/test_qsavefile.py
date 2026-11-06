@@ -1,5 +1,6 @@
 '''Unit tests for QSaveFile.'''
 import json
+import os
 import re
 import tempfile
 import unittest
@@ -355,6 +356,46 @@ class TestFromToml(_Base):
         with self.assertLogs('QHOT.lib.QSaveFile', 'WARNING'):
             self.assertEqual(self.save.fromToml(qobj), '')
         self.assertIn('original', qobj.settings)
+
+    def test_settings_that_the_object_refuses_are_not_a_configuration(self):
+        qobj = _FakeQObj()
+        Path(self.save.configname(qobj)).write_text('[settings]\nx = 1\n')
+        for error in (ValueError, TypeError):
+            refusing = property(fset=MagicMock(side_effect=error))
+            with self.subTest(error=error.__name__), \
+                    patch.object(_FakeQObj, 'settings', refusing):
+                with self.assertLogs('QHOT.lib.QSaveFile', 'WARNING'):
+                    self.assertEqual(self.save.fromToml(qobj), '')
+
+
+class TestWriteIsAllOrNothing(_Base):
+
+    '''A file is replaced whole or not at all, whatever the format.'''
+
+    def writes(self):
+        '''Each way to write: a function of the path, and the old file.'''
+        qobj = _FakeQObj()
+        qobj._settings = {'x': 1.0}
+        return (
+            (lambda: self.save.writeJson([1, 2], str(self.home / 'a.json')),
+             self.home / 'a.json'),
+            (lambda: self.save.writeToml({'k': 1}, str(self.home / 'a.toml')),
+             self.home / 'a.toml'),
+            (lambda: self.save.toToml(qobj),
+             Path(self.save.configname(qobj))),
+        )
+
+    def test_a_write_that_fails_leaves_the_old_file_and_no_other(self):
+        for write, path in self.writes():
+            with self.subTest(path=path.name):
+                path.write_text('precious')
+                full = OSError('disk full')
+                replace = patch.object(os, 'replace', side_effect=full)
+                with replace, self.assertRaises(OSError):
+                    write()
+                self.assertEqual(path.read_text(), 'precious')
+                self.assertEqual(sorted(p.name for p in path.parent.iterdir()
+                                        if p.name.endswith('.part')), [])
 
 
 # ---------------------------------------------------------------------------

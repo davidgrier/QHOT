@@ -17,7 +17,7 @@ import pyqtgraph as pg
 from QVideo.cameras import chooser
 from QVideo.lib import QCameraOpener, QCameraTree, QFilterRack
 from QHOT.lib import (QSLM, QSaveFile, build_parser, choose_cgh,
-                      choose_slm)
+                      choose_slm, configure_logging)
 from QHOT.lib.holograms import CGH
 from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.QJsonDocument import QJsonDocument
@@ -452,7 +452,8 @@ def main() -> None:
     # -h and a bad value end the program here, before there is a window or
     # a thread: argparse exits by raising SystemExit, which Qt turns into an
     # abort while the camera thread is running.
-    parser.parse_known_args()
+    args, _ = parser.parse_known_args()
+    configure_logging(getattr(args, 'log_level', None))
     app = pg.mkQApp('QHOT')
     screen = splash()
     screen.show()

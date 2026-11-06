@@ -7,9 +7,9 @@ from .QSLM import QSLM
 from .QSLMWidget import QSLMWidget
 from .QSaveFile import QSaveFile
 from .chooser import (build_parser, cgh_parser, choose_backend,
-                      choose_cgh, choose_slm)
+                      choose_cgh, choose_slm, configure_logging)
 
 __all__ = ('QDocument QFileAction QImageFile QJsonDocument QSLM '
            'QSLMWidget QSaveFile QTomlDocument '
            'build_parser cgh_parser choose_backend choose_cgh '
-           'choose_slm').split()
+           'choose_slm configure_logging').split()

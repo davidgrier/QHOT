@@ -2,6 +2,7 @@
 import sys
 import contextlib
 import io
+import logging
 import unittest
 from argparse import ArgumentParser
 from unittest.mock import patch, MagicMock
@@ -11,7 +12,8 @@ import importlib as _importlib
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 from QHOT.lib.chooser import (build_parser, cgh_parser, choose_backend,
-                               choose_cgh, choose_slm, _CGH_BACKENDS)
+                               choose_cgh, choose_slm, configure_logging,
+                               _CGH_BACKENDS)
 from QHOT.lib.holograms import Backend, NumpyBackend
 from QHOT.lib.holograms.CGH import CGH
 from QHOT.lib.QSLM import QSLM
@@ -312,6 +314,18 @@ class TestBuildParser(unittest.TestCase):
         self.assertEqual(out.getvalue().strip(),
                          f'QHOT {__version__} (QVideo {qvideo_version})')
 
+    def test_log_level_is_absent_unless_given(self):
+        self.assertFalse(hasattr(self.parser.parse_args([]), 'log_level'))
+
+    def test_log_level_is_read_in_either_case(self):
+        args = self.parser.parse_args(['--log-level', 'debug'])
+        self.assertEqual(args.log_level, 'DEBUG')
+
+    def test_a_bad_log_level_ends_the_program(self):
+        with contextlib.redirect_stderr(io.StringIO()), \
+                self.assertRaises(SystemExit):
+            self.parser.parse_args(['--log-level', 'loud'])
+
     def test_custom_description(self):
         parser = build_parser(description='My app')
         self.assertEqual(parser.description, 'My app')
@@ -354,6 +368,48 @@ class TestBuildParser(unittest.TestCase):
             choose_camera(self.parser)
         except SystemExit:
             pass  # expected when no camera hardware is present
+
+
+class TestConfigureLogging(unittest.TestCase):
+
+    def setUp(self):
+        self.loggers = [logging.getLogger(n) for n in ('QHOT', 'QVideo')]
+        saved = [(lg.level, list(lg.handlers)) for lg in self.loggers]
+
+        def restore():
+            for lg, (level, handlers) in zip(self.loggers, saved):
+                lg.setLevel(level)
+                lg.handlers[:] = handlers
+        self.addCleanup(restore)
+
+    def test_none_leaves_logging_alone(self):
+        before = [(lg.level, list(lg.handlers)) for lg in self.loggers]
+        configure_logging(None)
+        self.assertEqual(
+            before, [(lg.level, list(lg.handlers)) for lg in self.loggers])
+
+    def test_the_level_is_set_on_both_packages_and_not_on_the_root(self):
+        root = logging.getLogger().level
+        configure_logging('DEBUG')
+        for lg in self.loggers:
+            self.assertEqual(lg.level, logging.DEBUG)
+        self.assertEqual(logging.getLogger().level, root)
+
+    def test_a_message_of_the_level_reaches_the_standard_error_stream(self):
+        configure_logging('INFO')
+        err = io.StringIO()
+        for lg in self.loggers:
+            lg.handlers[-1].setStream(err)
+        logging.getLogger('QHOT.lib.x').info('seen')
+        logging.getLogger('QVideo.y').debug('hidden')
+        self.assertIn('INFO QHOT.lib.x: seen', err.getvalue())
+        self.assertNotIn('hidden', err.getvalue())
+
+    def test_configuring_twice_adds_no_second_handler(self):
+        configure_logging('INFO')
+        configure_logging('DEBUG')
+        counts = [len(lg.handlers) for lg in self.loggers]
+        self.assertEqual(counts, [1, 1])
 
 
 class TestChooseSlm(unittest.TestCase):

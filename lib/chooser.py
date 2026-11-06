@@ -23,7 +23,7 @@ Shared parser with titled groups::
 '''
 import importlib
 import logging
-from argparse import ArgumentParser
+from argparse import SUPPRESS, ArgumentParser
 from typing import NamedTuple
 
 from QHOT import __version__
@@ -31,7 +31,7 @@ from QHOT.lib.holograms import Backend, CGH, NumpyBackend
 from QHOT.lib.QSLM import QSLM
 
 __all__ = ('build_parser cgh_parser choose_backend choose_cgh '
-           'choose_slm').split()
+           'choose_slm configure_logging').split()
 
 logger = logging.getLogger(__name__)
 
@@ -150,12 +150,23 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
                 -t  PyTorch  -u  CuPy
     '''
     from QVideo import __version__ as qvideo_version
-    from QVideo.cameras.chooser import BACKENDS
+    from QVideo.cameras.chooser import BACKENDS, LOG_LEVELS
     parser = ArgumentParser(description=description)
-    parser.add_argument(
+    general = parser.add_argument_group('general')
+    general.add_argument(
         '--version',
         action='version',
         version=f'QHOT {__version__} (QVideo {qvideo_version})',
+    )
+    general.add_argument(
+        '--log-level',
+        dest='log_level',
+        type=str.upper,
+        choices=LOG_LEVELS,
+        default=SUPPRESS,
+        metavar='LEVEL',
+        help=('show log messages of this level and above: '
+              + ', '.join(LOG_LEVELS) + ' (default: WARNING)'),
     )
     cam_group = parser.add_argument_group('camera backend')
     cam_mutex = cam_group.add_mutually_exclusive_group()
@@ -186,6 +197,33 @@ def build_parser(description: str = 'QHOT holographic optical trapping'
         ),
     )
     return cgh_parser(parser)
+
+
+def configure_logging(level: str | None) -> None:
+    '''Show the log messages of QHOT and QVideo at ``level`` and above.
+
+    Python shows only warnings and errors unless a program says otherwise.
+    The level is set on the loggers of the two packages and not on the
+    root, so that ``DEBUG`` does not also turn on every library that the
+    program uses.  Each gets a handler that writes to the standard error
+    stream, if it has none.
+
+    Parameters
+    ----------
+    level : str or None
+        A level name such as ``'DEBUG'``, as ``--log-level`` gives it.
+        ``None`` leaves logging as it is.
+    '''
+    if level is None:
+        return
+    formatter = logging.Formatter('%(levelname)s %(name)s: %(message)s')
+    for name in ('QHOT', 'QVideo'):
+        package = logging.getLogger(name)
+        package.setLevel(level)
+        if not package.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            package.addHandler(handler)
 
 
 def choose_backend(parser: ArgumentParser | None = None) -> Backend:

@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **`qhot --log-level LEVEL`** (`DEBUG`, `INFO`, `WARNING`, `ERROR`,
+  `CRITICAL`, in either case) shows the log messages of QHOT and QVideo at
+  that level and above, on the standard error stream.  The level is set on
+  the two packages and not on the root logger, so that `DEBUG` does not turn
+  on every library.  The option is QVideo's (`--log-level` of
+  `camera_parser`, new in 4.17.0), and QHOT now requires `QVideo>=4.17.0`.
 - **`qhot --version`** prints the versions of QHOT and QVideo and ends the
   program.  Before, the option was ignored, like any that the parser does
   not know, and the window opened.

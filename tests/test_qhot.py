@@ -5,6 +5,7 @@ the user does to the traps must show up in the hologram that is made for
 the SLM, which is compared here with the algorithm in ``reference``.
 '''
 import importlib
+from argparse import Namespace
 import json
 import os
 import subprocess
@@ -599,6 +600,16 @@ class TestTheCommandLine(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertTrue(done.stdout.startswith(f'QHOT {__version__} '))
 
+    def test_log_level_is_in_the_help(self):
+        done = self.run_qhot('-h')
+        self.assertIn('--log-level', done.stdout)
+
+    def test_a_bad_log_level_ends_with_a_message(self):
+        done = self.run_qhot('--log-level', 'loud')
+        self.assertEqual(done.returncode, 2)
+        self.assertIn('invalid choice', done.stderr)
+        self.assertNotIn('Traceback', done.stderr)
+
     def run_main_that(self, *failures: str) -> subprocess.CompletedProcess:
         '''Run the program, with the parts named in ``failures`` broken.'''
         script = (
@@ -689,12 +700,16 @@ class TestStartingUp(unittest.TestCase):
         message = window.setStatus.call_args.args[0]
         self.assertIn('defaults', message)
 
+    parser = MagicMock(
+        return_value=MagicMock(
+            **{'parse_known_args.return_value': (Namespace(), [])}))
+
     def test_a_failure_to_make_the_slm_stops_the_camera_thread(self):
         opener = MagicMock()
         screen = MagicMock()
         failing = MagicMock(side_effect=RuntimeError('no SLM'))
         with patch.object(qhot.pg, 'mkQApp'), \
-                patch.object(qhot, 'build_parser'), \
+                patch.object(qhot, 'build_parser', self.parser), \
                 patch.object(qhot, 'splash', return_value=screen), \
                 patch.object(qhot, 'say'), \
                 patch.object(qhot, 'QCameraOpener', return_value=opener), \
@@ -709,7 +724,7 @@ class TestStartingUp(unittest.TestCase):
         opener = MagicMock()
         failing = MagicMock(side_effect=RuntimeError('no engine'))
         with patch.object(qhot.pg, 'mkQApp'), \
-                patch.object(qhot, 'build_parser'), \
+                patch.object(qhot, 'build_parser', self.parser), \
                 patch.object(qhot, 'splash'), \
                 patch.object(qhot, 'say'), \
                 patch.object(qhot, 'QCameraOpener', return_value=opener), \

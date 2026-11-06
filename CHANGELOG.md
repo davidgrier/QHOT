@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-11-06
+
+Edits in the Traps tab can be undone, the command line has `--version` and
+`--log-level`, and the fixes of a review of the whole program.
+
 ### Added
 - **Edits in the Traps tab can be undone** (Edit, Undo; Ctrl-Z), a group
   and a reshaped array included: undoing a change of `nx` or `ny` gives
@@ -86,6 +91,8 @@
   once and not `n` times.  A `Repeat` of one pass does not look for one.
 
 ### Changed
+- QHOT needs QVideo 4.17.0 (`QVideo[dvr]>=4.17.0`), which provides
+  `--log-level` and `--version` for its own programs.
 - **Images are saved only in formats that keep every pixel: PNG and TIFF.**
   Save Image As and Save Hologram As no longer offer JPEG, and a name that
   ends in anything else (`.jpg`, or no extension through `QSaveFile.image`

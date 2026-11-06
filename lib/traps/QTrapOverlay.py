@@ -18,7 +18,8 @@ from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.trapspec import TrapSpec
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
-    MoveCommand, RotateCommand, WheelCommand, LockCommand)
+    MoveCommand, RotateCommand, WheelCommand, LockCommand,
+    PropertyCommand)
 from QHOT.traps import QTweezer
 
 
@@ -191,6 +192,23 @@ class QTrapOverlay(ScatterPlotItem):
     def undoStack(self) -> QUndoStack:
         '''The stack of undoable edits that the user has made.'''
         return self._undoStack
+
+    @QtCore.Slot(object, str, float)
+    def editTrap(self, trap: QTrap, name: str, value: float) -> None:
+        '''Set a property of a trap, as the trap panel does, undoably.
+
+        Parameters
+        ----------
+        trap : QTrap
+            The trap or group that is edited.
+        name : str
+            Name of one of its registered properties.
+        value : float
+            The new value.  Nothing is done, and nothing is put on the
+            undo stack, if the trap has it already.
+        '''
+        if getattr(trap, name) != value:
+            self._undoStack.push(PropertyCommand(trap, name, value))
 
     def pattern(self) -> tuple[TrapSpec, ...]:
         '''Return a snapshot of the traps, as a pattern of specs.

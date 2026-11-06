@@ -154,6 +154,22 @@ class TestTheHologramFollowsTheTraps(WindowCase):
         self.assertEqual(len(self.overlay.pattern()), 2)
         self.assertHologramOfTheTraps()
 
+    def test_an_edit_in_the_panel_can_be_undone(self):
+        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        trap = next(iter(self.overlay))
+        row = self.window.traps._trapWidgets[trap]
+
+        def edit():
+            row.wid['x'].setText('90.00')
+            row.wid['x'].updateValue()
+        self.after(edit)
+        self.assertAlmostEqual(trap.x, 90.)
+        self.assertHologramOfTheTraps()
+        self.after(self.overlay.undoStack.undo)
+        self.assertAlmostEqual(trap.x, 60.)
+        self.assertAlmostEqual(row.wid['x'].value, 60.)
+        self.assertHologramOfTheTraps()
+
     def test_clearing_the_traps(self):
         self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
         self.after(self.overlay.clearTraps)

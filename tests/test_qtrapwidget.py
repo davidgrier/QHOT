@@ -165,10 +165,37 @@ class TestQTrapPropertyWidget(unittest.TestCase):
         self.trap.x = 99.
         self.assertAlmostEqual(self.widget.wid['x'].value, 99., places=2)
 
-    def test_editor_change_updates_trap(self):
+    def test_leaving_a_field_that_was_not_edited_changes_nothing(self):
+        trap = QTrap(r=(12.3456, 2., 3.), phase=0.)
+        widget = QTrapPropertyWidget(trap)
+        spy = QtTest.QSignalSpy(widget.edited)
+        widget.wid['x'].updateValue()       # what leaving the field does
+        self.assertEqual(len(spy), 0)
+        self.assertEqual(trap.x, 12.3456)
+
+    def test_an_edit_is_announced_and_not_made(self):
+        spy = QtTest.QSignalSpy(self.widget.edited)
         self.widget.wid['x'].setText('42.00')
         self.widget.wid['x'].updateValue()
-        self.assertAlmostEqual(self.trap.x, 42., places=2)
+        self.assertEqual(len(spy), 1)
+        trap, name, value = spy[0]
+        self.assertIs(trap, self.trap)
+        self.assertEqual(name, 'x')
+        self.assertAlmostEqual(value, 42., places=2)
+        self.assertAlmostEqual(self.trap.x, 1., places=2)
+
+    def test_the_panel_announces_the_edits_of_every_row(self):
+        panel = QTrapWidget()
+        group = QTrapGroup(r=(10., 10., 0.))
+        leaf = QTrap(r=(1., 2., 3.), phase=0.)
+        group.addTrap(leaf)
+        panel.registerTrap(group)
+        spy = QtTest.QSignalSpy(panel.edited)
+        for trap in (group, leaf):
+            row = panel._trapWidgets[trap]
+            row.wid['z'].setText('7.00')
+            row.wid['z'].updateValue()
+        self.assertEqual([call[0] for call in spy], [group, leaf])
 
     def test_cleanup_disconnects_from_trap(self):
         self.widget.cleanup()

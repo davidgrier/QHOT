@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 __all__ = ('QUndoCommand QUndoStack '
            'AddTrapCommand RemoveTrapCommand '
            'MoveCommand RotateCommand WheelCommand '
-           'LockCommand').split()
+           'LockCommand PropertyCommand').split()
 
 _WHEEL_ID = 0x0001_C0DE  # must fit in Qt's int32 range
 
@@ -288,3 +288,48 @@ class LockCommand(QUndoCommand):
         state = (self._overlay.State.STATIC if self._group.locked
                  else self._overlay.State.NORMAL)
         self._overlay._setGroupBrush(self._group, state)
+
+
+class PropertyCommand(QUndoCommand):
+
+    '''Undoable command to set a registered property of a trap.
+
+    This is what an edit in the trap panel is.  The command is not
+    pre-executed: pushing it sets the property.
+
+    An array that is reshaped (``nx``, ``ny``) loses its mask, so the
+    command keeps the mask and puts it back when it undoes the edit.
+
+    Parameters
+    ----------
+    trap : QTrap
+        The trap or group that is edited.
+    name : str
+        Name of the registered property.
+    value : float
+        The new value.
+    parent : QUndoCommand or None
+        Optional parent command.
+    '''
+
+    def __init__(self,
+                 trap: QTrap,
+                 name: str,
+                 value: float,
+                 parent: QUndoCommand | None = None) -> None:
+        super().__init__(f'Edit {name}', parent)
+        self._trap = trap
+        self._name = name
+        self._before = getattr(trap, name)
+        self._after = value
+        self._mask = getattr(trap, 'mask', None)
+
+    def redo(self) -> None:
+        '''Set the property to the new value.'''
+        self._trap.setTrapProperty(self._name, self._after)
+
+    def undo(self) -> None:
+        '''Set the property back, and the mask of an array with it.'''
+        self._trap.setTrapProperty(self._name, self._before)
+        if self._mask is not None and self._trap.mask is not self._mask:
+            self._trap.mask = self._mask

@@ -102,8 +102,12 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     def updateValue(self) -> None:
         '''Read the current text, update the stored value, and emit signal.
 
-        No-op if the parsed value equals the currently stored value.
+        No-op if the text is what the field shows for the stored value: a
+        field is left, by a click or the Tab key, whether or not it was
+        edited, and what it shows is rounded.
         '''
+        if self.text() == self.format(self._value):
+            return
         new_value = float(self.text())
         if new_value == self._value:
             return
@@ -126,16 +130,20 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
 
     '''Row of property editors for a single trap.
 
-    Creates one ``QTrapPropertyEdit`` per registered property and
-    connects each to ``trap.setTrapProperty``.  Updates automatically
-    when the trap emits ``changed``.  Call ``cleanup()`` before
-    deletion to disconnect from the trap's signals.
+    Creates one ``QTrapPropertyEdit`` per registered property.  An edit
+    is not made here but announced, as ``edited(trap, name, value)``, so
+    that whoever owns the traps can make it undoable.  Updates
+    automatically when the trap emits ``changed``.  Call ``cleanup()``
+    before deletion to disconnect from the trap's signals.
 
     Parameters
     ----------
     trap : QTrap
         The trap whose properties will be displayed and edited.
     '''
+
+    #: Emitted with (trap, name, value) when the user edits a property.
+    edited = QtCore.Signal(object, str, float)
 
     def __init__(self, trap: QTrap, *args, indent: int = 0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -155,7 +163,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
             value = getattr(trap, name)
             decimals = trap.properties[name]['decimals']
             wid = QTrapPropertyEdit(name, value, decimals=decimals)
-            wid.propertyChanged.connect(trap.setTrapProperty)
+            wid.propertyChanged.connect(self._announce)
             wid.setStatusTip(trap.__class__.__name__ + ': ' + name)
             if trap.properties[name]['tooltip']:
                 wid.setToolTip(name)
@@ -164,6 +172,11 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         self._updateSlot = functools.partial(self.updateValues, trap)
         trap.changed.connect(self._updateSlot)
         self.setLayout(layout)
+
+    @QtCore.Slot(str, float)
+    def _announce(self, name: str, value: float) -> None:
+        '''Say that the user has edited a property of the trap.'''
+        self.edited.emit(self._trap, name, value)
 
     def updateValues(self, trap: QTrap) -> None:
         '''Refresh all editors from the trap's current property values.'''
@@ -195,8 +208,13 @@ class QTrapWidget(QtWidgets.QFrame):
 
     Maintains a ``QTrapPropertyWidget`` row for each registered trap.
     Traps are added via ``registerTrap`` and removed via
-    ``unregisterTrap``.
+    ``unregisterTrap``.  The panel does not change the traps: it emits
+    ``edited`` when the user edits a property, and whoever owns the traps
+    makes the change (``QTrapOverlay.editTrap``, which can be undone).
     '''
+
+    #: Emitted with (trap, name, value) when the user edits a property.
+    edited = QtCore.Signal(object, str, float)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -249,6 +267,7 @@ class QTrapWidget(QtWidgets.QFrame):
             logger.warning(f'Trap already registered: {trap}')
             return
         trapWidget = QTrapPropertyWidget(trap)
+        trapWidget.edited.connect(self.edited)
         self._trapWidgets[trap] = trapWidget
         self._innerLayout.addWidget(trapWidget)
         if isinstance(trap, QTrapGroup):
@@ -257,6 +276,7 @@ class QTrapWidget(QtWidgets.QFrame):
                     logger.warning(f'Leaf already registered: {leaf}')
                     continue
                 leafWidget = QTrapPropertyWidget(leaf, indent=20)
+                leafWidget.edited.connect(self.edited)
                 self._trapWidgets[leaf] = leafWidget
                 self._innerLayout.addWidget(leafWidget)
             trapWidget.members = [self._trapWidgets[leaf]
@@ -296,6 +316,8 @@ class QTrapWidget(QtWidgets.QFrame):
 
         pg.mkQApp('QTrapWidget Example')
         table = cls()
+        table.edited.connect(
+            lambda trap, name, value: trap.setTrapProperty(name, value))
         trapa = QTrap(phase=0.)
         trapb = QTrap(phase=0.)
         trapc = QTrap(phase=0.)

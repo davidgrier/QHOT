@@ -9,7 +9,7 @@ from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand,
     MoveCommand, RotateCommand, WheelCommand,
-    LockCommand, QUndoStack)
+    LockCommand, PropertyCommand, QUndoStack)
 from QHOT.traps.QTweezer import QTweezer
 
 
@@ -18,6 +18,69 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
 def make_overlay():
     return QTrapOverlay()
+
+
+class TestPropertyCommand(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.stack = self.overlay.undoStack
+        self.trap = QTweezer(r=(10., 20., 0.))
+        self.overlay.addTrap(self.trap)
+        self.stack.clear()
+
+    def test_an_edit_sets_the_property_and_undo_sets_it_back(self):
+        self.overlay.editTrap(self.trap, 'x', 55.)
+        self.assertEqual(self.trap.x, 55.)
+        self.stack.undo()
+        self.assertEqual(self.trap.x, 10.)
+        self.stack.redo()
+        self.assertEqual(self.trap.x, 55.)
+
+    def test_the_undo_menu_says_what_was_edited(self):
+        self.overlay.editTrap(self.trap, 'amplitude', 0.5)
+        self.assertEqual(self.stack.undoText(), 'Edit amplitude')
+
+    def test_an_edit_that_changes_nothing_is_not_a_step(self):
+        self.overlay.editTrap(self.trap, 'x', 10.)
+        self.assertEqual(self.stack.count(), 0)
+
+    def test_editing_a_group_and_undoing_puts_the_members_back(self):
+        group = QTrapGroup(r=(100., 100., 0.))
+        group.addTrap([QTweezer(r=(90., 100., 0.)),
+                       QTweezer(r=(110., 100., 0.))])
+        self.overlay.addTrap(group)
+        self.stack.clear()
+        before = [leaf.r.copy() for leaf in group.leaves()]
+        self.overlay.editTrap(group, 'x', 200.)
+        self.assertEqual(next(group.leaves()).x, 190.)
+        self.stack.undo()
+        for leaf, r in zip(group.leaves(), before):
+            np.testing.assert_allclose(leaf.r, r)
+
+    def test_undoing_a_reshape_gives_the_mask_back(self):
+        from QHOT.traps.QTrapArray import QTrapArray
+        mask = np.array([[True, False, True], [True, True, False]])
+        array = QTrapArray(r=(100., 100., 0.), shape=(2, 3), mask=mask)
+        self.overlay.addTrap(array)
+        self.stack.clear()
+        self.overlay.editTrap(array, 'nx', 4.)
+        self.assertIsNone(array.mask)
+        self.stack.undo()
+        self.assertEqual(array.shape, (2, 3))
+        np.testing.assert_array_equal(array.mask, mask)
+        self.assertEqual(len(list(array.leaves())), 4)
+
+    def test_undoing_a_change_of_separation_keeps_the_mask(self):
+        from QHOT.traps.QTrapArray import QTrapArray
+        mask = np.array([[True, False], [True, True]])
+        array = QTrapArray(r=(100., 100., 0.), shape=(2, 2), mask=mask)
+        self.overlay.addTrap(array)
+        self.stack.clear()
+        self.overlay.editTrap(array, 'separation', 80.)
+        self.stack.undo()
+        self.assertEqual(array.separation, 50.)
+        np.testing.assert_array_equal(array.mask, mask)
 
 
 class TestAddTrapCommand(unittest.TestCase):

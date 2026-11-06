@@ -231,6 +231,7 @@ class QHOT(QtWidgets.QMainWindow):
         overlay = self.videoScreen.overlay
         overlay.trapAdded.connect(self.traps.registerTrap)
         overlay.trapRemoved.connect(self.traps.unregisterTrap)
+        self.traps.edited.connect(overlay.editTrap)
         self.cgh.follow(overlay)
         self.menuAddTrap.aboutToShow.connect(self._placeNewTraps)
         self.menuAddTrap.trapRequested.connect(self._onTrapRequested)

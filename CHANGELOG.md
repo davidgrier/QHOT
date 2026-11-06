@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- **Edits in the Traps tab can be undone** (Edit, Undo; Ctrl-Z), a group
+  and a reshaped array included: undoing a change of `nx` or `ny` gives
+  the mask of the array back.  The panel no longer changes the traps by
+  itself: it announces the edit (`QTrapWidget.edited`), and
+  `QTrapOverlay.editTrap` makes it as a `PropertyCommand`.
 - **`qhot --log-level LEVEL`** (`DEBUG`, `INFO`, `WARNING`, `ERROR`,
   `CRITICAL`, in either case) shows the log messages of QHOT and QVideo at
   that level and above, on the standard error stream.  The level is set on
@@ -18,6 +23,9 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **Leaving a field of the Traps tab without editing it rounded the value
+  of the trap** to the digits that the field shows (12.3456 became 12.35
+  when the Tab key passed through the field).
 - **The calibration tree takes its defaults from `Optics`**, as the
   calibration does.  The tree had a table of its own, which had drifted: it
   restored `xs` and `ys` to 256 phixels (right-click, Default), where the

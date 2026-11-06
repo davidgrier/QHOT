@@ -42,8 +42,14 @@ traps in the pattern, quantized to 8 bits (:func:`quantize`),
 
 .. math::
 
-    H = \left\lfloor \frac{128}{\pi} \arg \sum_j \psi_j + 127
-        \right\rfloor.
+    H = \operatorname{trunc}\left(\frac{128}{\pi} \arg \sum_j \psi_j + 127
+        \right),
+
+where the argument lies in :math:`(-\pi, \pi]` and :math:`\operatorname{trunc}`
+drops the fraction (it rounds toward zero, which is the floor for all but
+the phases within one level of :math:`-\pi`, where the quantity is negative
+and the level is 0).  The levels are 0 to 255, and a level is a step of
+:math:`\pi/128` of phase.
 '''
 from __future__ import annotations
 
@@ -173,7 +179,9 @@ def quantize(psi: Field) -> Hologram:
     Returns
     -------
     Hologram
-        :math:`\lfloor 128 \arg\psi / \pi + 127 \rfloor`, as ``uint8``.
+        :math:`\operatorname{trunc}(128 \arg\psi / \pi + 127)`, as
+        ``uint8``: the phase in levels of :math:`\pi/128`, with the
+        fraction dropped.
     '''
     return ((128. / np.pi) * np.angle(psi) + 127.).astype(np.uint8)
 

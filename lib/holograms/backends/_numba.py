@@ -84,7 +84,7 @@ if njit is not None:
 
     @njit(parallel=True, fastmath=True, cache=True)
     def _quantize(psi, out):
-        '''out = floor(128 arg(psi) / pi + 127), clipped to a byte.'''
+        '''out = trunc(128 arg(psi) / pi + 127), within a byte (0 to 255).'''
         height, width = psi.shape
         scale = 128. / math.pi
         for i in prange(height):

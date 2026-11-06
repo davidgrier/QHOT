@@ -83,6 +83,9 @@
   ends in anything else (`.jpg`, or no extension through `QSaveFile.image`
   and the `Snapshot` task) is refused with a message, where the file would
   have been written lossy.
+- The quantizer is described as it is: the phase in levels of π/128 with
+  the fraction dropped (`trunc`), not the floor.  The two differ only for
+  the phases within one level of −π.
 - **The video screen of the window is `QHOT.videoScreen`, not `QHOT.screen`.**
   A widget called `screen` hid `QWidget.screen()`, which the window, being a
   widget, has.  A script that reaches into the window, as

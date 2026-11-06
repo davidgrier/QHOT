@@ -263,7 +263,10 @@ class Backend:
         Returns
         -------
         Hologram
-            :math:`\lfloor 128 \arg\psi / \pi + 127 \rfloor`, as ``uint8``.
+            :math:`\operatorname{trunc}(128 \arg\psi / \pi + 127)`, as
+            ``uint8``: the phase in levels of :math:`\pi/128`, with the
+            fraction dropped, as in
+            :func:`~QHOT.lib.holograms.reference.quantize`.
         '''
         raise NotImplementedError
 

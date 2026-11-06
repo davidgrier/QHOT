@@ -88,6 +88,12 @@ class TestSaveAs(ImageCase):
         np.testing.assert_array_equal(self.pixels(path), self.image)
         self.assertEqual(self.message(), f'Saved hologram as {path}')
 
+    def test_a_name_with_no_extension_is_a_png(self):
+        with self.answering('getSaveFileName', self.data / 'chosen'):
+            self.file.saveAs()
+        np.testing.assert_array_equal(
+            self.pixels(self.data / 'chosen.png'), self.image)
+
     def test_a_canceled_dialog_writes_nothing(self):
         with self.answering('getSaveFileName'):
             self.file.saveAs()

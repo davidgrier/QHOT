@@ -18,6 +18,9 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **Save Image As and Save Hologram As with a name that has no extension**
+  write a PNG.  Qt chooses the format from the extension, so the save failed
+  with "could not write" and the name that was typed.
 - **A file that cannot be written whole leaves the old file as it was.**
   Saving traps, a queue or the configuration emptied the file before it
   wrote, so a full disk or a stopped program left half a file (or none) in

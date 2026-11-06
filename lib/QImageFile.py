@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 
 from qtpy import QtCore, QtWidgets
 
@@ -57,13 +58,18 @@ class QImageFile(QFileAction):
 
     @QtCore.Slot()
     def saveAs(self) -> None:
-        '''Ask for a file, and save the image to it.'''
+        '''Ask for a file, and save the image to it.
+
+        Qt chooses the format of an image from the extension of the file,
+        so a name that has none is given ``.png``, the first of the types.
+        '''
         default = self.files.filename(prefix=self.prefix, suffix='.png')
         path = self.chooseToSave(default)
         if not path:
             self.status.emit(f'Save {self.name} canceled')
             return
-        self._write(path)
+        path = Path(path)
+        self._write(str(path if path.suffix else path.with_suffix('.png')))
 
     def _write(self, path: str | None) -> None:
         try:                # the exporter reports a plain Exception

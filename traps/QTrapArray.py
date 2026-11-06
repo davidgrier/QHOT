@@ -35,6 +35,16 @@ class QTrapArray(QTrapGroup):
     mask : array_like of bool, shape (nx, ny), optional
         Boolean mask selecting which grid positions are active.
         ``None`` (default) activates all positions.
+    fuzz : float
+        Standard deviation of the random displacement of each trap
+        [pixels].  Default: 0.
+    seed : int, optional
+        Seed of the random displacements.  With a seed, the same array has
+        the same displacements whenever it is made: after it is saved and
+        loaded, reshaped, or an edit is undone.  Without one, a seed is
+        drawn at random when the array first needs it, and kept (and
+        saved) so that the array stays as it was made.  Give the same seed
+        to get the same displacements in another array.
     *args, **kwargs
         Forwarded to ``QTrapGroup``.
 
@@ -52,6 +62,8 @@ class QTrapArray(QTrapGroup):
         Standard deviation of Gaussian random displacement applied to
         each trap position at population time [pixels].  Registered property.
         Default: 0. (exact grid positions).
+    seed : int or None
+        Seed of the displacements, or ``None`` until the array has any.
     mask : np.ndarray or None
         Active-position mask, shape (nx, ny), or None for full grid.
 
@@ -74,11 +86,13 @@ class QTrapArray(QTrapGroup):
                  separation: float = 50.,
                  mask: npt.ArrayLike | None = None,
                  fuzz: float = 0.,
+                 seed: int | None = None,
                  **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._nx, self._ny = (max(1, int(n)) for n in shape)
         self._separation = max(1., float(separation))
         self._fuzz = max(0., float(fuzz))
+        self._seed = None if seed is None else int(seed)
         if mask is not None:
             mask = np.asarray(mask, dtype=bool)
             if mask.shape != (self._nx, self._ny):
@@ -152,6 +166,29 @@ class QTrapArray(QTrapGroup):
         self._fuzz = max(0., float(fuzz))
         self._repopulate()
 
+    @property
+    def seed(self) -> int | None:
+        '''Seed of the random displacements, or ``None`` before any.'''
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed: int | None) -> None:
+        self._seed = None if seed is None else int(seed)
+        self._repopulate()
+
+    def _displacements(self) -> np.ndarray:
+        '''Return the displacement of each grid position, shape (nx, ny, 2).
+
+        A multiple of the same standard normal numbers for a given seed, so
+        that the pattern keeps its shape as ``fuzz`` changes, and a position
+        of the grid keeps its displacement when the mask changes.  The
+        seed is drawn the first time that it is needed.
+        '''
+        if self._seed is None:
+            self._seed = int(np.random.default_rng().integers(2**31))
+        rng = np.random.default_rng(self._seed)
+        return self._fuzz * rng.standard_normal((self._nx, self._ny, 2))
+
     # --- mask property ---
 
     @property
@@ -176,21 +213,21 @@ class QTrapArray(QTrapGroup):
         '''Create tweezers at active grid positions, centered on the group.
 
         When ``fuzz`` is non-zero each trap is displaced by an independent
-        Gaussian random offset (std = ``fuzz``) in x and y.
+        Gaussian random offset (std = ``fuzz``) in x and y, which the
+        ``seed`` fixes.
         '''
         cx, cy, cz = self._r
         xs = cx + self._separation * (np.arange(self._nx)
                                       - (self._nx - 1) / 2.)
         ys = cy + self._separation * (np.arange(self._ny)
                                       - (self._ny - 1) / 2.)
+        jitter = (self._displacements() if self._fuzz > 0.
+                  else np.zeros((self._nx, self._ny, 2)))
         traps = []
         for ix, x in enumerate(xs):
             for iy, y in enumerate(ys):
                 if self._mask is None or self._mask[ix, iy]:
-                    if self._fuzz > 0.:
-                        jx, jy = np.random.normal(0., self._fuzz, 2)
-                    else:
-                        jx = jy = 0.
+                    jx, jy = jitter[ix, iy]
                     traps.append(QTweezer(r=(x + jx, y + jy, cz)))
         if traps:
             self.addTrap(traps)
@@ -205,12 +242,15 @@ class QTrapArray(QTrapGroup):
         Returns
         -------
         dict
-            A dict with ``'type'``, registered properties, and ``'mask'``
-            (a nested list of bools, or ``None``).
+            A dict with ``'type'``, registered properties, ``'seed'`` (if
+            the array has displacements), and ``'mask'`` (a nested list of
+            bools, or ``None``).
         '''
         d = {'type': type(self).__name__, **self.settings}
         if self.locked:
             d['locked'] = True
+        if self._seed is not None:
+            d['seed'] = self._seed
         d['mask'] = self._mask.tolist() if self._mask is not None else None
         return d
 

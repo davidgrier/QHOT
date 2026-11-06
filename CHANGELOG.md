@@ -8,6 +8,14 @@
   the mask of the array back.  The panel no longer changes the traps by
   itself: it announces the edit (`QTrapWidget.edited`), and
   `QTrapOverlay.editTrap` makes it as a `PropertyCommand`.
+- **`QTrapArray` takes a `seed` for the displacements of `fuzz`**, so that
+  an array can be made again with the same displacements.  Without one a
+  seed is drawn when the array first has any, kept and saved with the
+  array: a saved and loaded array, one that was reshaped and reshaped back,
+  and one whose edit is undone have the displacements that they had.  A
+  position of the grid keeps its displacement when the mask changes, and
+  the pattern keeps its shape as `fuzz` changes.  Before, every population
+  drew new numbers.
 - **`qhot --log-level LEVEL`** (`DEBUG`, `INFO`, `WARNING`, `ERROR`,
   `CRITICAL`, in either case) shows the log messages of QHOT and QVideo at
   that level and above, on the standard error stream.  The level is set on

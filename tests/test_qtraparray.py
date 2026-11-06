@@ -507,5 +507,78 @@ class TestLockedSurvivesSaving(unittest.TestCase):
         self.assertNotIn('locked', QTrapArray(shape=(2, 2)).toDict())
 
 
+def positions(array):
+    return np.array([leaf.r for leaf in array.leaves()])
+
+
+class TestSeed(unittest.TestCase):
+
+    '''The displacements of the traps can be made again.'''
+
+    def test_the_same_seed_gives_the_same_displacements(self):
+        a = QTrapArray(shape=(3, 3), fuzz=5., seed=7)
+        b = QTrapArray(shape=(3, 3), fuzz=5., seed=7)
+        np.testing.assert_array_equal(positions(a), positions(b))
+
+    def test_another_seed_gives_other_displacements(self):
+        a = QTrapArray(shape=(3, 3), fuzz=5., seed=7)
+        b = QTrapArray(shape=(3, 3), fuzz=5., seed=8)
+        self.assertFalse(np.allclose(positions(a), positions(b)))
+
+    def test_with_no_seed_the_arrays_differ_and_each_has_one(self):
+        a = QTrapArray(shape=(3, 3), fuzz=5.)
+        b = QTrapArray(shape=(3, 3), fuzz=5.)
+        self.assertIsInstance(a.seed, int)
+        self.assertFalse(np.allclose(positions(a), positions(b)))
+
+    def test_an_array_with_no_fuzz_has_no_seed(self):
+        array = QTrapArray(shape=(3, 3))
+        self.assertIsNone(array.seed)
+        self.assertNotIn('seed', array.toDict())
+
+    def test_saved_and_loaded_it_has_the_same_displacements(self):
+        a = QTrapArray(r=(100., 80., 0.), shape=(3, 4), fuzz=5.)
+        b = QTrapArray.fromDict(a.toDict())
+        np.testing.assert_allclose(positions(a), positions(b))
+
+    def test_reshaped_and_reshaped_back_it_is_as_it_was(self):
+        array = QTrapArray(shape=(3, 3), fuzz=5.)
+        before = positions(array)
+        array.nx = 5
+        array.nx = 3
+        np.testing.assert_allclose(positions(array), before)
+
+    def test_a_position_keeps_its_displacement_when_the_mask_changes(self):
+        full = QTrapArray(shape=(3, 3), separation=50., fuzz=5., seed=3)
+        mask = np.ones((3, 3), dtype=bool)
+        mask[0, 0] = False
+        holed = QTrapArray(
+            shape=(3, 3),
+            separation=50.,
+            mask=mask,
+            fuzz=5.,
+            seed=3,
+        )
+        np.testing.assert_allclose(positions(holed), positions(full)[1:])
+
+    def test_the_pattern_keeps_its_shape_as_fuzz_changes(self):
+        array = QTrapArray(shape=(3, 3), separation=50., fuzz=2., seed=3)
+        exact = QTrapArray(shape=(3, 3), separation=50.)
+        small = positions(array) - positions(exact)
+        array.fuzz = 4.
+        large = positions(array) - positions(exact)
+        np.testing.assert_allclose(large, 2. * small, atol=1e-9)
+
+    def test_the_seed_can_be_set(self):
+        a = QTrapArray(shape=(3, 3), fuzz=5., seed=1)
+        b = QTrapArray(shape=(3, 3), fuzz=5., seed=2)
+        b.seed = 1
+        np.testing.assert_allclose(positions(a), positions(b))
+
+    def test_the_seed_is_in_the_file(self):
+        self.assertEqual(
+            QTrapArray(shape=(2, 2), fuzz=5., seed=11).toDict()['seed'], 11)
+
+
 if __name__ == '__main__':
     unittest.main()

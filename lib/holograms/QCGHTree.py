@@ -2,11 +2,15 @@
 from qtpy import QtCore
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from QHOT.lib.holograms.CGH import CGH
+from QHOT.lib.holograms.optics import Optics
 from collections.abc import KeysView
 import logging
 
 
 logger = logging.getLogger(__name__)
+
+#: The limits of a quantity that the calibration divides by: not zero.
+POSITIVE = (1e-6, None)
 
 
 class QCGHTree(ParameterTree):
@@ -53,8 +57,9 @@ class QCGHTree(ParameterTree):
         self.tree.sigTreeStateChanged.connect(self.updateCGH)
 
     @staticmethod
-    def _float(name: str, value: float, **options) -> dict:
-        '''Describe a float parameter whose default is its initial value.'''
+    def _float(name: str, **options) -> dict:
+        '''Describe a float parameter whose default is that of ``Optics``.'''
+        value = getattr(Optics(), name)
         return {'name': name, 'type': 'float', 'value': value,
                 'default': value, **options}
 
@@ -62,23 +67,23 @@ class QCGHTree(ParameterTree):
         '''Return the parameter tree description for all CGH settings.'''
         number = self._float
         instrument = dict(name='instrument', type='group', children=[
-            number('wavelength', 1.064, decimals=4, suffix='μm'),
-            number('n_m', 1.340, decimals=4),
-            number('magnification', 100., suffix='×'),
-            number('focallength', 200., suffix='μm'),
-            number('camerapitch', 4.8, suffix='μm'),
-            number('slmpitch', 8., suffix='μm'),
-            number('splay', 0.01)])
+            number('wavelength', decimals=4, suffix='μm', limits=POSITIVE),
+            number('n_m', decimals=4, limits=POSITIVE),
+            number('magnification', suffix='×', limits=POSITIVE),
+            number('focallength', suffix='μm', limits=POSITIVE),
+            number('camerapitch', suffix='μm', limits=POSITIVE),
+            number('slmpitch', suffix='μm', limits=POSITIVE),
+            number('splay')])
         slm = dict(name='SLM', type='group', children=[
-            number('xs', 256., suffix='phixels'),
-            number('ys', 256., suffix='phixels'),
-            number('phis', 8., suffix='°'),
-            number('scale', 3.)])
+            number('xs', suffix='phixels'),
+            number('ys', suffix='phixels'),
+            number('phis', suffix='°'),
+            number('scale', limits=POSITIVE)])
         camera = dict(name='camera', type='group', children=[
-            number('xc', 320., suffix='pixels'),
-            number('yc', 240., suffix='pixels'),
-            number('zc', 0., suffix='pixels'),
-            number('thetac', 0., suffix='°')])
+            number('xc', suffix='pixels'),
+            number('yc', suffix='pixels'),
+            number('zc', suffix='pixels'),
+            number('thetac', suffix='°')])
         return Parameter.create(
             name='params',
             type='group',

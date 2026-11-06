@@ -195,5 +195,32 @@ class TestUpdateTree(unittest.TestCase):
         self.assertAlmostEqual(widget.get('wavelength'), 0.532, places=4)
 
 
+class TestDefaults(unittest.TestCase):
+
+    def setUp(self):
+        self.widget = QCGHTree()
+
+    def test_every_default_is_that_of_the_calibration(self):
+        from QHOT.lib.holograms.optics import Optics
+        for name, value in Optics().settings.items():
+            if name in _TREE_PARAMS:
+                with self.subTest(name=name):
+                    parameter = self.widget._parameters[name]
+                    self.assertEqual(parameter.defaultValue(), value)
+                    self.assertEqual(parameter.value(), value)
+
+    def test_what_the_calibration_divides_by_cannot_be_zero(self):
+        for name in ('wavelength', 'n_m', 'magnification', 'focallength',
+                     'camerapitch', 'slmpitch', 'scale'):
+            with self.subTest(name=name):
+                low, high = self.widget._parameters[name].opts['limits']
+                self.assertGreater(low, 0.)
+
+    def test_a_position_can_be_zero_or_negative(self):
+        for name in ('xs', 'ys', 'xc', 'yc', 'zc', 'thetac', 'phis'):
+            with self.subTest(name=name):
+                self.assertNotIn('limits', self.widget._parameters[name].opts)
+
+
 if __name__ == '__main__':
     unittest.main()

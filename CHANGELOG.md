@@ -18,6 +18,15 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **The calibration tree takes its defaults from `Optics`**, as the
+  calibration does.  The tree had a table of its own, which had drifted: it
+  restored `xs` and `ys` to 256 phixels (right-click, Default), where the
+  calibration starts at 0.
+- **The calibration cannot be set to zero or less where it divides:** the
+  wavelength, the index of the medium, the magnification, the focal length,
+  the pixel pitches and the scale have a positive lower limit in the tree.
+  Before, a zero typed there made every hologram fail with a division by
+  zero.
 - **Save Image As and Save Hologram As with a name that has no extension**
   write a PNG.  Qt chooses the format from the extension, so the save failed
   with "could not write" and the name that was typed.

@@ -4,12 +4,13 @@ from __future__ import annotations
 import logging
 import weakref
 from collections.abc import Iterable
+from dataclasses import fields
 
 import numpy as np
 from qtpy import QtCore, QtGui
 
 from QHOT.lib.traps import TrapSpec
-from QHOT.lib.types import PatternSource, Shape
+from QHOT.lib.types import PatternSource
 from .backends import Backend, NumpyBackend
 from .optics import Optics
 from .QHologramWorker import QHologramWorker
@@ -51,32 +52,12 @@ class CGH(QtCore.QObject):
 
     Parameters
     ----------
-    shape : tuple[int, int]
-        Hologram dimensions (height, width) in pixels.
-    wavelength : float
-        Vacuum wavelength of trapping light [um].
-    n_m : float
-        Refractive index of the trapping medium.
-    magnification : float
-        Magnification of the objective lens.
-    focallength : float
-        Focal length of the tube lens [um].
-    camerapitch : float
-        Camera pixel pitch [um/pixel].
-    slmpitch : float
-        SLM pixel pitch [um/phixel].
-    scale : float
-        SLM scale factor.
-    splay : float
-        Axial splay correction factor (dimensionless).
-    xs, ys : float
-        Coordinates of the optical axis in the SLM plane [phixels].
-    phis : float
-        Tilt of the SLM relative to the optical axis [degrees].
-    xc, yc, zc : float
-        Coordinates of the optical axis in the camera plane [pixels].
-    thetac : float
-        Rotation of the camera relative to the SLM [degrees].
+    **calibration
+        The calibration, by the names of the fields of
+        :class:`~QHOT.lib.holograms.optics.Optics` (``shape``,
+        ``wavelength``, ``n_m``, ``xc``, ...), which also gives their
+        meanings and their defaults.  A name that is not a field is a
+        ``TypeError``.
     backend : Backend or None
         What computes the holograms.  Default: a ``NumpyBackend``.
     parent : QtCore.QObject or None
@@ -103,35 +84,19 @@ class CGH(QtCore.QObject):
     INTERVAL = 15
     _request = QtCore.Signal(object, object)
 
-    _fields = ('shape', 'wavelength', 'n_m', 'magnification', 'focallength',
-               'camerapitch', 'slmpitch', 'scale', 'splay',
-               'xs', 'ys', 'phis', 'xc', 'yc', 'zc', 'thetac')
+    #: The names of the calibration: the fields of ``Optics``.
+    _fields = tuple(field.name for field in fields(Optics))
 
     def __init__(self, *,
-                 shape: Shape = (512, 512),
-                 wavelength: float = 1.064,
-                 n_m: float = 1.340,
-                 magnification: float = 100.,
-                 focallength: float = 200.,
-                 camerapitch: float = 4.8,
-                 slmpitch: float = 8.,
-                 scale: float = 3.,
-                 splay: float = 0.01,
-                 xs: float = 0.,
-                 ys: float = 0.,
-                 phis: float = 8.,
-                 xc: float = 320.,
-                 yc: float = 240.,
-                 zc: float = 0.,
-                 thetac: float = 0.,
                  backend: Backend | None = None,
-                 parent: QtCore.QObject | None = None) -> None:
+                 parent: QtCore.QObject | None = None,
+                 **calibration) -> None:
         super().__init__(parent)
-        # Plain assignment, so that building the object emits nothing.  The
-        # values are the arguments named in _fields.
-        arguments = locals()
+        # Plain assignment, so that building the object emits nothing.
+        # Optics has the defaults, and refuses a name that is not a field.
+        optics = Optics(**calibration)
         for name in self._fields:
-            object.__setattr__(self, name, arguments[name])
+            object.__setattr__(self, name, getattr(optics, name))
         object.__setattr__(self, '_optics', None)
         self.backend = backend or NumpyBackend()
         self._busy = False

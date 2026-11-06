@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+- `CGH` takes its calibration as keywords and gets the defaults from
+  `Optics`, which names the fields: the sixteen arguments and defaults were
+  written out again in `CGH.__init__`.  A name that is not in the
+  calibration is a `TypeError`, as before.
+
 ## [2.3.0] — 2026-11-06
 
 Edits in the Traps tab can be undone, the command line has `--version` and

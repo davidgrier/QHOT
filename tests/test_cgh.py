@@ -24,12 +24,19 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 class TestInit(unittest.TestCase):
 
-    def test_the_arguments_are_the_calibration_fields_in_order(self):
-        # __init__ takes its values from the arguments named in _fields.
-        import inspect
-        arguments = [name for name in inspect.signature(CGH).parameters
-                     if name not in ('backend', 'parent')]
-        self.assertEqual(arguments, list(CGH._fields))
+    def test_the_calibration_is_the_fields_of_optics(self):
+        from dataclasses import fields
+        from QHOT.lib.holograms.optics import Optics
+        self.assertEqual(CGH._fields,
+                         tuple(field.name for field in fields(Optics)))
+
+    def test_the_defaults_are_those_of_optics(self):
+        from QHOT.lib.holograms.optics import Optics
+        self.assertEqual(CGH().settings, Optics().settings)
+
+    def test_a_name_that_is_not_in_the_calibration_is_refused(self):
+        with self.assertRaises(TypeError):
+            CGH(wavelenth=0.532)
 
     def test_every_calibration_field_is_set(self):
         cgh = CGH(wavelength=0.532, xc=7.)

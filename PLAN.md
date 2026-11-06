@@ -56,7 +56,7 @@ Missing relative to pyfab:
 | Torch CGH | Positive | Portable replacement for CUDA-only code |
 | TOML and ParameterTree for calibration | Mostly positive | Declarative and editable; TOML suits instrument profiles |
 | `QUndoStack` | Positive | Accidental moves are common |
-| Compute driven by `screen.rendered` | Mixed, leaning negative | Couples hologram latency to the display rate (capped at 30 fps); already in TODO |
+| Compute driven by `screen.newFrame` | Mixed, leaning negative | Couples hologram latency to the display rate (capped at 30 fps); already in TODO |
 | CGH on a `QThread` reading live trap objects | Risk (unverified) | `compute()` and `fieldOf()` read trap attributes and write the cache on the worker thread, while the cache is invalidated by main-thread `changed` signals; expect a rare race during fast drags; `_computePending` only partly helps |
 | One monolithic window and `.ui` | Mixed | Fine now; unwieldy once hardware and vision arrive |
 | Tasks call `animateClick()` on `QDVRWidget` buttons | Negative | Should use the headless `QRecorder` and `QPlayer` in QVideo 4.9 |
@@ -73,7 +73,7 @@ frame-coupled compute and the thread-safety model.
    amplitude, phase and structure parameters per leaf) built on the main
    thread; the worker owns the cache.
 2. **Done (2026-10-29).** Decouple compute from display: a coalescing, latest-wins compute loop with
-   its own rate limit.  `rendered` stays for tasks.
+   its own rate limit.  `newFrame` stays for tasks.
 3. **Done (2026-10-29).** Tasks drive `dvr.recorder` and `dvr.playback` instead of clicking buttons.
 
 ### Phase 1: parity with pyfab's core

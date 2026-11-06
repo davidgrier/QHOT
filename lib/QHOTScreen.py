@@ -29,23 +29,16 @@ class QHOTScreen(QVideoScreen):
     status : str
         Emitted with a human-readable message after user actions such
         as clearing all traps.
-    rendered : signal
-        Emitted each time a video frame is actually drawn, at the rate
-        set by ``framerate``.  Suitable for driving computations that
-        should be synchronized with the display cadence.
     '''
 
     #: Emitted with a status message string for display in the UI.
     status = QtCore.Signal(str)
-    #: Emitted after each video frame is rendered to the screen.
-    rendered = QtCore.Signal()
 
     def _setupUi(self) -> None:
         '''Add the trap overlay to the inherited video view.'''
         super()._setupUi()
         self.overlay = QTrapOverlay()
         self.addOverlay(self.overlay)
-        self.newFrame.connect(self.rendered)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
                            QtWidgets.QSizePolicy.Policy.Expanding)
 

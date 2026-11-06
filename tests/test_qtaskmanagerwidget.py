@@ -133,7 +133,7 @@ class TestQTaskManagerWidgetDisplay(unittest.TestCase):
 
     def _emit(self, n=1):
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_registered_task_appears_in_queue_list(self):
         task = QTask()
@@ -244,7 +244,7 @@ class TestQTaskManagerWidgetControls(unittest.TestCase):
 
     def _emit(self, n=1):
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_play_button_shows_play_when_idle(self):
         self.assertEqual(self.widget._playButton.text(), 'Play')
@@ -327,7 +327,7 @@ class TestQTaskManagerWidgetParamTree(unittest.TestCase):
 
     def _emit(self, n=1):
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_param_tree_empty_initially(self):
         self.assertIsNone(self.widget._taskTree)
@@ -519,7 +519,7 @@ class TestQTaskManagerWidgetDragReorder(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_queue_list_has_internal_move(self):
         from qtpy import QtWidgets as _QtW

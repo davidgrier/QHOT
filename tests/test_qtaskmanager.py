@@ -236,7 +236,7 @@ class TestQTaskManagerUserAdditions(unittest.TestCase):
         from QHOT.tasks import Delay
         self.manager.register(Delay(frames=5))
         self.manager.register(Delay(frames=6))
-        self.screen.rendered.emit()                  # the first is running
+        self.screen.draw()                  # the first is running
         self.assertEqual(len(self.manager.toList()), 1)
 
 
@@ -248,7 +248,7 @@ class TestQTaskManagerFrameDispatch(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_frame_steps_active_blocking_task(self):
         task = QTask()
@@ -308,7 +308,7 @@ class TestQTaskManagerSequencing(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_second_task_activates_after_first_completes(self):
         t1 = QTask(duration=1)
@@ -435,7 +435,7 @@ class TestQTaskManagerSchedule(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_scheduled_empty_initially(self):
         self.assertEqual(self.manager.scheduled, [])
@@ -521,7 +521,7 @@ class TestQTaskManagerAutoReset(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_manager_paused_after_auto_reset(self):
         from QHOT.tasks.Delay import Delay
@@ -576,7 +576,7 @@ class TestQTaskManagerBackground(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_background_task_removed_on_completion(self):
         task = QTask(duration=1)
@@ -728,7 +728,7 @@ class TestQTaskManagerRemove(unittest.TestCase):
         d2 = Delay(frames=0)
         mgr.register(d1)
         mgr.register(d2)
-        self.screen.rendered.emit()   # d1 completes
+        self.screen.draw()   # d1 completes
         self.assertEqual(d1.state, QTask.State.COMPLETED)
         mgr.remove(d1)
         self.assertNotIn(d1, mgr.scheduled)
@@ -755,7 +755,7 @@ class TestQTaskManagerChanged(unittest.TestCase):
 
     def _emit(self, n: int = 1) -> None:
         for _ in range(n):
-            self.screen.rendered.emit()
+            self.screen.draw()
 
     def test_changed_emitted_on_first_blocking_register(self):
         spy = QtTest.QSignalSpy(self.manager.changed)
@@ -873,7 +873,7 @@ class TestQTaskManagerReorder(unittest.TestCase):
         mgr.register(d1)
         mgr.register(d2)
         mgr.register(d3)
-        screen.rendered.emit()   # d1 completes, d2 activates
+        screen.draw()   # d1 completes, d2 activates
         self.assertEqual(d1.state, QTask.State.COMPLETED)
         # Reorder d2 and d3 (both PENDING/RUNNING)
         mgr.reorder([d1, d3, d2])

@@ -91,7 +91,7 @@ class QHOT(QtWidgets.QMainWindow):
             save=self.save,
             image=self.screen.image,
             parent=self)
-        self.screen.rendered.connect(self.manager.step)
+        self.screen.newFrame.connect(self.manager.step)
         self.taskManagerWidget.manager = self.manager
         self.menuQueue.manager = self.manager
         self._setupFiles()

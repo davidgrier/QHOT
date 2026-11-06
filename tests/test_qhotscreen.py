@@ -1,6 +1,5 @@
 '''Unit tests for QHOTScreen.'''
 import unittest
-import numpy as np
 from unittest.mock import MagicMock, patch
 from qtpy import QtWidgets, QtCore, QtGui, QtTest
 from QHOT.lib.QHOTScreen import QHOTScreen
@@ -240,39 +239,6 @@ class TestOverlayPos(unittest.TestCase):
         event = make_press_event(QtCore.QPoint(50, 50))
         pos = screen._overlayPos(event)
         self.assertIsInstance(pos, QtCore.QPointF)
-
-
-class TestSetImageRendered(unittest.TestCase):
-    '''``rendered`` says that a frame was drawn, and only then.'''
-
-    def setUp(self):
-        self.screen = make_screen()
-        self.image = np.zeros((480, 640, 3), dtype=np.uint8)
-
-    def test_rendered_not_emitted_when_not_ready(self):
-        spy = QtTest.QSignalSpy(self.screen.rendered)
-        self.screen._ready = False
-        self.screen.setImage(self.image)
-        self.assertEqual(len(spy), 0)
-
-    def test_rendered_emitted_when_ready(self):
-        spy = QtTest.QSignalSpy(self.screen.rendered)
-        self.screen._ready = True
-        self.screen.setImage(self.image)
-        self.assertEqual(len(spy), 1)
-
-    def test_set_image_accepts_frame_info(self):
-        spy = QtTest.QSignalSpy(self.screen.rendered)
-        self.screen._ready = True
-        self.screen.setImage(self.image, None)
-        self.assertEqual(len(spy), 1)
-
-    def test_throttled_frame_is_displayed_when_timer_expires(self):
-        self.screen._ready = False
-        self.screen.setImage(self.image, None)
-        spy = QtTest.QSignalSpy(self.screen.rendered)
-        self.screen._setready()
-        self.assertEqual(len(spy), 1)
 
 
 if __name__ == '__main__':

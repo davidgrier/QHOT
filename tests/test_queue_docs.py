@@ -24,7 +24,7 @@ DOCS = Path(__file__).resolve().parent.parent / 'docs'
 
 
 class Screen:
-    class rendered:
+    class newFrame:
         @staticmethod
         def connect(slot):
             pass

@@ -23,7 +23,11 @@ class Screen(QtCore.QObject):
 
     '''The part of the screen that drives the tasks: a signal per frame.'''
 
-    rendered = QtCore.Signal()
+    newFrame = QtCore.Signal(object, object)
+
+    def draw(self) -> None:
+        '''Show a frame, as the video screen does.'''
+        self.newFrame.emit(None, None)
 
 
 def attached(task, **resources):
@@ -34,7 +38,7 @@ def attached(task, **resources):
 
 
 def manager_for(screen, **resources) -> QTaskManager:
-    '''Return a task manager that steps whenever ``screen`` has rendered.
+    '''Return a task manager that steps whenever ``screen`` draws a frame.
 
     The manager has all of its resources, as in the program: those that
     are not given are mocks.
@@ -42,5 +46,5 @@ def manager_for(screen, **resources) -> QTaskManager:
     given = {name: MagicMock() for name in RESOURCES}
     given.update(resources)
     manager = QTaskManager(**given)
-    screen.rendered.connect(manager.step)
+    screen.newFrame.connect(manager.step)
     return manager

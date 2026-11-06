@@ -92,12 +92,12 @@ class TestRepeatSetup(unittest.TestCase):
         self.manager = manager_for(self.screen)
 
     def _pump(self, max_signals=200):
-        '''Fire rendered until manager pauses (schedule complete).
+        '''Draw frames until the manager pauses (schedule complete).
 
         Returns the number of signals fired.
         '''
         for count in range(1, max_signals + 1):
-            self.screen.rendered.emit()
+            self.screen.draw()
             if self.manager.paused:
                 return count
         return max_signals  # did not complete
@@ -112,7 +112,7 @@ class TestRepeatNoOp(TestRepeatSetup):
         repeat = Repeat(n=1)
         self.manager.register(repeat)
         spy = QtTest.QSignalSpy(repeat.finished)
-        self.screen.rendered.emit()
+        self.screen.draw()
         self.assertEqual(len(spy), 1)
 
     def test_n1_without_bracket_completes(self):
@@ -130,7 +130,7 @@ class TestRepeatNoOp(TestRepeatSetup):
         self.manager.register(repeat)
         self.manager.register(after)
         spy = QtTest.QSignalSpy(repeat.failed)
-        self.screen.rendered.emit()
+        self.screen.draw()
         self.assertEqual(len(spy), 1)
         self.assertIs(repeat.state, QTask.State.FAILED)
         self.assertEqual(self.manager.queueSize, 0)
@@ -155,7 +155,7 @@ class TestRepeatBracketed(TestRepeatSetup):
         return repeat
 
     def test_n1_block_runs_once(self):
-        # With n=1: no injection.  3 tasks × 1 step each = 3 rendered signals.
+        # With n=1: no injection.  3 tasks × 1 step each = 3 frames.
         self._schedule_block(n=1)
         count = self._pump()
         self.assertEqual(count, 3)
@@ -172,8 +172,8 @@ class TestRepeatBracketed(TestRepeatSetup):
         count = self._pump()
         self.assertEqual(count, 7)
 
-    def test_rendered_count_formula(self):
-        # General: 2*n + 1 rendered signals for a single-task block
+    def test_frame_count_formula(self):
+        # General: 2*n + 1 frames for a single-task block
         for n in range(1, 6):
             self.setUp()   # fresh manager each iteration
             self._schedule_block(n=n)
@@ -234,7 +234,7 @@ class TestRepeatNested(TestRepeatSetup):
 
         # Step through until inner_repeat has initialized
         for _ in range(10):
-            self.screen.rendered.emit()
+            self.screen.draw()
             if inner_repeat.state == QTask.State.COMPLETED:
                 break
 

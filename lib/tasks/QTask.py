@@ -30,7 +30,7 @@ class QTask(QtCore.QObject):
 
     A task is a frame-synchronized operation on the trapping system.
     The task manager connects each registered task to
-    ``QHOTScreen.rendered`` so that ``process()`` is called once per
+    ``QHOTScreen.newFrame`` so that ``process()`` is called once per
     display frame.
 
     Subclasses override one or more lifecycle hooks:

@@ -158,8 +158,8 @@ Task framework — ``QHOT.lib.tasks`` / ``QHOT.tasks``
 
 The task framework provides a frame-synchronized automation layer that
 sits alongside the trapping system.  Tasks are Python objects that run
-one step per video frame, driven by the same ``QHOTScreen.rendered``
-signal that updates the CGH.
+one step per video frame, driven by the ``newFrame`` signal of
+``QHOTScreen``.
 
 **QTask** is the abstract base for all tasks.  Each subclass overrides
 up to three lifecycle hooks:
@@ -417,7 +417,7 @@ existing File and Tasks actions:
    failure arrives as ``computeFailed`` and appears in the status bar.
 
 Tasks are still driven by the video: ``QTaskManager`` advances once for
-each ``QHOTScreen.rendered``.
+each ``QHOTScreen.newFrame``.
 
 Concrete trap types
 -------------------

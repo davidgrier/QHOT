@@ -366,7 +366,6 @@
    <extends>QGraphicsView</extends>
    <header>QHOT.lib.QHOTScreen</header>
    <slots>
-    <signal>rendered()</signal>
     <signal>status(str)</signal>
     <slot>clearTraps()</slot>
     <slot>saveImage()</slot>

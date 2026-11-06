@@ -111,8 +111,8 @@ def worker(camera: str, config: str, duration: float) -> dict:
         rendered.clear()
         holograms.clear()
         intervals.clear()
-        window.screen.rendered.connect(
-            lambda: rendered.append(time.perf_counter()))
+        window.screen.newFrame.connect(
+            lambda *_: rendered.append(time.perf_counter()))
         cgh.hologramReady.connect(
             lambda *_: holograms.append(time.perf_counter()))
         cpu[0] = (time.perf_counter(), sum(psutil.Process().cpu_times()[:2]))

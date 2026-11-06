@@ -215,6 +215,16 @@ class TestTheWindow(WindowCase):
         self.assertIs(manager.dvr, self.window.dvr)
         self.assertIs(manager.save, self.window.save)
 
+    def test_a_frame_of_the_screen_steps_the_tasks(self):
+        from QHOT.tasks import Delay
+        manager = self.window.manager
+        manager.clear()
+        manager.register(Delay(frames=5))
+        self.assertIsNone(manager.active)
+        self.window.screen.newFrame.emit(np.zeros((4, 4), np.uint8), None)
+        self.assertIsInstance(manager.active, Delay)
+        manager.clear()
+
     def test_the_trap_tab_follows_the_overlay(self):
         traps = self.window.traps
         self.assertEqual(len(traps._trapWidgets), 0)

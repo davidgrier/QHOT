@@ -23,7 +23,7 @@ class QTaskManager(QtCore.QObject):
 
     Advances each registered task by one step each time :meth:`step` is
     called, which is once per video frame when it is connected to
-    ``QHOTScreen.rendered``.  Blocking tasks are queued
+    ``QHOTScreen.newFrame``.  Blocking tasks are queued
     sequentially: the next task starts only after the current one
     finishes.  Non-blocking tasks start immediately and run in
     parallel with the blocking queue.
@@ -390,7 +390,7 @@ class QTaskManager(QtCore.QObject):
         '''Advance the tasks by one frame.
 
         Connect this to the signal that says that a frame has been shown,
-        such as ``QHOTScreen.rendered``.  Nothing happens while the
+        such as ``QHOTScreen.newFrame``.  Nothing happens while the
         manager is paused.
         '''
         if self._paused:

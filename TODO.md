@@ -71,7 +71,7 @@ while the interactive session continues.
 ~~Core infrastructure: `QTask` (frame-synchronized base class with
 PENDING / RUNNING / COMPLETED / FAILED state machine) and
 `QTaskManager` (blocking queue + parallel background tasks, driven
-by `QHOTScreen.rendered`).~~  **Done** (`lib/tasks/`)
+by `QHOTScreen.newFrame`).~~  **Done** (`lib/tasks/`)
 
 Concrete task implementations still to be written (`tasks/lib/`):
 

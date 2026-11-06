@@ -38,12 +38,31 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
     def fieldWidth(cls) -> int:
         '''Return the pixel width needed to display a typical value.
 
-        Computed from the application font metrics and cached per
-        concrete class (not shared across subclasses).
+        The width of the text of a typical value, ``12345.6``, and what the
+        style puts around the text of a line edit: its frame, and the
+        margin inside it.  Without them the digits at the left of the field
+        are clipped.  Computed from the application font and style, and
+        cached per concrete class (not shared across subclasses).
         '''
         if cls.__dict__.get('_field_width') is None:
-            fm = QtGui.QFontMetrics(QtWidgets.QApplication.instance().font())
-            cls._field_width = fm.boundingRect('12345.6').width()
+            edit = QtWidgets.QLineEdit()
+            style = edit.style()
+            option = QtWidgets.QStyleOptionFrame()
+            option.initFrom(edit)
+            option.lineWidth = style.pixelMetric(
+                QtWidgets.QStyle.PixelMetric.PM_DefaultFrameWidth,
+                option,
+                edit)
+            metrics = edit.fontMetrics()
+            margin = 4      # inside the frame, as QLineEdit makes it
+            text = QtCore.QSize(
+                metrics.horizontalAdvance('12345.6') + margin,
+                metrics.height())
+            cls._field_width = style.sizeFromContents(
+                QtWidgets.QStyle.ContentsType.CT_LineEdit,
+                option,
+                text,
+                edit).width()
         return cls._field_width
 
     def __init__(self,

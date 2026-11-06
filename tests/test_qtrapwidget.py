@@ -29,6 +29,18 @@ class TestQTrapPropertyEditFieldWidth(unittest.TestCase):
         self.assertIn('_field_width', SubEdit.__dict__)
 
 
+class TestQTrapPropertyEditFitsItsValue(unittest.TestCase):
+
+    '''The digits of a value are not clipped by the frame of the field.'''
+
+    def test_a_four_digit_value_fits(self):
+        edit = QTrapPropertyEdit('x', 1120.)
+        edit.ensurePolished()
+        room = edit.contentsRect().width() - 4      # the margin inside
+        self.assertGreaterEqual(
+            room, edit.fontMetrics().horizontalAdvance(edit.text()))
+
+
 class TestQTrapPropertyEditInit(unittest.TestCase):
 
     def setUp(self):

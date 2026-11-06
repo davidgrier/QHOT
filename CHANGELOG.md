@@ -9,6 +9,11 @@
   the x and y of a trap and ignored its z.  The help page on traps says so.
 
 ### Fixed
+- **The fields of the Traps tab no longer clip the digits.**  A field was as
+  wide as the text of a value and no wider, so that the frame and the margin
+  of the line edit took the left digit of a value of four digits, such as an
+  `x` of 1120 pixels on a camera of 1280.  The width is now that of the text
+  with what the style puts around it.
 - **Editing x, y or z of a group in the Traps tab moves the whole group.**
   It changed only the center of the group and left its members where they
   were, until the group was reshaped and they jumped to the new center.

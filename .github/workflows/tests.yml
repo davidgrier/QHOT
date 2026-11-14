@@ -21,10 +21,9 @@ jobs:
   types:
     name: Types (pyright on lib/)
     runs-on: ubuntu-latest
-    # Allowed to fail until the report is empty; then remove this line, and
-    # a type error fails the workflow.  Pyright is pinned, as in QVideo: a
-    # newer version finds new things, for us to fix when we choose to move.
-    continue-on-error: true
+    # The report is empty, so a type error fails the workflow.  Pyright is
+    # pinned, as in QVideo: a newer version finds new things, for us to fix
+    # when we choose to move (change the pin and the report together).
     env:
       QT_QPA_PLATFORM: offscreen
     steps:

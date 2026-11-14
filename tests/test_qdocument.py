@@ -232,7 +232,7 @@ class TestTheBase(DocumentCase):
 
     def test_the_dialogs_offer_the_suffix_of_the_format(self):
         self.assertEqual(self.document.SUFFIX, '.json')
-        self.assertEqual(self.document.filter, 'Trap Configuration (*.json)')
+        self.assertEqual(self.document.types, 'Trap Configuration (*.json)')
 
 
 if __name__ == '__main__':

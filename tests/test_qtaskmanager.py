@@ -929,7 +929,7 @@ class TestQTaskManagerReorder(unittest.TestCase):
     def test_reorder_preserves_same_set(self):
         t1, t2, t3 = self._register(3)
         self.manager.reorder([t3, t2, t1])
-        self.assertEqual(set(id(t) for t in self.manager.scheduled),
+        self.assertEqual({id(t) for t in self.manager.scheduled},
                          {id(t1), id(t2), id(t3)})
 
 

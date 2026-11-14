@@ -43,7 +43,7 @@ class TestProperties(unittest.TestCase):
         self.assertIsInstance(self.widget.properties, KeysView)
 
     def test_contains_all_tree_params(self):
-        self.assertTrue(_TREE_PARAMS <= set(self.widget.properties))
+        self.assertTrue(set(self.widget.properties) >= _TREE_PARAMS)
 
     def test_does_not_contain_shape(self):
         self.assertNotIn('shape', self.widget.properties)
@@ -90,7 +90,7 @@ class TestSettings(unittest.TestCase):
         self.assertIsInstance(self.widget.settings, dict)
 
     def test_getter_contains_all_params(self):
-        self.assertTrue(_TREE_PARAMS <= set(self.widget.settings.keys()))
+        self.assertTrue(set(self.widget.settings) >= _TREE_PARAMS)
 
     def test_getter_values_match_get(self):
         for key in _TREE_PARAMS:

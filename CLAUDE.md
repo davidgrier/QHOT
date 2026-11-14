@@ -113,7 +113,7 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - Qt widgets require a `QApplication` instance; tests use `QApplication.instance() or QApplication(sys.argv)`
 - Qt signals are tested with `QtTest.QSignalSpy`
 - CI runs headless with `QT_QPA_PLATFORM=offscreen` across Python 3.11–3.12
-- Coverage config in `pyproject.toml` under `[tool.coverage.*]`
+- Coverage config in `pyproject.toml` under `[tool.coverage.*]`; CI measures it, and a leg fails below `fail_under` (95; the legs without torch and numba reach 96)
 - Use `# pragma: no cover` for example/main blocks and GPU-only code paths
 - `QVideo` (camera library) is a dependency from PyPI (`QVideo[dvr]>=4.28.0`); its camera opener (`QVideo.lib.QCameraOpener`) is used here, not copied
 - The help pages (`help/*.html`, shown in the Help tab) are a manual for users: they describe the program as it is, by what the user sees and does. When a control, a gesture, a menu or a shortcut changes, change its page; `tests/test_help.py` checks that every link leads to a page and every page is reachable from `index.html`
@@ -124,8 +124,9 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - Prefer single quotes over double quotes for strings, including docstrings.
 - Docstrings use NumPy style.
 - Use split-string style for `__all__`: `__all__ = 'Foo Bar Baz'.split()`
-- Keep all lines within 79 columns, including comments and docstrings. `ruff check .` (pyflakes, bugbear, the line length, single quotes, class attributes, quoted annotations and stale `noqa`, configured in `pyproject.toml`) runs in CI as the `Lint` job: fix what it reports rather than silencing it.
+- Keep all lines within 79 columns, including comments and docstrings. `ruff check .` (pyflakes, bugbear, the line length, single quotes, class attributes, quoted annotations, stale `noqa`, names that hide a builtin, parent imports and a few simplifications, configured in `pyproject.toml`) runs in CI as the `Lint` job: fix what it reports rather than silencing it.
 - Layout of arguments, as in QVideo. In a definition, either everything fits on one line, or the parameters are aligned under the first, one to a line, with `self` or `cls` beside the first parameter or alone on the line of the name: `def phasors(self,` / `c,` / `positions) -> tuple:`. In a call, either everything fits on one line, or the arguments are aligned under the first, one to a line, or they hang, one to a line with a trailing comma and the closing parenthesis on a line of its own (good for a call with keywords, such as a table). Never several arguments on a line of a wrapped list. `tests/test_style.py` enforces it.
+- A table is written `dict(name='x', type='int')` (ruff `C408` is not selected), a nested `with` stays nested (`SIM117`), and `__all__ = 'A B'.split()` stays (`SIM905`).  A signature that is wide on purpose is a keyword-only wiring (`QDocument`, `QTomlDocument`, `QTaskManager`) or a numba kernel (`_phasors`): ruff `PLR0913` is not selected.
 - Logging uses f-strings, `logger.info(f'Using {name}')`, as QVideo, QInstrument and pylorenzmie do (lazy `%s` arguments save the formatting of a message that is not emitted, which does not matter here), and `logger.exception(...)` in an `except` block, so the traceback is kept.
 - A class attribute that is shared is annotated `ClassVar`; a declarative table, such as a task's `parameters`, is a tuple (ruff `RUF012`).
 - Annotations are never quoted: a module that needs a forward reference has `from __future__ import annotations` (ruff `UP037`). A `# noqa` says why, and ruff `RUF100` removes one that is stale. Run it with all the rules selected, or it will remove a `noqa` for a rule that it was not checking.

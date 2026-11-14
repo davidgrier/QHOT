@@ -14,14 +14,6 @@ The review kept to what the CI checks.  A stricter pass finds these:
 - [ ] `QTrapOverlay._detachTrap` has a branch for a group that is left empty
       after a trap leaves it, which no test reaches and which cannot happen
       if a group always has two traps or more.  Confirm, and remove it.
-- [ ] `CGH` defaults `xs` and `ys` to 0, while `QCGHTree` says 256.
-- [ ] Wide signatures: `QTomlDocument` (8 arguments), the numba backend (8),
-      `QDocument` and `QTaskManager` (6).
-- [ ] `try`/`except`/`pass` that is `contextlib.suppress` (5), `key in
-      dict.keys()` (3), `dict(...)` calls that are literals (44), a loop
-      variable that is overwritten (2), `filter` as an argument name.
-- [ ] 54 of 336 public functions have no docstring (`QTrap`, `QTrapArray`,
-      the tasks).
 - [ ] `.qh/` (a virtual environment, 519 MB) and `old/` sit in the working
       directory, ignored by git; delete them if nothing needs them.
 

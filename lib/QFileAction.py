@@ -28,7 +28,7 @@ class QFileAction(QtCore.QObject):
     ----------
     name : str
         What the file holds, as the messages say it: ``'traps'``.
-    filter : str
+    types : str
         The file types of the dialogs, as Qt writes them:
         ``'Trap Configuration (*.json)'``.
     files : QSaveFile
@@ -47,13 +47,13 @@ class QFileAction(QtCore.QObject):
 
     def __init__(self,
                  name: str,
-                 filter: str,
+                 types: str,
                  *,
                  files: QSaveFile,
                  parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
         self.name = name
-        self.filter = filter
+        self.types = types
         self.files = files
 
     def chooseToSave(self, default: str) -> str:
@@ -62,7 +62,7 @@ class QFileAction(QtCore.QObject):
             cast(QtWidgets.QWidget, self.parent()),
             f'Save {self.name.capitalize()} As',
             default,
-            self.filter,
+            self.types,
         )
         return path
 
@@ -72,7 +72,7 @@ class QFileAction(QtCore.QObject):
             cast(QtWidgets.QWidget, self.parent()),
             f'Open {self.name.capitalize()}',
             str(self.files.datadir),
-            self.filter,
+            self.types,
         )
         return path
 

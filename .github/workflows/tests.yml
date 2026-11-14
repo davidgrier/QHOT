@@ -128,7 +128,7 @@ jobs:
         run: pip install -e ".[dev,${{ matrix.binding }}${{ matrix.extras }}]"
 
       - name: Run tests
-        run: python -m pytest --tb=short -q
+        run: python -m pytest --tb=short -q --cov=QHOT
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

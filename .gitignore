@@ -30,7 +30,6 @@ htmlcov/
 docs/_build/
 
 # Legacy and generated artifacts
-old/
 help/html/
 help/old/
 help/Makefile

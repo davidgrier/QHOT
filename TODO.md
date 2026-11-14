@@ -14,8 +14,6 @@ The review kept to what the CI checks.  A stricter pass finds these:
 - [ ] `QTrapOverlay._detachTrap` has a branch for a group that is left empty
       after a trap leaves it, which no test reaches and which cannot happen
       if a group always has two traps or more.  Confirm, and remove it.
-- [ ] `.qh/` (a virtual environment, 519 MB) and `old/` sit in the working
-      directory, ignored by git; delete them if nothing needs them.
 
 ---
 

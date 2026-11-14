@@ -80,7 +80,6 @@ source = ["QHOT"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
-    "*/old/*",
     "*/.ipynb_checkpoints/*",
 ]
 
@@ -96,7 +95,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 79
-extend-exclude = ["devel", "old"]
+extend-exclude = ["devel"]
 
 [tool.ruff.lint]
 # F pyflakes, B bugbear, E501 line length, Q quotes, RUF012 mutable class

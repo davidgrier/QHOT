@@ -329,15 +329,15 @@ class TestSetGroupBrush(unittest.TestCase):
 
     def test_sets_all_leaf_spots(self):
         self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
-                                    self.overlay.State.SELECTED)
+                                    self.overlay.State.ACTIVE)
         for trap in [self.t1, self.t2]:
             spot = self.overlay.points()[trap._index]
             self.assertEqual(spot.brush(),
-                             self.overlay.brush[self.overlay.State.SELECTED])
+                             self.overlay.brush[self.overlay.State.ACTIVE])
 
     def test_resets_to_normal(self):
         self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
-                                    self.overlay.State.SELECTED)
+                                    self.overlay.State.ACTIVE)
         self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
                                     self.overlay.State.NORMAL)
         for trap in [self.t1, self.t2]:
@@ -798,7 +798,7 @@ class TestToggleMark(unittest.TestCase):
         spot = self.overlay.points()[0]
         self.assertEqual(
             spot.brush().color(),
-            self.overlay.brush[self.overlay.State.SPECIAL].color())
+            self.overlay.brush[self.overlay.State.MARKED].color())
 
     def test_unmark_restores_normal_brush(self):
         with patch.object(self.overlay, 'trapAt', return_value=self.trap):
@@ -870,6 +870,84 @@ class TestMarkedProperty(unittest.TestCase):
         leaves = list(self.overlay.marked)
         self.assertIn(t1, leaves)
         self.assertNotIn(t2, leaves)
+
+
+class TestAMarkedGroupStaysMarkedInTheEyesOfTheUser(unittest.TestCase):
+
+    '''A marked group is blue at rest.  Dragging it, rotating it, enclosing
+    it in a rubber band, removing another trap and locking it do not make it
+    look like a group that is not marked: the user would think that a task
+    skips it, and ``selected_only`` would move it.'''
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.state = self.overlay.State
+        self.t1 = QTrap(r=(3., 3., 0.), phase=0.)
+        self.t2 = QTrap(r=(30., 30., 0.), phase=0.)
+        self.overlay.addTrap(self.t1)
+        self.overlay.addTrap(self.t2)
+        self.overlay.mark(self.t1)
+
+    def shows(self, trap, state):
+        return (self.overlay.points()[trap._index].brush()
+                == self.overlay.brush[state])
+
+    def test_a_mark_and_an_active_group_are_not_alike(self):
+        brush = self.overlay.brush
+        self.assertNotEqual(brush[self.state.MARKED].color().getRgb()[:3],
+                            brush[self.state.ACTIVE].color().getRgb()[:3])
+
+    def test_marked(self):
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_while_it_is_dragged_it_is_active(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
+            self.overlay.gestures.grab(QtCore.QPointF(3., 3.))
+        self.assertTrue(self.shows(self.t1, self.state.ACTIVE))
+
+    def test_after_a_drag(self):
+        self.overlay.setGroupBrush(self.t1, self.state.ACTIVE)
+        self.overlay.gestures.dragged = self.t1
+        self.overlay.gestures.release(None)
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_after_a_rubber_band_that_does_not_group_it(self):
+        gestures = self.overlay.gestures
+        gestures.startSelection(QtCore.QPointF(0., 0.))
+        gestures.growSelection(QtCore.QPointF(5., 5.))
+        self.assertTrue(self.shows(self.t2, self.state.NORMAL))
+        gestures.endSelection()
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_while_a_rubber_band_encloses_it_it_shows_the_grouping(self):
+        gestures = self.overlay.gestures
+        gestures.startSelection(QtCore.QPointF(0., 0.))
+        gestures.growSelection(QtCore.QPointF(5., 5.))
+        self.assertTrue(self.shows(self.t1, self.state.GROUPING))
+
+    def test_after_another_trap_is_removed(self):
+        self.overlay.removeTrap(self.t2)
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_a_trap_that_is_added_is_not_marked(self):
+        t3 = QTrap(r=(60., 60., 0.), phase=0.)
+        self.overlay.addTrap(t3)
+        self.assertTrue(self.shows(t3, self.state.NORMAL))
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_locking_a_marked_group_keeps_it_marked(self):
+        self.t1.locked = True
+        self.overlay.rest(self.t1)
+        self.assertTrue(self.shows(self.t1, self.state.MARKED))
+
+    def test_unmarking_a_locked_group_shows_that_it_is_locked(self):
+        self.t1.locked = True
+        self.overlay.unmark(self.t1)
+        self.assertTrue(self.shows(self.t1, self.state.STATIC))
+
+    def test_unmarking_shows_the_normal_color(self):
+        self.overlay.unmark(self.t1)
+        self.assertTrue(self.shows(self.t1, self.state.NORMAL))
 
 
 class TestClearingTheTrapsClearsTheMarks(unittest.TestCase):

@@ -71,19 +71,26 @@ class QTrapOverlay(ScatterPlotItem):
     patternChanged = QtCore.Signal()
 
     class State(Enum):
-        '''Visual state of a trap spot, controlling its fill color.'''
+        '''Visual state of a trap spot, controlling its fill color.
+
+        ``ACTIVE`` is a group that the mouse is moving or rotating, and
+        ``MARKED`` one that is marked for the tasks; they are not alike on
+        purpose, because a marked group is dragged too.  ``STATIC`` is a
+        locked group, ``GROUPING`` one that a rubber band encloses, and
+        ``NORMAL`` the rest.
+        '''
         STATIC = 0
         NORMAL = 1
-        SELECTED = 2
+        ACTIVE = 2
         GROUPING = 3
-        SPECIAL = 4
+        MARKED = 4
 
     brush: ClassVar[dict[State, QtGui.QBrush]] = {
         State.STATIC: mkBrush(255, 255, 255, 120),
         State.NORMAL: mkBrush(100, 255, 100, 120),
-        State.SELECTED: mkBrush(255, 105, 180, 120),
+        State.ACTIVE: mkBrush(255, 105, 180, 120),
         State.GROUPING: mkBrush(255, 255, 100, 120),
-        State.SPECIAL: mkBrush(238, 130, 238, 120)}
+        State.MARKED: mkBrush(80, 160, 255, 120)}
 
     #: Height at which a marker is twice as large as in the focal plane
     #: [pixels].
@@ -199,8 +206,7 @@ class QTrapOverlay(ScatterPlotItem):
             A single trap or a group to register.
         '''
         traps.setParent(self)
-        brush_state = (self.State.STATIC if traps.locked
-                       else self.State.NORMAL)
+        brush_state = self.restingState(traps)
         for trap in traps.leaves():
             trap._index = len(self._traps)
             self._traps.append(trap)
@@ -325,9 +331,7 @@ class QTrapOverlay(ScatterPlotItem):
         spots = []
         for n, trap in enumerate(self._traps):
             trap._index = n
-            group = self.groupOf(trap)
-            brush_state = (self.State.STATIC if group.locked
-                           else self.State.NORMAL)
+            brush_state = self.restingState(self.groupOf(trap))
             spots.append(self._spot(trap, self.brush[brush_state]))
         self.addPoints(spots)
 
@@ -515,11 +519,27 @@ class QTrapOverlay(ScatterPlotItem):
         '''
         return list(self._marked)
 
+    def restingState(self, group: QTrap) -> State:
+        '''Return the state of a top-level trap or group at rest: ``MARKED``
+        if it is marked, else ``STATIC`` if it is locked, else ``NORMAL``.
+
+        What a gesture changes, it changes back to this, and not to
+        ``NORMAL``, so that a marked group stays marked in the eyes of the
+        user when it has been dragged.
+        '''
+        if group in self._marked:
+            return self.State.MARKED
+        return self.State.STATIC if group.locked else self.State.NORMAL
+
+    def rest(self, group: QTrap) -> None:
+        '''Show a top-level trap or group in its resting state.'''
+        self.setGroupBrush(group, self.restingState(group))
+
     def mark(self, group: QTrap) -> None:
-        '''Mark a top-level trap or group, and show it with the SPECIAL
+        '''Mark a top-level trap or group, and show it with the ``MARKED``
         brush.'''
         self._marked.add(group)
-        self.setGroupBrush(group, self.State.SPECIAL)
+        self.rest(group)
 
     def unmark(self, group: QTrap) -> None:
         '''Remove the mark of a top-level trap or group, if it has one.
@@ -528,13 +548,12 @@ class QTrapOverlay(ScatterPlotItem):
         '''
         if group in self._marked:
             self._marked.discard(group)
-            self.setGroupBrush(group, self.State.STATIC if group.locked
-                               else self.State.NORMAL)
+            self.rest(group)
 
     def toggleMark(self, pos: QtCore.QPointF) -> bool:
-        '''Toggle the SPECIAL (marked) state of the group at pos.
+        '''Toggle the mark of the group at pos.
 
-        Marked groups are highlighted with the ``SPECIAL`` brush.
+        Marked groups are highlighted with the ``MARKED`` brush.
         Clicking a marked group a second time clears its mark.
         Used as the ``Ctrl+left`` mouse handler so the user can
         designate traps for scripted task operations.  A change of the

@@ -190,7 +190,7 @@ class TestGrab(unittest.TestCase):
     def test_the_group_shows_that_it_is_selected(self):
         self.gestures.grab(point(5., 5.))
         self.assertEqual(self.overlay.points()[0].brush(),
-                         self.overlay.brush[self.overlay.State.SELECTED])
+                         self.overlay.brush[self.overlay.State.ACTIVE])
 
     def test_a_locked_group_is_taken_but_not_grabbed(self):
         self.trap.locked = True
@@ -447,7 +447,7 @@ class TestStartRotation(unittest.TestCase):
         for trap in (self.t1, self.t2):
             self.assertEqual(
                 self.overlay.points()[trap._index].brush(),
-                self.overlay.brush[self.overlay.State.SELECTED])
+                self.overlay.brush[self.overlay.State.ACTIVE])
 
     def test_it_is_the_outermost_group_that_turns(self):
         outer = QTrapGroup(r=(0., 0., 0.))

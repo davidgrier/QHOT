@@ -202,7 +202,6 @@ class Gestures:
             Always ``True``.
         '''
         overlay = self.overlay
-        state = overlay.State
         if self.band.isVisible():
             self.endSelection()
         rotation, self.rotation = self.rotation, None
@@ -210,13 +209,13 @@ class Gestures:
             if abs(rotation.angle) > 1e-10:
                 overlay.undoStack.push(
                     RotateCommand(rotation.group, rotation.snapshot))
-            overlay.setGroupBrush(rotation.group, state.NORMAL)
+            overlay.rest(rotation.group)
         dragged, self.dragged = self.dragged, None
         if dragged is not None:
             origin = self.dragOrigin
             if origin is not None and not np.allclose(dragged.r, origin):
                 overlay.undoStack.push(MoveCommand(dragged, origin))
-            overlay.setGroupBrush(dragged, state.NORMAL)
+            overlay.rest(dragged)
         self.dragOrigin = None
         self.dragLast = None
         return True
@@ -274,7 +273,7 @@ class Gestures:
             return True
         self.dragged = group
         self.dragOrigin = group.r
-        self.overlay.setGroupBrush(group, self.overlay.State.SELECTED)
+        self.overlay.setGroupBrush(group, self.overlay.State.ACTIVE)
         return True
 
     def startRotation(self, pos: QtCore.QPointF) -> bool:
@@ -306,7 +305,7 @@ class Gestures:
             angle0=np.arctan2(pos.y() - y, pos.x() - x),
             snapshot=group.snapshot(),
         )
-        self.overlay.setGroupBrush(group, self.overlay.State.SELECTED)
+        self.overlay.setGroupBrush(group, self.overlay.State.ACTIVE)
         return True
 
     def startSelection(self, pos: QtCore.QPointF) -> None:
@@ -335,9 +334,10 @@ class Gestures:
         self.band.setRect(rect)
         state = self.overlay.State
         for item in self.overlay:
-            self.overlay.setGroupBrush(
-                item, state.GROUPING if item.isWithin(rect)
-                else state.NORMAL)
+            if item.isWithin(rect):
+                self.overlay.setGroupBrush(item, state.GROUPING)
+            else:
+                self.overlay.rest(item)
 
     def endSelection(self) -> None:
         '''Hide the rubber band, and group the traps that it enclosed.'''
@@ -345,7 +345,7 @@ class Gestures:
         self.band.hide()
         self.anchor = None
         for item in self.overlay:
-            self.overlay.setGroupBrush(item, self.overlay.State.NORMAL)
+            self.overlay.rest(item)
         group_within(self.overlay, rect)
 
     # ------------------------------------------------------------------

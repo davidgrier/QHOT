@@ -288,9 +288,7 @@ class LockCommand(QUndoCommand):
 
     def _toggle(self) -> None:
         self._group.locked = not self._group.locked
-        state = (self._overlay.State.STATIC if self._group.locked
-                 else self._overlay.State.NORMAL)
-        self._overlay.setGroupBrush(self._group, state)
+        self._overlay.rest(self._group)
 
 
 class PropertyCommand(QUndoCommand):

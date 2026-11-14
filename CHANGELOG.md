@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Fixed
+- **A marked trap is blue, and stays blue.**  It was violet, which looks like
+  the pink of a trap that is being dragged, and it turned green after a drag,
+  a rotation, a rubber band around it, or the removal of another trap, while
+  it was still marked, so that `selected_only` moved a trap that looked
+  unmarked.  The states are named for what they mean (`ACTIVE`, was
+  `SELECTED`, and `MARKED`, was `SPECIAL`), and what a gesture changes it
+  changes back to the resting state of the group: marked, else locked, else
+  normal (`restingState`, `rest`).
 - **Breaking a group is consistent.**  A group left with one trap dissolves,
   whether the trap or its subgroup was taken out: breaking a subgroup out of
   an outer group used to leave the outer group holding one trap.  The trap

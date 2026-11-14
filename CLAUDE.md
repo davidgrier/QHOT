@@ -43,7 +43,7 @@ is updated by CI on a tag push: never edit it by hand.
    `pyproject.toml`, and refresh the editable install (`pip install -e .
    --no-deps` in the development environment).
 2. Commit and push `main`, and wait for the `Tests` workflow to pass on
-   every job (Python 3.11 and 3.12, PyQt5 and PyQt6, the wheel, lint).
+   every job that counts (Python 3.11 to 3.14, PyQt5 and PyQt6, macOS, the wheel, lint, types; the PySide6 leg only reports, until it is green).
 3. Tag and push the tag:
 
 ```bash
@@ -135,6 +135,10 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 - Every public class, function, method and property has a NumPy-style docstring. Sphinx publishes only what has one, and `tests/test_docstrings.py` fails when one is missing (an override inherits the docstring of the method it overrides; Qt signals are documented with `#:` comments or in the class docstring).
 - Put the physics in the docstring. Equations go in `.. math::` blocks or `:math:` roles, and a docstring that has a backslash is a raw string (`r'''`). Build the docs with `python -m sphinx -b html -E docs docs/_build/html`; the build should have no warnings.
 - Name things in the physicist's words where they are physics (`psi`, `phasors`, `superpose`, `structuringField`, `amplitude`, `toSLM`) so that the code reads as the equation, and in plain engineering words where they are plumbing (`upload`, `cache`, `device`).
+
+## Qt bindings
+
+Say `super().__setattr__(name, value)` in a subclass of a Qt class, never `object.__setattr__`: PySide6 on Python 3.12 and earlier refuses it (`tests/test_bindings.py`). The signals of PySide6 and PyQt differ in the spies of the tests: `tests/conftest.py` gives PySide6 a `QSignalSpy` that has `len()` and indexing.
 
 ## Imports
 

@@ -118,12 +118,12 @@ jobs:
              extras: ",numba", experimental: false}
           # newer Pythons
           - {os: ubuntu-latest, python-version: "3.13", binding: pyqt6,
-             extras: "", experimental: true}
+             extras: "", experimental: false}
           - {os: ubuntu-latest, python-version: "3.14", binding: pyqt6,
-             extras: "", experimental: true}
+             extras: "", experimental: false}
           # the platform that QHOT runs on
           - {os: macos-latest, python-version: "3.12", binding: pyqt6,
-             extras: "", experimental: true}
+             extras: "", experimental: false}
           # declared, and not yet shown to work
           - {os: ubuntu-latest, python-version: "3.12", binding: pyside6,
              extras: "", experimental: true}

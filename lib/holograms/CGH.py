@@ -103,8 +103,8 @@ class CGH(QtCore.QObject):
         # Optics has the defaults, and refuses a name that is not a field.
         optics = Optics(**calibration)
         for name in self._fields:
-            object.__setattr__(self, name, getattr(optics, name))
-        object.__setattr__(self, '_optics', None)
+            super().__setattr__(name, getattr(optics, name))
+        super().__setattr__('_optics', None)
         self.backend = backend or NumpyBackend()
         self._busy = False
         self._next: tuple | None = None
@@ -133,7 +133,7 @@ class CGH(QtCore.QObject):
     def _changed(self) -> None:
         '''Forget the optics, which no longer describe the calibration,
         and tell the interface.'''
-        object.__setattr__(self, '_optics', None)
+        super().__setattr__('_optics', None)
         self.recalculate.emit()
 
     @property
@@ -146,7 +146,7 @@ class CGH(QtCore.QObject):
         optics = self._optics
         if optics is None:
             optics = Optics.from_settings(self.settings)
-            object.__setattr__(self, '_optics', optics)
+            super().__setattr__('_optics', optics)
         return optics
 
     @property
@@ -188,7 +188,7 @@ class CGH(QtCore.QObject):
         for key, value in settings.items():
             if key in self._fields:
                 if getattr(self, key, None) != value:
-                    object.__setattr__(self, key, value)
+                    super().__setattr__(key, value)
                     changed = True
             else:
                 logger.warning(f'Unsupported property: {key}')

@@ -420,20 +420,31 @@ class TestTheMouseOnTheScreen(WindowCase):
     which needs a view; here there is one.
     '''
 
+    #: How far a trap is from where it was clicked: the pixel that the click
+    #: was rounded to is more than a unit of the overlay on a small screen.
+    PIXEL = 2.5
+
     @classmethod
     def setUpClass(cls):
         cls.window = Window.window
+        cls.size = cls.window.size()
+        # The traps are 40 units apart, and a marker is 16 pixels across:
+        # the screen must show the video at about its own size, which a
+        # window that starts small (PyQt5 offscreen) does not.
+        cls.window.resize(1000, 800)
         cls.window.show()
-        QtTest.QTest.qWait(100)
+        QtTest.QTest.qWait(cls.window.SETTLE + 200)
 
     @classmethod
     def tearDownClass(cls):
         cls.window.hide()
+        cls.window.resize(cls.size)
 
     def setUp(self):
         super().setUp()
         self.screen = self.window.videoScreen
         self.viewport = self.screen.viewport()
+        self.assertGreater(self.screen.width(), 400, 'the screen is too small')
 
     # --- the hands
 
@@ -454,9 +465,25 @@ class TestTheMouseOnTheScreen(WindowCase):
         for t in (.25, .5, .75, 1.):
             x = start[0] + t * (end[0] - start[0])
             y = start[1] + t * (end[1] - start[1])
-            QtTest.QTest.mouseMove(self.viewport, self.pixel(x, y))
+            self.move(x, y, modifiers)
         there = self.pixel(*end)
         QtTest.QTest.mouseRelease(self.viewport, left, modifiers, there)
+
+    def move(self, x, y, modifiers=NO):
+        '''Move the cursor with the left button down.
+
+        ``QTest.mouseMove`` does not say which buttons are down in Qt 5.
+        '''
+        local = QtCore.QPointF(self.pixel(x, y))
+        event = QtGui.QMouseEvent(
+            QtCore.QEvent.Type.MouseMove,
+            local,
+            QtCore.QPointF(self.viewport.mapToGlobal(local.toPoint())),
+            QtCore.Qt.MouseButton.NoButton,
+            QtCore.Qt.MouseButton.LeftButton,
+            modifiers,
+        )
+        QtWidgets.QApplication.sendEvent(self.viewport, event)
 
     def traps(self):
         return list(self.overlay)
@@ -471,23 +498,23 @@ class TestTheMouseOnTheScreen(WindowCase):
     def test_a_shift_click_adds_a_trap_where_it_was_clicked(self):
         trap = self.add(60., 40.)
         self.assertEqual(len(self.traps()), 1)
-        self.assertAlmostEqual(trap.x, 60., delta=1.)
-        self.assertAlmostEqual(trap.y, 40., delta=1.)
+        self.assertAlmostEqual(trap.x, 60., delta=self.PIXEL)
+        self.assertAlmostEqual(trap.y, 40., delta=self.PIXEL)
         self.assertHologramOfTheTraps()
 
     def test_a_drag_moves_the_trap_and_its_hologram(self):
         trap = self.add(60., 40.)
         self.after(lambda: self.drag((60., 40.), (100., 80.)))
-        self.assertAlmostEqual(trap.x, 100., delta=1.5)
-        self.assertAlmostEqual(trap.y, 80., delta=1.5)
+        self.assertAlmostEqual(trap.x, 100., delta=self.PIXEL)
+        self.assertAlmostEqual(trap.y, 80., delta=self.PIXEL)
         self.assertHologramOfTheTraps()
 
     def test_a_drag_can_be_undone(self):
         trap = self.add(60., 40.)
         self.after(lambda: self.drag((60., 40.), (100., 80.)))
         self.after(self.overlay.undoStack.undo)
-        self.assertAlmostEqual(trap.x, 60., delta=1.5)
-        self.assertAlmostEqual(trap.y, 40., delta=1.5)
+        self.assertAlmostEqual(trap.x, 60., delta=self.PIXEL)
+        self.assertAlmostEqual(trap.y, 40., delta=self.PIXEL)
         self.assertHologramOfTheTraps()
 
     def test_ctrl_shift_click_removes_a_trap(self):
@@ -508,8 +535,8 @@ class TestTheMouseOnTheScreen(WindowCase):
         self.click(60., 40., CTRL | ALT)
         self.assertTrue(trap.locked)
         self.drag((60., 40.), (100., 80.))
-        self.assertAlmostEqual(trap.x, 60., delta=1.)
-        self.assertAlmostEqual(trap.y, 40., delta=1.)
+        self.assertAlmostEqual(trap.x, 60., delta=self.PIXEL)
+        self.assertAlmostEqual(trap.y, 40., delta=self.PIXEL)
 
     def test_a_rubber_band_groups_the_traps_that_it_encloses(self):
         for x in (60., 100., 140.):
@@ -529,7 +556,7 @@ class TestTheMouseOnTheScreen(WindowCase):
         (group,) = [t for t in self.traps() if isinstance(t, QTrapGroup)]
         before = group.r
         self.after(lambda: self.drag((60., 40.), (60., 90.)))
-        self.assertAlmostEqual(group.y - before[1], 50., delta=1.5)
+        self.assertAlmostEqual(group.y - before[1], 50., delta=self.PIXEL)
         self.assertHologramOfTheTraps()
 
     def test_alt_shift_click_breaks_a_group(self):
@@ -552,12 +579,12 @@ class TestTheMouseOnTheScreen(WindowCase):
         # The trap follows the cursor about the center of the group.
         start, end = (first.x, first.y), (cx, cy - 40.)
         self.after(lambda: self.drag(start, end, ALT))
-        self.assertAlmostEqual(group.x, cx, delta=1.5)    # not moved
-        self.assertAlmostEqual(group.y, cy, delta=1.5)
-        self.assertAlmostEqual(first.x, cx, delta=2.)
-        self.assertAlmostEqual(first.y, cy - 40., delta=2.)
-        self.assertAlmostEqual(second.x, cx, delta=2.)
-        self.assertAlmostEqual(second.y, cy + 40., delta=2.)
+        self.assertAlmostEqual(group.x, cx, delta=self.PIXEL)    # not moved
+        self.assertAlmostEqual(group.y, cy, delta=self.PIXEL)
+        self.assertAlmostEqual(first.x, cx, delta=self.PIXEL)
+        self.assertAlmostEqual(first.y, cy - 40., delta=self.PIXEL)
+        self.assertAlmostEqual(second.x, cx, delta=self.PIXEL)
+        self.assertAlmostEqual(second.y, cy + 40., delta=self.PIXEL)
         self.assertHologramOfTheTraps()
 
     def test_the_wheel_changes_the_height(self):

@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Fixed
+- **Clearing the traps clears their marks.**  `clearTraps()` (and so the
+  `ClearTraps` task and opening a trap file) left the traps in
+  `markedGroups` after it had removed them, so a task that moved the
+  marked groups moved traps that were not on the overlay.
 - **Grouping or breaking a group clears the marks of what it changes.**  A
   trap that was marked and then grouped stayed in `markedGroups` although
   it was inside a group, so a task that moved the marked groups moved the

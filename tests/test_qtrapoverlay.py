@@ -872,6 +872,31 @@ class TestMarkedProperty(unittest.TestCase):
         self.assertNotIn(t2, leaves)
 
 
+class TestClearingTheTrapsClearsTheMarks(unittest.TestCase):
+
+    '''A task that moves the marked groups must not find traps that are gone
+    (clearing, and loading a file, which clears first).'''
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(1., 1., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+        self.overlay.mark(self.trap)
+
+    def test_clear_traps(self):
+        self.overlay.clearTraps()
+        self.assertEqual(self.overlay.markedGroups, [])
+
+    def test_load_traps(self):
+        self.overlay.fromList([])
+        self.assertEqual(self.overlay.markedGroups, [])
+
+    def test_a_trap_that_comes_after_is_not_marked(self):
+        self.overlay.clearTraps()
+        self.overlay.addTrap(self.trap)
+        self.assertEqual(self.overlay.markedGroups, [])
+
+
 class TestRemovingATrapClearsItsMark(unittest.TestCase):
 
     def setUp(self):

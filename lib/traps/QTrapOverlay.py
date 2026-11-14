@@ -303,8 +303,9 @@ class QTrapOverlay(ScatterPlotItem):
         return True
 
     def clearTraps(self) -> None:
-        '''Remove all traps from the overlay and clear the undo stack.'''
+        '''Remove all traps, and their marks, and clear the undo stack.'''
         top_level = list(self)
+        self._marked.clear()
         for trap in list(self._traps):
             trap.changed.disconnect(self._onTrapChanged)
             trap._index = None

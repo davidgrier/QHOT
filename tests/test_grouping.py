@@ -240,19 +240,38 @@ class TestBreakGroup(unittest.TestCase):
         self.assertEqual(len(spy), 1)
         self.assertIs(spy[0][0], outer_grp)
 
-    def test_nested_emits_trap_added_for_outer_and_subgroup(self):
+    def test_nested_dissolves_the_outer_group_that_is_left_with_one(self):
+        overlay = make_overlay()
+        inner_t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        inner_grp = QTrapGroup(r=(1., 1., 0.))
+        inner_grp.addTrap([inner_t1, QTrap(r=(2., 2., 0.), phase=0.)])
+        singleton = QTrap(r=(5., 5., 0.), phase=0.)
+        outer_grp = QTrapGroup(r=(3., 3., 0.))
+        outer_grp.addTrap([inner_grp, singleton])
+        overlay.addTrap(outer_grp)
+        spy = QtTest.QSignalSpy(overlay.trapAdded)
+        break_group(overlay, inner_t1)
+        added = [spy[i][0] for i in range(len(spy))]
+        self.assertEqual(added, [singleton, inner_grp])   # the group is gone
+        self.assertIsNone(outer_grp.parent())
+        self.assertIs(singleton.parent(), overlay)
+        self.assertIs(inner_grp.parent(), overlay)
+
+    def test_nested_keeps_the_outer_group_that_has_two_left(self):
         overlay = make_overlay()
         inner_t1 = QTrap(r=(1., 1., 0.), phase=0.)
         inner_grp = QTrapGroup(r=(1., 1., 0.))
         inner_grp.addTrap([inner_t1, QTrap(r=(2., 2., 0.), phase=0.)])
         outer_grp = QTrapGroup(r=(3., 3., 0.))
-        outer_grp.addTrap([inner_grp, QTrap(r=(5., 5., 0.), phase=0.)])
+        outer_grp.addTrap([inner_grp,
+                           QTrap(r=(5., 5., 0.), phase=0.),
+                           QTrap(r=(6., 6., 0.), phase=0.)])
         overlay.addTrap(outer_grp)
         spy = QtTest.QSignalSpy(overlay.trapAdded)
         break_group(overlay, inner_t1)
-        added = {spy[i][0] for i in range(len(spy))}
-        self.assertIn(outer_grp, added)
-        self.assertIn(inner_grp, added)
+        added = [spy[i][0] for i in range(len(spy))]
+        self.assertEqual(added, [outer_grp, inner_grp])
+        self.assertEqual(len(list(outer_grp)), 2)
 
 
 class TestAGroupOfOne(unittest.TestCase):
@@ -378,3 +397,123 @@ class TestStructureAndMarks(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestAGroupThatIsDeeper(unittest.TestCase):
+
+    '''The top-level item is what observers know, however deep the change.'''
+
+    def build(self):
+        '''Return root{ middle{ inner{a, b}, c }, d } in an overlay.'''
+        self.overlay = make_overlay()
+        self.a, self.b, self.c, self.d = (
+            QTrap(r=(float(n), float(n), 0.), phase=0.) for n in range(1, 5))
+        self.inner = QTrapGroup(r=(1.5, 1.5, 0.))
+        self.inner.addTrap([self.a, self.b])
+        self.middle = QTrapGroup(r=(2., 2., 0.))
+        self.middle.addTrap([self.inner, self.c])
+        self.root = QTrapGroup(r=(3., 3., 0.))
+        self.root.addTrap([self.middle, self.d])
+        self.overlay.addTrap(self.root)
+
+    def test_the_root_is_what_changes(self):
+        self.build()
+        removed = QtTest.QSignalSpy(self.overlay.trapRemoved)
+        break_group(self.overlay, self.a)
+        self.assertEqual([removed[i][0] for i in range(len(removed))],
+                         [self.root])
+
+    def test_a_group_that_is_left_with_one_gives_its_place_to_the_trap(self):
+        self.build()
+        break_group(self.overlay, self.a)     # inner leaves middle; c is left
+        self.assertIs(self.c.parent(), self.root)
+        self.assertIsNone(self.middle.parent())
+        self.assertIs(self.inner.parent(), self.overlay)
+
+    def test_the_root_stays_and_is_announced_again(self):
+        self.build()
+        added = QtTest.QSignalSpy(self.overlay.trapAdded)
+        break_group(self.overlay, self.a)
+        self.assertEqual([added[i][0] for i in range(len(added))],
+                         [self.root, self.inner])
+
+    def test_a_cascade_dissolves_every_group_that_is_left_with_one(self):
+        self.build()
+        break_group(self.overlay, self.a)     # middle dissolves: root{c, d}
+        added = QtTest.QSignalSpy(self.overlay.trapAdded)
+        break_group(self.overlay, self.c)     # root dissolves: d is at the top
+        self.assertEqual([added[i][0] for i in range(len(added))],
+                         [self.d, self.c])
+        self.assertIsNone(self.root.parent())
+
+    def test_a_group_that_is_left_with_none_goes_from_the_group_above(self):
+        # root{ middle{ inner{a} }, d }: the groups of one come from a file
+        overlay = make_overlay()
+        a = QTrap(r=(1., 1., 0.), phase=0.)
+        d = QTrap(r=(4., 4., 0.), phase=0.)
+        inner = QTrapGroup(r=(1., 1., 0.))
+        inner.addTrap(a)
+        middle = QTrapGroup(r=(1., 1., 0.))
+        middle.addTrap(inner)
+        root = QTrapGroup(r=(3., 3., 0.))
+        root.addTrap([middle, d])
+        overlay.addTrap(root)
+        added = QtTest.QSignalSpy(overlay.trapAdded)
+        break_group(overlay, a)
+        # inner leaves middle, which is empty and goes; root has d, and goes
+        self.assertEqual({id(x) for x in overlay}, {id(d), id(inner)})
+        self.assertIsNone(middle.parent())
+        self.assertIsNone(root.parent())
+        self.assertEqual([added[i][0] for i in range(len(added))],
+                         [d, inner])
+
+
+class TestTheStructureIsKeptWhateverIsBroken(unittest.TestCase):
+
+    '''Break traps of random structures, one after another.  The top level
+    that the observers have made of the signals is the top level of the
+    overlay, and no group is left with fewer than two traps.'''
+
+    def groups(self, overlay):
+        found = []
+        def visit(item):
+            if isinstance(item, QTrapGroup):
+                found.append(item)
+                for child in item:
+                    visit(child)
+        for item in overlay:
+            visit(item)
+        return found
+
+    def make(self, rng, depth=0):
+        '''Return a trap, or a group of two to four items, at random.'''
+        if depth >= 3 or rng.random() < .4:
+            return QTrap(r=(rng.random() * 90., rng.random() * 90., 0.),
+                         phase=0.)
+        group = QTrapGroup(r=(0., 0., 0.))
+        group.addTrap([self.make(rng, depth + 1)
+                       for _ in range(rng.randint(2, 4))])
+        return group
+
+    def test_random_structures(self):
+        import random
+        for seed in range(30):
+            rng = random.Random(seed)
+            overlay = make_overlay()
+            for _ in range(rng.randint(1, 3)):
+                overlay.addTrap(self.make(rng))
+            leaves = set(overlay._traps)
+            seen = set(overlay)                 # what an observer knows
+            overlay.trapAdded.connect(seen.add)
+            overlay.trapRemoved.connect(seen.discard)
+            for _ in range(20):
+                leaves_now = [t for t in overlay._traps
+                              if isinstance(t.parent(), QTrapGroup)]
+                if not leaves_now:
+                    break
+                break_group(overlay, rng.choice(leaves_now))
+                with self.subTest(seed=seed):
+                    self.assertEqual(seen, set(overlay))
+                    self.assertEqual(set(overlay._traps), leaves)
+                    for group in self.groups(overlay):
+                        self.assertGreaterEqual(len(list(group)), 2)

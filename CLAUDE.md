@@ -86,9 +86,13 @@ qhot.py (QHOTWindow)
 **Trap hierarchy:**
 - `lib/traps/QTrap.py` — base class; all traps have a 3D position and phase profile
 - `lib/traps/QTrapGroup.py` — recursive grouping of traps
-- `lib/traps/QTrapOverlay.py` — `QGraphicsScene` subclass; handles mouse/wheel interaction
+- `lib/traps/QTrapOverlay.py` — a `pyqtgraph.ScatterPlotItem` that keeps the traps, their spots and brushes, the marks and the undo stack
+- `lib/traps/gestures.py` — what the mouse does (`Gestures`, owned by the overlay as `overlay.gestures`: the state of a drag, a rotation and a rubber band) and `lib/traps/grouping.py` — grouping and breaking (`group_within`, `break_group`)
+- **A trap is a top-level item or a member of a group, and a group holds two traps or more.**  A group left with one dissolves, and its trap takes its place (at the top level or in the group above); a group with none goes.  Observers of the overlay (the Traps tab) know the top-level items: a change of structure emits `trapRemoved` for the top-level item that changes and `trapAdded` for what is at the top level afterwards.  Arrays and a file may hold a group of one; breaking its trap dissolves it.
 - **A group keeps its own center.** Move a group as a whole (`group.r = ...`, which `QTrapOverlay.markedGroups` and iterating the overlay give you), never the traps of a group one by one: an array makes its traps again around its center when it is saved, loaded or reshaped. Removing a group from the overlay detaches only the group, so that undo restores all of it.
 - `traps/` — concrete trap types: `QTweezer`, `QVortex`, `QRingTrap`, `QTrapArray`, `QLetterArray`, `QTextArray`
+
+**Hardware decisions.**  The SLM is the second screen, always: it is hardware, and nothing needs to choose (with one screen it opens on the primary, `-s`).  There is no correction of the phase response of the SLM, because there is no way to calibrate it yet; add it when there is.
 
 **Hologram computation** (`lib/holograms/`):
 - `CGH.py` — calibration parameters (pixel pitch, wavelength, focal length, etc.) and the pipeline: `compute(pattern)`, `hologramReady`, `computeFailed`

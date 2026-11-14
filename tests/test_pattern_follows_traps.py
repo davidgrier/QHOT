@@ -260,8 +260,12 @@ class TestGroups(PatternCase):
         top = group(middle, tweezer(55, 20, 0., 1.4), r=(50., 30., 0.))
         self.overlay.addTrap(top)
         self.check()
+        leftover = middle.traps[1]
         self.assertTrue(self.breakAt(inner.traps[0]))
-        self.assertIs(middle.parent(), top)
+        # middle is left with one trap, which takes its place in top
+        self.assertIsNone(middle.parent())
+        self.assertIs(leftover.parent(), top)
+        self.assertIs(inner.parent(), self.overlay)
         self.check()
         top.r = (44., 26., 0.)
         self.check()

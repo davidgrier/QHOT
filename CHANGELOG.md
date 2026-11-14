@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Fixed
+- **Breaking a group is consistent.**  A group left with one trap dissolves,
+  whether the trap or its subgroup was taken out: breaking a subgroup out of
+  an outer group used to leave the outer group holding one trap.  The trap
+  that is left takes the place of the group, at the top level or in the group
+  above it, and the Traps tab is told about the top-level item that changed
+  however deep the change was (it was told about a group below the top level,
+  which it does not list).  A random test breaks traps of random structures
+  and checks both.
 - **Clearing the traps clears their marks.**  `clearTraps()` (and so the
   `ClearTraps` task and opening a trap file) left the traps in
   `markedGroups` after it had removed them, so a task that moved the

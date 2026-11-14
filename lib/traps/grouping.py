@@ -61,12 +61,19 @@ def break_group(overlay: QTrapOverlay, trap: QTrap) -> bool:
     A trap in a group at the top level leaves the group.  A trap in a
     subgroup takes the subgroup with it, and the subgroup leaves the group
     that it was in.  Either way what leaves is a top-level item of the
-    overlay now.  A group that is left with one trap dissolves (the trap
-    that is left joins the top level) and a group that is left with none
-    disappears.  The marks of the traps that the group held are cleared.
+    overlay now.
 
-    ``trapRemoved`` is emitted for the group that changes, and ``trapAdded``
-    for what is there afterwards.
+    A trap is a top-level item or a member of a group, and a group holds
+    two traps or more: a group left with one dissolves, and the trap that is
+    left stands where the group stood (in the group above it, or at the top
+    level), and a group left with none disappears.  A group of one trap that
+    a file made is dissolved by breaking its trap.  The marks of the traps
+    that the group held are cleared.
+
+    ``trapRemoved`` is emitted for the top-level item that changes, and
+    ``trapAdded`` for what is at the top level afterwards: that item if it is
+    still there, the trap that took the place of a group that dissolved, and
+    what left.
 
     Parameters
     ----------
@@ -85,54 +92,52 @@ def break_group(overlay: QTrapOverlay, trap: QTrap) -> bool:
     if not isinstance(group, QTrapGroup):
         return False
     outer = group.parent()
-    overlay.unmark(overlay.groupOf(group))
-    if isinstance(outer, QTrapGroup):
-        _leave_subgroup(overlay, outer, group)
-    else:
-        _leave_group(overlay, group, trap)
+    leaver, parent = ((group, outer) if isinstance(outer, QTrapGroup)
+                      else (trap, group))
+    root = overlay.groupOf(parent)
+    overlay.unmark(root)
+    overlay.trapRemoved.emit(root)
+    parent.removeTrap(leaver)
+    leaver.setParent(overlay)
+    if isinstance(leaver, QTrapGroup):
+        overlay.watch(leaver)
+    promoted: list[QTrap] = []
+    _tidy(overlay, parent, promoted)
+    if root.parent() is overlay:
+        overlay.trapAdded.emit(root)
+    for item in promoted:
+        overlay.trapAdded.emit(item)
+    overlay.trapAdded.emit(leaver)
     return True
 
 
-def _leave_subgroup(overlay: QTrapOverlay,
-                    outer: QTrapGroup,
-                    group: QTrapGroup) -> None:
-    '''Move the subgroup *group* out of the group *outer*.
+def _tidy(overlay: QTrapOverlay,
+          group: QTrapGroup,
+          promoted: list[QTrap]) -> None:
+    '''Dissolve *group* if a trap was taken out and it holds fewer than two.
 
-    *outer* disappears if nothing is left in it.
+    A trap that is left takes the place of the group, and joins *promoted*
+    if that is the top level.  A group that is left with none goes, and the
+    group above it may then be left with one.
     '''
-    overlay.trapRemoved.emit(outer)
-    outer.removeTrap(group)
-    group.setParent(overlay)
-    overlay.watch(group)
-    if not list(outer) and outer.parent() is overlay:
-        overlay.unwatch(outer)
-        outer.setParent(None)
-    else:
-        overlay.trapAdded.emit(outer)
-    overlay.trapAdded.emit(group)
-
-
-def _leave_group(overlay: QTrapOverlay,
-                 group: QTrapGroup,
-                 trap: QTrap) -> None:
-    '''Move *trap* out of the top-level group *group*.
-
-    A group left with one trap dissolves, and with none disappears.
-    '''
-    others = [member for member in group if member is not trap]
-    overlay.trapRemoved.emit(group)
-    group.removeTrap(trap)
-    trap.setParent(overlay)
-    if len(others) == 1:
-        (sole,) = others
+    members = list(group)
+    if len(members) >= 2:
+        return
+    above = group.parent()
+    if members:
+        (sole,) = members
         group.removeTrap(sole)
+        if isinstance(above, QTrapGroup):
+            above.removeTrap(group)
+            above.addTrap(sole)
+            return
         sole.setParent(overlay)
-        overlay.unwatch(group)
-        group.setParent(None)
-        overlay.trapAdded.emit(sole)
-    elif others:
-        overlay.trapAdded.emit(group)
-    else:
-        overlay.unwatch(group)
-        group.setParent(None)
-    overlay.trapAdded.emit(trap)
+        if isinstance(sole, QTrapGroup):
+            overlay.watch(sole)
+        promoted.append(sole)
+    elif isinstance(above, QTrapGroup):
+        above.removeTrap(group)
+        _tidy(overlay, above, promoted)
+        return
+    overlay.unwatch(group)
+    group.setParent(None)

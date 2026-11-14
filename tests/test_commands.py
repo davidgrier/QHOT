@@ -137,7 +137,7 @@ class TestRemoveTrapCommand(unittest.TestCase):
         self.overlay = make_overlay()
         self.stack = self.overlay._undoStack
         self.trap = QTrap(r=(5., 5., 0.), phase=0.)
-        self.overlay._addTrap(self.trap)
+        self.overlay.addTrap(self.trap)
         self.stack.push(RemoveTrapCommand(self.overlay, self.trap))
 
     def test_redo_removes_trap(self):
@@ -146,7 +146,7 @@ class TestRemoveTrapCommand(unittest.TestCase):
     def test_trap_removed_signal_emitted(self):
         overlay = make_overlay()
         trap = QTrap(r=(1., 1., 0.), phase=0.)
-        overlay._addTrap(trap)
+        overlay.addTrap(trap)
         received = []
         overlay.trapRemoved.connect(received.append)
         overlay._undoStack.push(RemoveTrapCommand(overlay, trap))
@@ -312,7 +312,7 @@ class TestLockCommand(unittest.TestCase):
     def setUp(self):
         self.overlay = make_overlay()
         self.trap = QTrap(r=(5., 5., 0.), phase=0.)
-        self.overlay._addTrap(self.trap)
+        self.overlay.addTrap(self.trap)
         self.stack = self.overlay._undoStack
 
     def test_redo_locks_trap(self):

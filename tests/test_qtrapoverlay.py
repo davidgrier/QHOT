@@ -328,7 +328,7 @@ class TestSetGroupBrush(unittest.TestCase):
         self.overlay.addTrap(grp)
 
     def test_sets_all_leaf_spots(self):
-        self.overlay._setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
                                     self.overlay.State.SELECTED)
         for trap in [self.t1, self.t2]:
             spot = self.overlay.points()[trap._index]
@@ -336,9 +336,9 @@ class TestSetGroupBrush(unittest.TestCase):
                              self.overlay.brush[self.overlay.State.SELECTED])
 
     def test_resets_to_normal(self):
-        self.overlay._setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
                                     self.overlay.State.SELECTED)
-        self.overlay._setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
                                     self.overlay.State.NORMAL)
         for trap in [self.t1, self.t2]:
             spot = self.overlay.points()[trap._index]
@@ -966,7 +966,7 @@ class TestMouseReleaseEvent(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._setGroupBrush(trap, overlay.State.SELECTED)
+        overlay.setGroupBrush(trap, overlay.State.SELECTED)
         overlay.mouseReleaseEvent(self._make_event())
         self.assertEqual(overlay.points()[0].brush(),
                          overlay.brush[overlay.State.NORMAL])
@@ -1093,7 +1093,7 @@ class TestMouseRelease(unittest.TestCase):
         trap = QTrap(r=(5., 5., 0.), phase=0.)
         overlay.addTrap(trap)
         overlay._selected = trap
-        overlay._setGroupBrush(trap, overlay.State.SELECTED)
+        overlay.setGroupBrush(trap, overlay.State.SELECTED)
         overlay.mouseRelease(self._make_event())
         self.assertEqual(overlay.points()[0].brush(),
                          overlay.brush[overlay.State.NORMAL])
@@ -1350,7 +1350,7 @@ class TestRotationGesture(unittest.TestCase):
 
     def test_mouseRelease_restores_normal_brush(self):
         self._setup_rotation(4., 0.)
-        self.overlay._setGroupBrush(self.grp, self.overlay.State.SELECTED)
+        self.overlay.setGroupBrush(self.grp, self.overlay.State.SELECTED)
         event = MagicMock()
         self.overlay.mouseRelease(event)
         for trap in [self.t1, self.t2]:
@@ -1440,7 +1440,7 @@ class TestToggleLock(unittest.TestCase):
 
     def test_unlock_restores_normal_brush(self):
         self.trap.locked = True
-        self.overlay._setGroupBrush(self.trap, self.overlay.State.STATIC)
+        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
         with patch.object(self.overlay, 'trapAt', return_value=self.trap):
             self.overlay.toggleLock(QtCore.QPointF(5., 5.))
         spot = self.overlay.points()[0]
@@ -1609,7 +1609,7 @@ class TestToggleMark(unittest.TestCase):
 
     def test_unmark_locked_trap_restores_static_brush(self):
         self.trap.locked = True
-        self.overlay._setGroupBrush(self.trap, self.overlay.State.STATIC)
+        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
         with patch.object(self.overlay, 'trapAt', return_value=self.trap):
             self.overlay.toggleMark(QtCore.QPointF(5., 5.))
             self.overlay.toggleMark(QtCore.QPointF(5., 5.))
@@ -1625,7 +1625,7 @@ class TestToggleMark(unittest.TestCase):
         t2 = QTrap(r=(2., 2., 0.), phase=0.)
         t1.setParent(g)
         t2.setParent(g)
-        self.overlay._addTrap(g)
+        self.overlay.addTrap(g)
         with patch.object(self.overlay, 'trapAt', return_value=t1):
             self.overlay.toggleMark(QtCore.QPointF(1., 1.))
         self.assertIn(g, self.overlay._marked)
@@ -1653,7 +1653,7 @@ class TestMarkedProperty(unittest.TestCase):
         t2 = QTrap(r=(2., 2., 0.), phase=0.)
         t1.setParent(g)
         t2.setParent(g)
-        self.overlay._addTrap(g)
+        self.overlay.addTrap(g)
         self.overlay._marked.add(g)
         leaves = list(self.overlay.marked)
         self.assertIn(t1, leaves)
@@ -1686,7 +1686,7 @@ class TestClearMarked(unittest.TestCase):
 
     def test_clear_restores_normal_brush(self):
         self.overlay._marked.add(self.t1)
-        self.overlay._setGroupBrush(self.t1, self.overlay.State.SPECIAL)
+        self.overlay.setGroupBrush(self.t1, self.overlay.State.SPECIAL)
         self.overlay.clearMarked()
         spot = self.overlay.points()[0]
         self.assertEqual(
@@ -1698,7 +1698,7 @@ class TestClearMarked(unittest.TestCase):
 
     def test_remove_trap_clears_from_marked(self):
         self.overlay._marked.add(self.t1)
-        self.overlay._removeTrap(self.t1)
+        self.overlay.removeTrap(self.t1)
         self.assertNotIn(self.t1, self.overlay._marked)
 
 

@@ -294,9 +294,8 @@ class QTrapOverlay(ScatterPlotItem):
         '''Register a trap or group with the overlay (internal).
 
         Attaches ``traps`` as a Qt child of the overlay, registers all
-        leaf spots, and emits ``trapAdded``.  Called directly by
-        ``addTrap`` for programmatic additions, and by ``AddTrapCommand``
-        and ``RemoveTrapCommand`` during undo/redo.
+        leaf spots, and emits ``trapAdded``.  :meth:`addTrap` calls it
+        for a trap or a group, which is what the undo commands do.
 
         Parameters
         ----------
@@ -355,9 +354,8 @@ class QTrapOverlay(ScatterPlotItem):
 
         Disconnects signals, removes leaf spots, detaches the group from
         Qt's object hierarchy, and emits ``trapRemoved``.  The members
-        stay in the group, so that undoing the removal restores it.  Called by
-        ``removeTrap`` for programmatic removal, and by
-        ``RemoveTrapCommand`` and ``AddTrapCommand`` during undo/redo.
+        stay in the group, so that undoing the removal restores it.
+        :meth:`removeTrap` calls it, which is what the undo commands do.
 
         Parameters
         ----------
@@ -515,8 +513,10 @@ class QTrapOverlay(ScatterPlotItem):
                 self._follow(spots[trap._index], trap)
         self.patternChanged.emit()
 
-    def _setGroupBrush(self, group: QTrap, state: State) -> None:
+    def setGroupBrush(self, group: QTrap, state: State) -> None:
         '''Set the brush of every leaf spot in a group to the given state.
+
+        The undo command of a lock calls it, and so do the gestures.
 
         Parameters
         ----------
@@ -584,7 +584,7 @@ class QTrapOverlay(ScatterPlotItem):
         for item in self:
             state = (self.State.GROUPING if item.isWithin(rect)
                      else self.State.NORMAL)
-            self._setGroupBrush(item, state)
+            self.setGroupBrush(item, state)
 
     def endSelection(self) -> None:
         '''Finish the rubber-band selection and group the enclosed traps.'''
@@ -592,7 +592,7 @@ class QTrapOverlay(ScatterPlotItem):
         self._selection.hide()
         self._selectionOrigin = None
         for item in self:
-            self._setGroupBrush(item, self.State.NORMAL)
+            self.setGroupBrush(item, self.State.NORMAL)
         self._finalizeSelection(rect)
 
     # Identifying traps by position
@@ -768,10 +768,10 @@ class QTrapOverlay(ScatterPlotItem):
             self._marked.discard(group)
             state = (self.State.STATIC if group.locked
                      else self.State.NORMAL)
-            self._setGroupBrush(group, state)
+            self.setGroupBrush(group, state)
         else:
             self._marked.add(group)
-            self._setGroupBrush(group, self.State.SPECIAL)
+            self.setGroupBrush(group, self.State.SPECIAL)
         return True
 
     def clearMarked(self) -> None:
@@ -783,7 +783,7 @@ class QTrapOverlay(ScatterPlotItem):
         for group in list(self._marked):
             state = (self.State.STATIC if group.locked
                      else self.State.NORMAL)
-            self._setGroupBrush(group, state)
+            self.setGroupBrush(group, state)
         self._marked.clear()
 
     def selectGroup(self, pos: QtCore.QPointF) -> bool:
@@ -808,7 +808,7 @@ class QTrapOverlay(ScatterPlotItem):
             self._selected = None
             return True
         self._moveOrigin = self._selected._r.copy()
-        self._setGroupBrush(self._selected, self.State.SELECTED)
+        self.setGroupBrush(self._selected, self.State.SELECTED)
         return True
 
     def startRotation(self, pos: QtCore.QPointF) -> bool:
@@ -842,7 +842,7 @@ class QTrapOverlay(ScatterPlotItem):
         self._rotationCenter = (cx, cy)
         self._rotationAngle0 = np.arctan2(pos.y() - cy, pos.x() - cx)
         self._rotationSnapshot = group._snapshot()
-        self._setGroupBrush(group, self.State.SELECTED)
+        self.setGroupBrush(group, self.State.SELECTED)
         return True
 
     def toggleLock(self, pos: QtCore.QPointF) -> bool:
@@ -955,7 +955,7 @@ class QTrapOverlay(ScatterPlotItem):
         return True
 
     def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
-        '''Handle a release event forwarded by QHOTScreen.
+        '''Handle a _removeTrap event forwarded by QHOTScreen.
 
         Finalizes any active rubber-band selection, pushes undo commands
         for completed moves and rotations, and clears drag state.
@@ -977,7 +977,7 @@ class QTrapOverlay(ScatterPlotItem):
                 self._undoStack.push(
                     RotateCommand(self._rotating,
                                   self._rotationSnapshot))
-            self._setGroupBrush(self._rotating, self.State.NORMAL)
+            self.setGroupBrush(self._rotating, self.State.NORMAL)
             self._rotating = None
             self._rotationSnapshot = {}
             self._rotationAngle = 0.
@@ -987,7 +987,7 @@ class QTrapOverlay(ScatterPlotItem):
                                         self._moveOrigin)):
                 self._undoStack.push(
                     MoveCommand(self._selected, self._moveOrigin))
-            self._setGroupBrush(self._selected, self.State.NORMAL)
+            self.setGroupBrush(self._selected, self.State.NORMAL)
         self._selected = None
         self._moveOrigin = None
         self._dragLast = None

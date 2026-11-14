@@ -62,11 +62,11 @@ class AddTrapCommand(QUndoCommand):
 
     def redo(self) -> None:
         '''Add the trap to the overlay.'''
-        self._overlay._addTrap(self._trap)
+        self._overlay.addTrap(self._trap)
 
     def undo(self) -> None:
         '''Remove the trap from the overlay.'''
-        self._overlay._removeTrap(self._trap)
+        self._overlay.removeTrap(self._trap)
 
 
 class RemoveTrapCommand(QUndoCommand):
@@ -93,11 +93,11 @@ class RemoveTrapCommand(QUndoCommand):
 
     def redo(self) -> None:
         '''Remove the trap from the overlay.'''
-        self._overlay._removeTrap(self._group)
+        self._overlay.removeTrap(self._group)
 
     def undo(self) -> None:
         '''Add the trap back to the overlay.'''
-        self._overlay._addTrap(self._group)
+        self._overlay.addTrap(self._group)
 
 
 class MoveCommand(QUndoCommand):
@@ -290,7 +290,7 @@ class LockCommand(QUndoCommand):
         self._group.locked = not self._group.locked
         state = (self._overlay.State.STATIC if self._group.locked
                  else self._overlay.State.NORMAL)
-        self._overlay._setGroupBrush(self._group, state)
+        self._overlay.setGroupBrush(self._group, state)
 
 
 class PropertyCommand(QUndoCommand):

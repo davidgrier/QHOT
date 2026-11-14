@@ -250,10 +250,8 @@ class TestTheWindow(WindowCase):
         # The window is a QMainWindow, and a widget of the .ui file or an
         # attribute that takes the name of one of its methods (a widget
         # called ``screen`` once hid QWidget.screen) hides it from Python.
-        # (PySide6 keeps the signals that were asked for in the instance.)
-        hidden = [name for name, value in vars(self.window).items()
-                  if hasattr(QtWidgets.QMainWindow, name)
-                  and not isinstance(value, QtCore.SignalInstance)]
+        hidden = [name for name in vars(self.window)
+                  if hasattr(QtWidgets.QMainWindow, name)]
         self.assertEqual(hidden, [])
         self.assertIsInstance(self.window.videoScreen, QHOTScreen)
 

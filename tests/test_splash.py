@@ -15,8 +15,7 @@ app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 def pixels(image: QtGui.QImage) -> np.ndarray:
     '''Return an RGB image as an array.'''
     ptr = image.constBits()
-    if hasattr(ptr, 'setsize'):             # PyQt; PySide6 knows the size
-        ptr.setsize(image.sizeInBytes())
+    ptr.setsize(image.sizeInBytes())
     rows = np.frombuffer(ptr, dtype=np.uint8).reshape(
         image.height(), image.bytesPerLine())
     return rows[:, :3 * image.width()].reshape(

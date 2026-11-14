@@ -38,6 +38,12 @@
   the hit test of the spots, which needs a view.
 
 ### Removed
+- **PySide6 is not supported**, and the `pyside6` extra is gone.  QHOT is a
+  program for dedicated equipment (PyQt6 in production, PyQt5 tested); PySide
+  support belongs to QVideo, which is general-purpose, until it settles
+  there.  The package could not run under PySide6 on Python 3.12 or earlier
+  (`CGH` used `object.__setattr__`, which it refuses), and that is fixed
+  (`super().__setattr__`, as QVideo does) although nothing tests it.
 - `QTrapOverlay.trapsIn` and `QTrapOverlay.clearMarked`, and `CGH.rc`: nothing
   used them.  The `devel/` directory of diagnostic scripts for FLIR cameras
   (the problem that `QRemoteCamera` in QVideo solved) is gone; it is in the

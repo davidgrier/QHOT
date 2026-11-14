@@ -124,9 +124,6 @@ jobs:
           # the platform that QHOT runs on
           - {os: macos-latest, python-version: "3.12", binding: pyqt6,
              extras: "", experimental: false}
-          # declared, and not yet shown to work
-          - {os: ubuntu-latest, python-version: "3.12", binding: pyside6,
-             extras: "", experimental: true}
 
     steps:
       - uses: actions/checkout@v7

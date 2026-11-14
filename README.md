@@ -32,7 +32,7 @@ in real time using a live camera feed.
 ## Requirements
 
 - Python 3.11+
-- A Qt binding supported by qtpy: PyQt6, PyQt5 ≥ 5.15 or PySide6
+- A Qt binding: PyQt6 (the one QHOT runs on) or PyQt5 ≥ 5.15
 - qtpy ≥ 2.0
 - pyqtgraph ≥ 0.13
 - numpy ≥ 1.24
@@ -49,7 +49,7 @@ an Ubuntu system with an NVIDIA graphics card.
 ## Installation
 
 ```bash
-pip install "QHOT[pyqt6]"   # or QHOT[pyqt5], QHOT[pyside6]
+pip install "QHOT[pyqt6]"   # or QHOT[pyqt5]
 ```
 
 Holograms are computed by a backend.  The default needs nothing more than

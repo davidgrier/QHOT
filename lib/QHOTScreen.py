@@ -101,14 +101,4 @@ class QHOTScreen(QVideoScreen):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    import pyqtgraph as pg
-    from QVideo.cameras.Noise import QNoiseCamera
-    from QVideo.lib import QVideoSource
-
-    app = pg.mkQApp('QHOTScreen Example')
-    source = QVideoSource(QNoiseCamera()).start()
-    screen = QHOTScreen()
-    screen.source = source
-    screen.show()
-    app.aboutToQuit.connect(source.stop)
-    pg.exec()
+    QHOTScreen.example()

@@ -6,14 +6,14 @@ import os
 import tomllib
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 import numpy.typing as npt
 import tomlkit
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtWidgets
 from pyqtgraph import ImageItem
-from pyqtgraph.exporters import ImageExporter
+from QVideo.lib.imageops import save_image
 
 
 logger = logging.getLogger(__name__)
@@ -118,11 +118,14 @@ class QSaveFile(QtCore.QObject):
               prefix: str = 'qhot') -> str:
         '''Save image data to a file.
 
-        Accepts either a pyqtgraph ``ImageItem`` (exported via
-        ``ImageExporter``) or an array of 8-bit pixels in row-major
-        order, such as a hologram: ``(height, width)`` for gray,
+        Accepts either a pyqtgraph ``ImageItem`` or an array of pixels in
+        row-major order, such as a hologram: ``(height, width)`` for gray,
         ``(height, width, 3)`` for RGB or ``(height, width, 4)`` for
-        RGBA.
+        RGBA.  The file has the pixels of the array, however large the
+        image is on the screen.  A gray ``uint16`` image from a camera of
+        more than 8 bits is saved with 16 bits, between the levels of the
+        ``ImageItem`` that shows it (see
+        :func:`~QVideo.lib.imageops.save_image`).
 
         Parameters
         ----------
@@ -144,8 +147,9 @@ class QSaveFile(QtCore.QObject):
         Raises
         ------
         ValueError
-            If the name does not end in one of the extensions above, or
-            an array is not ``uint8`` of one of the shapes above.
+            If the name does not end in one of the extensions above, an
+            ``ImageItem`` has no image, or an array is not ``uint8`` or
+            ``uint16`` of one of the shapes above.
         OSError
             If the file cannot be written.
         '''
@@ -155,34 +159,16 @@ class QSaveFile(QtCore.QObject):
                 f'an image is saved as PNG or TIFF, which keep every '
                 f'pixel, not as {filename}')
         if isinstance(data, ImageItem):
-            ImageExporter(data).export(filename)
-        elif not self._qimage(data).save(filename):
-            raise OSError(f'could not write {filename}')
-        return filename
-
-    @staticmethod
-    def _qimage(data: npt.NDArray) -> QtGui.QImage:
-        '''Return a ``QImage`` of an array of 8-bit pixels (row-major).'''
-        array = np.asarray(data)
-        formats = QtGui.QImage.Format
-        if array.dtype != np.uint8:
-            raise ValueError(f'an image has 8-bit pixels, not {array.dtype}')
-        if array.ndim == 2:
-            fmt = formats.Format_Grayscale8
-        elif array.ndim == 3 and array.shape[2] == 3:
-            fmt = formats.Format_RGB888
-        elif array.ndim == 3 and array.shape[2] == 4:
-            fmt = formats.Format_RGBA8888
+            if data.image is None:
+                raise ValueError('there is no image to save')
+            levels: Any = data.levels
+            save_image(data.image,
+                       filename,
+                       None if levels is None
+                       else (float(levels[0]), float(levels[1])))
         else:
-            raise ValueError(f'an image cannot have the shape {array.shape}')
-        array = np.ascontiguousarray(array)
-        height, width = array.shape[:2]
-        image = QtGui.QImage(array.tobytes(),
-                             width,
-                             height,
-                             array.strides[0],
-                             fmt)
-        return image.copy()             # the copy owns its pixels
+            save_image(np.asarray(data), filename)
+        return filename
 
     @staticmethod
     def _write(filename: str, text: str) -> None:

@@ -192,30 +192,46 @@ class TestConfigname(_Base):
 
 class TestImageWithImageItem(_Base):
 
+    '''The file has the pixels of the image, not the size of its display.'''
+
     def setUp(self):
         super().setUp()
-        self.item = ImageItem(np.zeros((10, 10), dtype=np.uint8))
+        self.path = str(self.home / 'out.png')
+        self.pixels = (np.arange(6 * 10) % 251).astype(np.uint8)
+        self.pixels = self.pixels.reshape(6, 10)
+        self.item = ImageItem(self.pixels, axisOrder='row-major')
 
-    def test_calls_image_exporter(self):
-        with patch.object(_qsavefile_mod, 'ImageExporter') as MockExp:
-            self.save.image(self.item, filename='out.png')
-        MockExp.assert_called_once_with(self.item)
+    def test_the_file_has_the_pixels_of_the_image(self):
+        self.save.image(self.item, filename=self.path)
+        image = QtGui.QImage(self.path)
+        self.assertEqual((image.height(), image.width()), (6, 10))
+        self.assertEqual(image.pixelColor(7, 2).red(), self.pixels[2, 7])
 
-    def test_calls_export_with_filename(self):
-        with patch.object(_qsavefile_mod, 'ImageExporter') as MockExp:
-            self.save.image(self.item, filename='out.png')
-        MockExp.return_value.export.assert_called_once_with('out.png')
+    def test_a_deep_image_keeps_its_bits_between_the_levels_of_the_item(self):
+        deep = np.full((4, 4), 1000, dtype=np.uint16)
+        deep[0, 0] = 2000
+        item = ImageItem(deep, levels=(0, 2000), axisOrder='row-major')
+        path = str(self.home / 'deep.png')
+        self.save.image(item, filename=path)
+        image = QtGui.QImage(path)
+        self.assertEqual(image.format(),
+                         QtGui.QImage.Format.Format_Grayscale16)
+        self.assertAlmostEqual(image.pixelColor(0, 0).redF(), 1., places=3)
+        self.assertAlmostEqual(image.pixelColor(1, 0).redF(), .5, places=3)
+
+    def test_an_item_with_no_image_is_refused(self):
+        with self.assertRaises(ValueError):
+            self.save.image(ImageItem(), filename=self.path)
 
     def test_returns_provided_filename(self):
-        with patch.object(_qsavefile_mod, 'ImageExporter'):
-            result = self.save.image(self.item, filename='out.png')
-        self.assertEqual(result, 'out.png')
+        result = self.save.image(self.item, filename=self.path)
+        self.assertEqual(result, self.path)
 
     def test_auto_generates_filename_when_none(self):
-        with patch.object(_qsavefile_mod, 'ImageExporter'):
-            result = self.save.image(self.item)
+        result = self.save.image(self.item)
         self.assertTrue(result.endswith('.png'))
         self.assertIn(str(self.save.datadir), result)
+        self.assertTrue(Path(result).exists())
 
 
 # ---------------------------------------------------------------------------

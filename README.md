@@ -38,7 +38,7 @@ in real time using a live camera feed.
 - numpy ≥ 1.24
 - scipy ≥ 1.10
 - tomlkit ≥ 0.11
-- QVideo ≥ 4.17.0
+- QVideo ≥ 4.28.0
 
 ## Tested hardware
 

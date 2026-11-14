@@ -26,6 +26,9 @@
   `Optics`, which names the fields: the sixteen arguments and defaults were
   written out again in `CGH.__init__`.  A name that is not in the
   calibration is a `TypeError`, as before.
+- QHOT requires `QVideo>=4.28.0`: the window uses `QVideoSource.lost` and
+  Save Image uses `save_image` (both 4.18), and `QHOTScreen.example` is
+  `QVideoScreen.example` (4.28).
 
 ## [2.3.0] — 2026-11-06
 

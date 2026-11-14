@@ -137,6 +137,10 @@ QHOT is a finished program, and the framework in `qhot.py` is not for users to t
 
 Import `qtpy` (or QVideo, which imports it first) before `pyqtgraph` in every module, script and example: `qtpy` honors `QT_API`, and `pyqtgraph` imported first chooses a binding of its own. `import QHOT` does not import `qtpy`. Any package can be the first one that a script imports, so `lib/traps/commands.py` imports `QTweezer` inside `AddTrapCommand`, where it makes one, and not at the top (`QHOT.traps` imports `QHOT.lib.traps`).
 
+A module's imports come in blocks with a blank line between them, in this order: the standard library, the third-party libraries (`qtpy` first), QVideo, QHOT, and the siblings of a package (`from .QTrap import QTrap`) or of a test (`taskmanagers`).  A parent is never imported with dots: `from QHOT.lib.holograms.optics import Optics`, not `from ..optics import Optics` (ruff `TID252`).  `tests/test_import_order.py` checks the order of the blocks.  Use no formatter that sorts imports (isort): it puts `numpy` before `qtpy` and rewraps the lists that the layout of arguments aligns.
+
+The task types of the program register themselves when `QHOT.tasks` is imported, and `QHOT.tasks` imports the generic machinery, so `QTask.registry()` imports it lazily: ask it for the types, and do not `import QHOT.tasks` for its side effect anywhere else.
+
 Traps do not import the hologram pipeline: they are given a `Geometry`. `reference.py` and `backends/_base.py` import `QHOT.traps` lazily, inside the function that needs it, to register the trap classes without a cycle.
 
 ## Naming conventions

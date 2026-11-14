@@ -1,9 +1,11 @@
 '''Unit tests for QSLM.'''
 import unittest
 from unittest.mock import MagicMock, patch
+import importlib as _importlib
+
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
-import importlib as _importlib
+
 from QHOT.lib.QSLM import QSLM
 _qslm_mod = _importlib.import_module('QHOT.lib.QSLM')
 

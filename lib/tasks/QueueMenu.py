@@ -18,7 +18,7 @@ class QueueMenu(QtWidgets.QMenu):
 
     '''Submenu for adding tasks to the task manager queue.
 
-    Populates itself from ``QTask._registry`` and calls
+    Populates itself from :meth:`QTask.registry` and calls
     ``manager.register()`` when the user picks an entry.  Set
     ``manager`` before the menu is shown; the manager gives each task
     that it takes the resources that the task works with.
@@ -58,14 +58,8 @@ class QueueMenu(QtWidgets.QMenu):
     # Private
 
     def _populateMenu(self) -> None:
-        '''Add one action per task type in the registry.
-
-        ``QHOT.tasks`` is imported here to ensure all concrete task
-        subclasses have been registered via ``__init_subclass__``
-        before the menu is built.
-        '''
-        import QHOT.tasks  # noqa: F401 -- fills QTask._registry
-        for name in QTask._registry:
+        '''Add one action per task type in the registry.'''
+        for name in QTask.registry():
             action = QtGui.QAction(name, self)
             self.addAction(action)
             action.triggered.connect(
@@ -80,12 +74,12 @@ class QueueMenu(QtWidgets.QMenu):
         Parameters
         ----------
         name : str
-            Class name as stored in ``QTask._registry``.
+            Class name as stored in :meth:`QTask.registry`.
         '''
         if self._manager is None:
             logger.warning(f'No manager set; cannot queue {name!r}')
             return
-        cls = QTask._registry.get(name)
+        cls = QTask.registry().get(name)
         if cls is None:
             logger.warning(f'Unknown task type: {name!r}')
             return

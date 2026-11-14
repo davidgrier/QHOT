@@ -6,8 +6,9 @@ from types import SimpleNamespace
 import numpy as np
 
 from QHOT.lib.hottypes import Hologram
+from QHOT.lib.holograms.optics import Optics
+
 from ._base import Backend
-from ..optics import Optics
 
 
 __all__ = ['NumpyBackend']

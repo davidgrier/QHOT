@@ -8,7 +8,7 @@ import numpy as np
 
 from QHOT.lib.traps import QTrap, TrapSpec
 from QHOT.lib.hottypes import Hologram
-from ..optics import Optics
+from QHOT.lib.holograms.optics import Optics
 
 
 __all__ = ['Backend']

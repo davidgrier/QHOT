@@ -4,11 +4,11 @@ import threading
 import time
 import unittest
 from unittest.mock import patch
+import importlib as _importlib
 
 import numpy as np
 from qtpy import QtCore, QtGui, QtTest, QtWidgets
 
-import importlib as _importlib
 from QHOT.lib.holograms import NumpyBackend, Optics
 from QHOT.lib.holograms import reference as ref
 from QHOT.lib.holograms.CGH import CGH

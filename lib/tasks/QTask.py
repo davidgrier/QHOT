@@ -238,6 +238,19 @@ class QTask(QtCore.QObject):
                   for p in type(self).parameters})
         return d
 
+    @staticmethod
+    def registry() -> dict[str, type[QTask]]:
+        '''Return the task types of the program, by class name.
+
+        A task registers itself when its module is imported
+        (``__init_subclass__``), and the program's tasks are the modules
+        of ``QHOT.tasks``, which imports this one, so it is imported here
+        and not at the top: this is the one place that the generic
+        machinery asks for the concrete tasks.
+        '''
+        import QHOT.tasks  # noqa: F401 -- fills QTask._registry
+        return QTask._registry
+
     @classmethod
     def fromDict(cls, d: dict) -> QTask:
         '''Reconstruct a task from a serialized dict.
@@ -262,7 +275,7 @@ class QTask(QtCore.QObject):
         if 'type' not in d:
             raise ValueError("a task needs a 'type', such as type = 'Delay'")
         typename = d.pop('type')
-        klass = cls._registry.get(typename)
+        klass = cls.registry().get(typename)
         if klass is None:
             raise ValueError(f'unknown task type: {typename!r}')
         return klass(**d)

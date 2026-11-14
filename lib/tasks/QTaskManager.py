@@ -254,17 +254,12 @@ class QTaskManager(QtCore.QObject):
 
         Each task is given the resources of the manager as it is taken.
 
-        ``QHOT.tasks`` is imported lazily here to ensure all concrete
-        subclasses have registered themselves via ``__init_subclass__``
-        before ``QTask.fromDict`` is called.
-
         Parameters
         ----------
         task_dicts : list[dict]
             Dicts previously produced by ``QTask.toDict()``, such as
             :meth:`toList` returns.
         '''
-        import QHOT.tasks  # noqa: F401 -- fills QTask._registry
         self.enqueue([QTask.fromDict(d) for d in task_dicts])
 
     def stop(self) -> None:

@@ -6,12 +6,12 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+import importlib as _importlib
 
 import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 from pyqtgraph import ImageItem
 
-import importlib as _importlib
 from QHOT.lib.QSaveFile import QSaveFile
 
 try:

@@ -15,8 +15,6 @@ The review kept to what the CI checks.  A stricter pass finds these:
       after a trap leaves it, which no test reaches and which cannot happen
       if a group always has two traps or more.  Confirm, and remove it.
 - [ ] `CGH` defaults `xs` and `ys` to 0, while `QCGHTree` says 256.
-- [ ] Most tests import Qt through `pyqtgraph.Qt`, which takes the binding
-      that `pyqtgraph` picks, not `QT_API`; use `qtpy`.
 - [ ] Wide signatures: `QTomlDocument` (8 arguments), the numba backend (8),
       `QDocument` and `QTaskManager` (6).
 - [ ] `try`/`except`/`pass` that is `contextlib.suppress` (5), `key in

@@ -1,12 +1,15 @@
 '''Unit tests for QHOTScreen.'''
 import unittest
 from unittest.mock import MagicMock, patch
+
 from qtpy import QtWidgets, QtCore, QtGui, QtTest
+
+from QVideo.lib.QVideoScreen import QVideoScreen
+
 from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
-from QVideo.lib.QVideoScreen import QVideoScreen
 
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

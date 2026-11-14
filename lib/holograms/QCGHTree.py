@@ -1,10 +1,12 @@
 '''Parameter tree for the calibration of a hologram computation.'''
-from qtpy import QtCore
-from pyqtgraph.parametertree import Parameter, ParameterTree
-from QHOT.lib.holograms.CGH import CGH
-from QHOT.lib.holograms.optics import Optics
 from collections.abc import KeysView
 import logging
+
+from qtpy import QtCore
+from pyqtgraph.parametertree import Parameter, ParameterTree
+
+from QHOT.lib.holograms.CGH import CGH
+from QHOT.lib.holograms.optics import Optics
 
 
 logger = logging.getLogger(__name__)

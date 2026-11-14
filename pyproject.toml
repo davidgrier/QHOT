@@ -101,10 +101,14 @@ extend-exclude = ["devel", "old"]
 # the top, E731 lambda assigned, E741 ambiguous name, SIM105 suppress,
 # SIM115 file without a context manager, SIM118 key in dict, RUF015 first
 # element, RUF059 unused unpacked variable, PERF401 comprehension,
-# PLW0108 needless lambda, PLW1510 subprocess without check.
+# PLW0108 needless lambda, PLW1510 subprocess without check, TID252 a
+# relative import of a parent (a sibling is imported as `.name`).
 select = ["F", "B", "E402", "E501", "E731", "E741", "Q", "SIM105",
           "SIM115", "SIM118", "PERF401", "PLW0108", "PLW1510", "RUF012",
-          "RUF015", "RUF059", "RUF100", "UP037"]
+          "RUF015", "RUF059", "RUF100", "TID252", "UP037"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"

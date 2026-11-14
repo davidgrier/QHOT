@@ -6,8 +6,9 @@ import logging
 import unittest
 from argparse import ArgumentParser
 from unittest.mock import patch, MagicMock
-from qtpy import QtWidgets
 import importlib as _importlib
+
+from qtpy import QtWidgets
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 

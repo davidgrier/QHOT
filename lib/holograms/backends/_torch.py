@@ -8,8 +8,9 @@ import numpy as np
 import numpy.typing as npt
 
 from QHOT.lib.hottypes import Hologram
+from QHOT.lib.holograms.optics import Optics
+
 from ._base import Backend
-from ..optics import Optics
 
 # The checker is told that the library is there; at run time it may not be.
 if TYPE_CHECKING:

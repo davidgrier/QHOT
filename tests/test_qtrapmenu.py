@@ -1,8 +1,10 @@
 '''Unit tests for QTrapMenu.'''
 import unittest
 from unittest.mock import patch
-from qtpy import QtCore, QtWidgets, QtTest
 import importlib as _importlib
+
+from qtpy import QtCore, QtWidgets, QtTest
+
 from QHOT.lib.traps.QTrapMenu import QTrapMenu
 _qtrapmenu_mod = _importlib.import_module('QHOT.lib.traps.QTrapMenu')
 import QHOT.traps

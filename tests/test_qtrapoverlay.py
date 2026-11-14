@@ -1,8 +1,10 @@
 '''Unit tests for QTrapOverlay.'''
 import unittest
-import numpy as np
 from unittest.mock import MagicMock, patch
+
+import numpy as np
 from qtpy import QtCore, QtWidgets, QtTest
+
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay

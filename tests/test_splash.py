@@ -1,11 +1,11 @@
 '''Unit tests for the splash screen.'''
 import unittest
 from unittest.mock import patch
+import importlib
 
 import numpy as np
 from qtpy import QtGui, QtWidgets
 
-import importlib
 from QHOT.lib.splash import SIZE, hologram, say, splash
 _splash = importlib.import_module('QHOT.lib.splash')
 

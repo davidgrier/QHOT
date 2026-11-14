@@ -1,6 +1,7 @@
 '''Schedules the tasks of QHOT and advances them frame by frame.'''
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections import deque
 
@@ -323,10 +324,8 @@ class QTaskManager(QtCore.QObject):
         if task not in self._schedule:
             return
         self._schedule.remove(task)
-        try:
+        with contextlib.suppress(ValueError):   # not pending: it is done
             self._queue.remove(task)
-        except ValueError:
-            pass  # completed or failed — not in the pending queue
         self.changed.emit()
 
     def reorder(self, tasks: list[QTask]) -> None:

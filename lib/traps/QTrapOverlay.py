@@ -1,4 +1,5 @@
 '''The overlay on which the optical traps are shown, picked and moved.'''
+import contextlib
 import functools
 import logging
 import operator
@@ -421,10 +422,8 @@ class QTrapOverlay(ScatterPlotItem):
         self.clear()
         for item in top_level:
             if isinstance(item, QTrapGroup):
-                try:
+                with contextlib.suppress(TypeError, RuntimeError):
                     item.changed.disconnect(self._onGroupChanged)
-                except (TypeError, RuntimeError):
-                    pass
             item.setParent(None)
             self.trapRemoved.emit(item)
         self._undoStack.clear()
@@ -473,10 +472,8 @@ class QTrapOverlay(ScatterPlotItem):
             The group that is about to repopulate.
         '''
         for t in list(group.leaves()):
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 t.changed.disconnect(self._onTrapChanged)
-            except (TypeError, RuntimeError):
-                pass
             if t in self._traps:
                 self._traps.remove(t)
                 t._index = None

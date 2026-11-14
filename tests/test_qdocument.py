@@ -1,6 +1,7 @@
 '''Unit tests for QDocument, as QJsonDocument makes it concrete.'''
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from qtpy import QtGui, QtTest
@@ -150,7 +151,7 @@ class TestOpen(DocumentCase):
             self.document.open()
         self.content = ['edited']
         self.document.save()
-        self.assertEqual(json.loads(open(path).read()), ['edited'])
+        self.assertEqual(json.loads(Path(path).read_text()), ['edited'])
 
     def test_a_canceled_dialog_loads_nothing(self):
         with self.answering('getOpenFileName'):

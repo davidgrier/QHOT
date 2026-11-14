@@ -293,7 +293,7 @@ class QTrap(QtCore.QObject):
             Mapping of property name to current value for every property
             registered via ``registerProperty``.
         '''
-        return {p: getattr(self, p) for p in self.properties.keys()}
+        return {p: getattr(self, p) for p in self.properties}
 
     def toDict(self) -> dict:
         '''Serialize this trap to a plain dict suitable for JSON export.

@@ -189,16 +189,16 @@ class TestLetterPositions(unittest.TestCase):
     def test_letter_positions_symmetric(self):
         cx = self.ta.r[0]
         letters = list(self.ta)
-        offsets = [l.r[0] - cx for l in letters]
+        offsets = [letter.r[0] - cx for letter in letters]
         self.assertAlmostEqual(offsets[0], -offsets[-1], places=5)
 
     def test_ta_r_is_center_of_letter_x_positions(self):
-        letter_xs = np.array([l.r[0] for l in self.ta])
+        letter_xs = np.array([letter.r[0] for letter in self.ta])
         self.assertAlmostEqual(letter_xs.mean(), self.ta.r[0], places=5)
 
     def test_single_letter_centerd_at_ta_r(self):
         ta = QTextArray(text='A', separation=10.)
-        letter = list(ta)[0]
+        letter = next(iter(ta))
         np.testing.assert_array_almost_equal(letter.r, ta.r, decimal=5)
 
     def test_positions_with_nonzero_group_r(self):

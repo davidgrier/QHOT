@@ -97,8 +97,14 @@ extend-exclude = ["devel", "old"]
 
 [tool.ruff.lint]
 # F pyflakes, B bugbear, E501 line length, Q quotes, RUF012 mutable class
-# attributes, RUF100 stale noqa, UP037 quoted annotations.
-select = ["F", "B", "E501", "Q", "RUF012", "RUF100", "UP037"]
+# attributes, RUF100 stale noqa, UP037 quoted annotations; E402 imports at
+# the top, E731 lambda assigned, E741 ambiguous name, SIM105 suppress,
+# SIM115 file without a context manager, SIM118 key in dict, RUF015 first
+# element, RUF059 unused unpacked variable, PERF401 comprehension,
+# PLW0108 needless lambda, PLW1510 subprocess without check.
+select = ["F", "B", "E402", "E501", "E731", "E741", "Q", "SIM105",
+          "SIM115", "SIM118", "PERF401", "PLW0108", "PLW1510", "RUF012",
+          "RUF015", "RUF059", "RUF100", "UP037"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"
@@ -108,4 +114,7 @@ docstring-quotes = "single"
 [tool.ruff.lint.per-file-ignores]
 # Package files re-export names; tests build stubs and mocks.
 "__init__.py" = ["F401"]
-"tests/*" = ["E501", "F401", "F811", "F841", "B018", "B905", "RUF012"]
+# Tests import after patching, unpack to name what they do not use, and
+# keep a temporary file open across a test.
+"tests/*" = ["E402", "E501", "F401", "F811", "F841", "B018", "B905",
+             "RUF012", "RUF059", "SIM115"]

@@ -1,4 +1,5 @@
 '''A trap made of other traps, moved, rotated and saved together.'''
+import contextlib
 from collections.abc import Iterator
 
 import numpy as np
@@ -130,10 +131,8 @@ class QTrapGroup(QTrap):
             if event.added():
                 child.changed.connect(self.changed)
             elif event.removed():
-                try:
-                    child.changed.disconnect(self.changed)
-                except (TypeError, RuntimeError):
-                    pass    # it was never connected
+                with contextlib.suppress(TypeError, RuntimeError):
+                    child.changed.disconnect(self.changed)  # if connected
         super().childEvent(event)
 
     def _translateSilently(self, delta: Displacement) -> None:

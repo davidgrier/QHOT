@@ -1,4 +1,5 @@
 '''Saves the images, data and settings of QHOT in files.'''
+import contextlib
 import json
 import logging
 import os
@@ -186,10 +187,8 @@ class QSaveFile(QtCore.QObject):
                 f.write(text)
             os.replace(temporary, filename)
         except BaseException:
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(temporary)
-            except OSError:
-                pass
             raise
 
     def writeJson(self,

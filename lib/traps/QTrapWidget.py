@@ -1,4 +1,5 @@
 '''The panel that shows the properties of the traps and edits them.'''
+import contextlib
 import functools
 import logging
 
@@ -159,7 +160,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         layout.setContentsMargins(indent, 0, 0, 0)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.wid: dict[str, QTrapPropertyEdit] = {}
-        for name in trap.properties.keys():
+        for name in trap.properties:
             value = getattr(trap, name)
             decimals = trap.properties[name]['decimals']
             wid = QTrapPropertyEdit(name, value, decimals=decimals)
@@ -180,7 +181,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
 
     def updateValues(self, trap: QTrap) -> None:
         '''Refresh all editors from the trap's current property values.'''
-        for name in trap.properties.keys():
+        for name in trap.properties:
             self.wid[name].value = getattr(trap, name)
 
     def updateMembers(self) -> None:
@@ -196,10 +197,8 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
     def cleanup(self) -> None:
         '''Disconnect from ``changed`` signal before deleting trap.'''
         for slot in (self._updateSlot, self.updateMembers):
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 self._trap.changed.disconnect(slot)
-            except (TypeError, RuntimeError):
-                pass
 
 
 class QTrapWidget(QtWidgets.QFrame):

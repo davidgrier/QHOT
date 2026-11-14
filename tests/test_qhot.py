@@ -359,6 +359,52 @@ class TestTheAspectRatioDoesNotChaseItself(WindowCase):
         self.assertEqual(self.chase(5, [900]), 1)
 
 
+class TestTheWindowFitsTheVideo(WindowCase):
+
+    '''The screen fits the window to the video, as QVideo does, and the
+    window keeps the aspect ratio when the user has stopped resizing it.'''
+
+    def test_the_window_asks_for_the_video_the_panels_and_the_chrome(self):
+        window = self.window
+        video = window.videoScreen.sizeHint()
+        panel = window.tabWidget.sizeHint().width()
+        hint = window.sizeHint()
+        self.assertEqual(hint.width(),
+                         video.width() + panel + window.splitter.handleWidth())
+        self.assertEqual(hint.height(),
+                         video.height() + window._chromeHeight)
+
+    def test_the_screen_takes_the_width_that_the_panels_do_not_use(self):
+        window = self.window
+        size = window.size()
+        window.show()
+        try:
+            QtTest.QTest.qWait(50)
+            panel = window.tabWidget.width()
+            screen = window.videoScreen.width()
+            window.resize(window.width() + 100, window.height())
+            QtTest.QTest.qWait(50)
+            self.assertEqual(window.tabWidget.width(), panel)
+            self.assertEqual(window.videoScreen.width(), screen + 100)
+        finally:
+            window.hide()
+            window.resize(size)
+
+    def test_the_height_is_not_corrected_while_the_window_is_resized(self):
+        window = self.window
+        with patch.object(window, '_constrainAspectRatio') as correct:
+            window._settle.timeout.disconnect()
+            window._settle.timeout.connect(correct)
+            for _ in range(5):
+                window.resizeEvent(QtGui.QResizeEvent(QtCore.QSize(900, 500),
+                                                      QtCore.QSize(1, 1)))
+                QtTest.QTest.qWait(window.SETTLE // 4)
+            self.assertEqual(correct.call_count, 0)
+            self.assertTrue(wait_for(lambda: correct.call_count == 1))
+        window._settle.timeout.disconnect()
+        window._settle.timeout.connect(window._constrainAspectRatio)
+
+
 class TestTheConfigurationThatCannotBeSaved(WindowCase):
 
     '''A window closes even if the file system will not take its settings.'''
@@ -590,7 +636,7 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
         for w in (560, 620, 680, 740, 800):
             with self.subTest(width=w):
                 self.window.resize(w, 700)
-                QtTest.QTest.qWait(150)
+                QtTest.QTest.qWait(self.window.SETTLE + 150)
                 screen = self.window.videoScreen
                 self.assertAlmostEqual(
                     screen.height(),

@@ -74,6 +74,10 @@ class QHOT(QtWidgets.QMainWindow):
     #: Quiet time [ms] after the last correction of the aspect ratio that
     #: ends a burst of resizes.
     CORRECTION_PAUSE = 200
+    #: Quiet time [ms] after the last resize before the height of the window
+    #: is corrected.  A correction while the user drags the corner of the
+    #: window fights the pointer, as QVideo's fit to a changing shape would.
+    SETTLE = 300
     _expected: tuple[int, int] | None = None    # size of the last correction
 
     def __init__(self,
@@ -91,6 +95,10 @@ class QHOT(QtWidgets.QMainWindow):
         self._pause = QtCore.QTimer(self)
         self._pause.setSingleShot(True)
         self._pause.timeout.connect(self._resetCorrections)
+        self._settle = QtCore.QTimer(self)
+        self._settle.setSingleShot(True)
+        self._settle.setInterval(self.SETTLE)
+        self._settle.timeout.connect(self._constrainAspectRatio)
         self._setupUi()
         self._connectSignals()
         self._addFilters()
@@ -117,6 +125,8 @@ class QHOT(QtWidgets.QMainWindow):
     def _setupUi(self) -> None:
         '''Load the UI file and configure child widgets.'''
         uic.loadUi(self.UIFILE, self)
+        self.splitter.setStretchFactor(0, 1)    # the screen takes the width
+        self.splitter.setStretchFactor(1, 0)    # that the panels do not use
         self.videoTab.layout().addWidget(self.cameraTree)
         self.filter = QFilterRack(source=self.source)
         self.videoTab.layout().addWidget(self.filter)
@@ -323,10 +333,8 @@ class QHOT(QtWidgets.QMainWindow):
     def restoreSettings(self) -> None:
         '''Restore window geometry and CGH calibration settings.'''
         geometry = QtCore.QSettings(*self.SETTINGS).value('geometry')
-        if geometry:
+        if geometry:        # otherwise the screen fits the window to the video
             self.restoreGeometry(geometry)
-        else:
-            QtCore.QTimer.singleShot(0, self._fitToCamera)
         if (filename := self.save.fromToml(self.cghTree)):
             logger.info(f'Configuration restored from {filename}')
             self.setStatus(f'Configuration restored from {filename}')
@@ -343,36 +351,30 @@ class QHOT(QtWidgets.QMainWindow):
         '''
         return self.height() - self.centralWidget().height()
 
-    def _fitToCamera(self) -> None:
-        '''Size the window so the screen shows the camera frame with no bars.
+    def sizeHint(self) -> QtCore.QSize:
+        '''Return the size at which the screen shows the video as it is.
 
-        Sets the splitter so the screen gets exactly the camera's native
-        width, then resizes the window to the height of the camera frame
-        plus chrome.  The panels of controls scroll, so they do not
-        decide the height.  The result is clamped to the available
-        display geometry.  Only called on first launch when no saved
-        geometry exists.
+        The screen fits its window to the video, by the size that the
+        window asks for (:meth:`QVideoScreen.updateShape`), when it first
+        has a shape and whenever the shape has stopped changing.  The
+        window asks for the native size of the video, the panels of
+        controls beside it, and the chrome.  The panels scroll, so they do
+        not decide the height.
         '''
-        cam = self.videoScreen.sizeHint()
-        if not cam.isValid():
-            return
-        panel_w = self.tabWidget.sizeHint().width()
-        self.splitter.setSizes([cam.width(), panel_w])
-        available = QtWidgets.QApplication.primaryScreen().availableGeometry()
-        total_w = min(cam.width() + panel_w + self.splitter.handleWidth(),
-                      available.width())
-        total_h = min(cam.height() + self._chromeHeight, available.height())
-        self.resize(total_w, total_h)
+        video = self.videoScreen.sizeHint()
+        panel = self.tabWidget.sizeHint().width() + self.splitter.handleWidth()
+        return QtCore.QSize(video.width() + panel,
+                            video.height() + self._chromeHeight)
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
-        '''Schedule an aspect-ratio correction after every resize.'''
+        '''Correct the aspect ratio when the resizing has stopped.'''
         super().resizeEvent(event)
         size = event.size()
         if (size.width(), size.height()) != self._expected:
             # Not the result of a correction: the user, or the system,
             # changed the window, so a request may be made again.
             self._requested.clear()
-        QtCore.QTimer.singleShot(0, self._constrainAspectRatio)
+        self._settle.start()
 
     def _constrainAspectRatio(self) -> None:
         '''Snap the window height so the screen matches the camera

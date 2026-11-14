@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Save Image saves the pixels of the image, not the screen's rendering
+  of them.**  The file had the size of the screen widget, so it changed
+  with the window, and a camera of more than 8 bits lost its depth.  It is
+  written by QVideo's `save_image`: the size of the image, 16 bits for a
+  gray `uint16` image (between the levels on the screen).
+- **The window follows QVideo's fit to the video** instead of a fit of
+  its own: it asks for the video at native size, the panels and the chrome
+  (`QHOT.sizeHint`), the screen takes the width that the panels do not
+  use, and the height is corrected when the user has stopped resizing
+  (300 ms), not at every step of a drag.
+
 ### Added
 - **A lost camera, or a recording that stops by itself, stops the queue**
   and says why in the status bar.  A queue that runs unattended carried on

@@ -4,19 +4,6 @@ Ideas for upgrades and extensions, in no particular order.
 
 ---
 
-## Polish after the review of 2026-11-03
-
-The review kept to what the CI checks.  A stricter pass finds these:
-
-- [ ] `QTrapOverlay` is one class of about 1,000 lines with 43 methods
-      (picking, moving, rotating, grouping, marking, drawing).  Split it
-      along those lines, as one refactor.
-- [ ] `QTrapOverlay._detachTrap` has a branch for a group that is left empty
-      after a trap leaves it, which no test reaches and which cannot happen
-      if a group always has two traps or more.  Confirm, and remove it.
-
----
-
 ## Hardware Acceleration
 
 Accelerate hologram computation for higher frame rates and larger SLMs.

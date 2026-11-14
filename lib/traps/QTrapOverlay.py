@@ -6,7 +6,6 @@ from collections.abc import Iterator
 from enum import Enum
 from typing import Any, ClassVar, cast
 
-import numpy as np
 from qtpy import QtCore, QtGui
 import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
@@ -16,6 +15,7 @@ from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.gestures import Gestures
+from QHOT.lib.traps.grouping import break_group
 from QHOT.lib.traps.trapspec import TrapSpec
 from QHOT.lib.traps.commands import (
     AddTrapCommand, RemoveTrapCommand, LockCommand, PropertyCommand)
@@ -213,7 +213,7 @@ class QTrapOverlay(ScatterPlotItem):
             array.reshaped.connect(
                 functools.partial(self._onGroupReshaped, traps))
         if isinstance(traps, QTrapGroup):
-            traps.changed.connect(self._onGroupChanged)
+            self.watch(traps)
         self.trapAdded.emit(traps)
 
     def addTrap(self, traps: QTrap | list[QTrap] | QtCore.QPointF) -> bool:
@@ -269,12 +269,7 @@ class QTrapOverlay(ScatterPlotItem):
                 self._traps.remove(t)
             t._index = None
         if isinstance(group, QTrapGroup):
-            try:
-                group.changed.disconnect(self._onGroupChanged)
-            except (TypeError, RuntimeError):
-                logger.debug(
-                    f'could not disconnect changed from group {group!r}',
-                )
+            self.unwatch(group)
         group.setParent(None)
         self._rebuildSpots()
         self.patternChanged.emit()   # ``trapRemoved`` was emitted at the start
@@ -317,8 +312,7 @@ class QTrapOverlay(ScatterPlotItem):
         self.clear()
         for item in top_level:
             if isinstance(item, QTrapGroup):
-                with contextlib.suppress(TypeError, RuntimeError):
-                    item.changed.disconnect(self._onGroupChanged)
+                self.unwatch(item)
             item.setParent(None)
             self.trapRemoved.emit(item)
         self._undoStack.clear()
@@ -428,31 +422,14 @@ class QTrapOverlay(ScatterPlotItem):
                 spot.setBrush(self.brush[state])
                 spot.updateItem()
 
-    # Rubber-band selection
+    def watch(self, group: QTrapGroup) -> None:
+        '''Keep the spots of a top-level group where the group is.'''
+        group.changed.connect(self._onGroupChanged)
 
-    def groupWithin(self, rect: QtCore.QRectF) -> None:
-        '''Group all top-level items that lie entirely within rect.
-
-        A top-level group is included only if all of its leaf traps are
-        inside ``rect``; groups that straddle the boundary are excluded.
-        Emits ``trapRemoved`` for each absorbed top-level item and
-        ``trapAdded`` for the resulting group.
-
-        Parameters
-        ----------
-        rect : QRectF
-            The completed rubber-band rectangle in item coordinates.
-        '''
-        candidates = [item for item in self if item.isWithin(rect)]
-        if len(candidates) < 2:
-            return
-        for candidate in candidates:
-            self.trapRemoved.emit(candidate)
-        centroid = np.mean([t._r for t in candidates], axis=0)
-        grp = QTrapGroup(r=centroid, parent=self)
-        grp.addTrap(candidates)
-        grp.changed.connect(self._onGroupChanged)
-        self.trapAdded.emit(grp)
+    def unwatch(self, group: QTrapGroup) -> None:
+        '''Stop keeping the spots of a group where the group is.'''
+        with contextlib.suppress(TypeError, RuntimeError):
+            group.changed.disconnect(self._onGroupChanged)
 
     # Identifying traps by position
 
@@ -508,13 +485,12 @@ class QTrapOverlay(ScatterPlotItem):
             return None
         return self.groupOf(trap)
 
-    # Mouse action handlers (dispatched by Signature mapping)
+    # Mouse action handlers (the bindings of the gestures)
 
     def breakGroup(self, pos: QtCore.QPointF) -> bool:
-        '''Detach the clicked trap (or its subgroup) from its parent group.
+        '''Take the clicked trap, or its subgroup, out of its group.
 
-        Emits ``trapRemoved`` and ``trapAdded`` as needed to keep
-        observers (e.g. QTrapWidget) consistent with the new structure.
+        See :func:`~QHOT.lib.traps.grouping.break_group`.
 
         Parameters
         ----------
@@ -528,54 +504,7 @@ class QTrapOverlay(ScatterPlotItem):
             or the trap is not part of a group.
         '''
         trap = self.trapAt(pos)
-        if trap is None:
-            return False
-        direct = trap.parent()
-        if not isinstance(direct, QTrapGroup):
-            return False
-        outer = direct.parent()
-        if isinstance(outer, QTrapGroup):
-            self._detachSubgroup(outer, direct)
-        else:
-            self._detachTrap(direct, trap)
-        return True
-
-    def _detachSubgroup(self, outer: QTrapGroup, group: QTrapGroup) -> None:
-        '''Move the subgroup *group* out of the group *outer*.
-
-        *outer* disappears if nothing is left in it.
-        '''
-        self.trapRemoved.emit(outer)
-        outer.removeTrap(group)
-        group.setParent(self)
-        group.changed.connect(self._onGroupChanged)
-        if not list(outer) and outer.parent() is self:
-            outer.setParent(None)
-        else:
-            self.trapAdded.emit(outer)
-        self.trapAdded.emit(group)
-
-    def _detachTrap(self, group: QTrapGroup, trap: QTrap) -> None:
-        '''Move *trap* out of *group*.
-
-        A group left with one trap dissolves, and with none disappears.
-        '''
-        members = list(group)
-        self.trapRemoved.emit(group)
-        group.removeTrap(trap)
-        trap.setParent(self)
-        remaining = [m for m in members if m is not trap]
-        if len(remaining) == 1:
-            sole = remaining[0]
-            group.removeTrap(sole)
-            sole.setParent(self)
-            group.setParent(None)
-            self.trapAdded.emit(sole)
-        elif remaining:
-            self.trapAdded.emit(group)
-        else:
-            group.setParent(None)
-        self.trapAdded.emit(trap)
+        return trap is not None and break_group(self, trap)
 
     # ------------------------------------------------------------------
     # Marking traps for task operations
@@ -601,13 +530,31 @@ class QTrapOverlay(ScatterPlotItem):
         '''
         return list(self._marked)
 
+    def mark(self, group: QTrap) -> None:
+        '''Mark a top-level trap or group, and show it with the SPECIAL
+        brush.'''
+        self._marked.add(group)
+        self.setGroupBrush(group, self.State.SPECIAL)
+
+    def unmark(self, group: QTrap) -> None:
+        '''Remove the mark of a top-level trap or group, if it has one.
+
+        Its brush is ``STATIC`` if it is locked and ``NORMAL`` if not.
+        '''
+        if group in self._marked:
+            self._marked.discard(group)
+            self.setGroupBrush(group, self.State.STATIC if group.locked
+                               else self.State.NORMAL)
+
     def toggleMark(self, pos: QtCore.QPointF) -> bool:
         '''Toggle the SPECIAL (marked) state of the group at pos.
 
         Marked groups are highlighted with the ``SPECIAL`` brush.
         Clicking a marked group a second time clears its mark.
         Used as the ``Ctrl+left`` mouse handler so the user can
-        designate traps for scripted task operations.
+        designate traps for scripted task operations.  A change of the
+        structure of a marked group (:mod:`~QHOT.lib.traps.grouping`)
+        clears its mark.
 
         Parameters
         ----------
@@ -624,13 +571,9 @@ class QTrapOverlay(ScatterPlotItem):
             return False
         group = self.groupOf(trap)
         if group in self._marked:
-            self._marked.discard(group)
-            state = (self.State.STATIC if group.locked
-                     else self.State.NORMAL)
-            self.setGroupBrush(group, state)
+            self.unmark(group)
         else:
-            self._marked.add(group)
-            self.setGroupBrush(group, self.State.SPECIAL)
+            self.mark(group)
         return True
 
     def clearMarked(self) -> None:
@@ -640,10 +583,7 @@ class QTrapOverlay(ScatterPlotItem):
         ``NORMAL``, then clears the marked set.
         '''
         for group in list(self._marked):
-            state = (self.State.STATIC if group.locked
-                     else self.State.NORMAL)
-            self.setGroupBrush(group, state)
-        self._marked.clear()
+            self.unmark(group)
 
     def toggleLock(self, pos: QtCore.QPointF) -> bool:
         '''Toggle the locked state of the trap group under the cursor.

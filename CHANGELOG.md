@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Fixed
+- **Grouping or breaking a group clears the marks of what it changes.**  A
+  trap that was marked and then grouped stayed in `markedGroups` although
+  it was inside a group, so a task that moved the marked groups moved the
+  trap on its own and not the group, which keeps its own center.
 - **Save Image saves the pixels of the image, not the screen's rendering
   of them.**  The file had the size of the screen widget, so it changed
   with the window, and a camera of more than 8 bits lost its depth.  It is
@@ -28,6 +32,10 @@
   overlay.  The bindings are fixed, so the `descriptions` argument of the
   overlay is gone (nothing used it).  `QTrapGroup._snapshot` is `snapshot`,
   and `groupWithin` was `_finalizeSelection`.
+- **Grouping and breaking a group are in `QHOT.lib.traps.grouping`**
+  (`group_within`, `break_group`).  The overlay says what it keeps in step
+  (`watch`, `unwatch`) and what is marked (`mark`, `unmark`), which the
+  functions use; `breakGroup(pos)` finds the trap and calls `break_group`.
 - `CGH` takes its calibration as keywords and gets the defaults from
   `Optics`, which names the fields: the sixteen arguments and defaults were
   written out again in `CGH.__init__`.  A name that is not in the

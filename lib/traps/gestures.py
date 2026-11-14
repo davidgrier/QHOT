@@ -17,6 +17,7 @@ from pyqtgraph import mkBrush, mkPen
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.commands import MoveCommand, RotateCommand, WheelCommand
+from QHOT.lib.traps.grouping import group_within
 
 if TYPE_CHECKING:
     from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
@@ -345,7 +346,7 @@ class Gestures:
         self.anchor = None
         for item in self.overlay:
             self.overlay.setGroupBrush(item, self.overlay.State.NORMAL)
-        self.overlay.groupWithin(rect)
+        group_within(self.overlay, rect)
 
     # ------------------------------------------------------------------
     # The steps of a drag

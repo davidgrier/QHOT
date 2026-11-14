@@ -25,6 +25,14 @@
   the recording.  `QTaskManager.fail(reason)` does it; the window connects
   `QVideoSource.lost` and `QDVRWidget.stopped` to it.
 
+### Added
+- **Tests of the mouse on the real screen** (`TestTheMouseOnTheScreen`):
+  Qt mouse and wheel events go to the screen of the real window, through
+  the mapping to the overlay, to the traps and to the hologram on the SLM,
+  for every gesture (add, drag, undo, remove, mark, lock, rubber band, move
+  a group, break, rotate, wheel).  The unit tests of the gestures stand in for
+  the hit test of the spots, which needs a view.
+
 ### Removed
 - `QTrapOverlay.trapsIn` and `QTrapOverlay.clearMarked`, and `CGH.rc`: nothing
   used them.  The `devel/` directory of diagnostic scripts for FLIR cameras

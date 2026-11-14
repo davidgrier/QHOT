@@ -24,11 +24,16 @@ from QHOT.lib import QSLM
 from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.holograms import CGH
 from QHOT.lib.holograms import reference as ref
+from QHOT.lib.traps import QTrapGroup
 from QHOT.traps import QTweezer
 
 qhot = importlib.import_module('QHOT.qhot')
 
 app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+
+MODIFIER = QtCore.Qt.KeyboardModifier
+NO, SHIFT, CTRL, ALT = (MODIFIER.NoModifier, MODIFIER.ShiftModifier,
+                        MODIFIER.ControlModifier, MODIFIER.AltModifier)
 
 
 def wait_for(condition, timeout=5000):
@@ -403,6 +408,177 @@ class TestTheWindowFitsTheVideo(WindowCase):
             self.assertTrue(wait_for(lambda: correct.call_count == 1))
         window._settle.timeout.disconnect()
         window._settle.timeout.connect(window._constrainAspectRatio)
+
+
+class TestTheMouseOnTheScreen(WindowCase):
+
+    '''The user's hands: real mouse events on the real screen, through the
+    mapping from the pixels of the view to the coordinates of the overlay,
+    to the traps and to the hologram on the SLM.
+
+    The unit tests of the gestures stand in for the hit test of the spots,
+    which needs a view; here there is one.
+    '''
+
+    @classmethod
+    def setUpClass(cls):
+        cls.window = Window.window
+        cls.window.show()
+        QtTest.QTest.qWait(100)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.window.hide()
+
+    def setUp(self):
+        super().setUp()
+        self.screen = self.window.videoScreen
+        self.viewport = self.screen.viewport()
+
+    # --- the hands
+
+    def pixel(self, x, y):
+        '''Where in the view is the point (x, y) of the overlay.'''
+        scene = self.overlay.mapToScene(QtCore.QPointF(x, y))
+        return self.screen.mapFromScene(scene)
+
+    def click(self, x, y, modifiers=NO):
+        left = QtCore.Qt.MouseButton.LeftButton
+        point = self.pixel(x, y)
+        QtTest.QTest.mouseClick(self.viewport, left, modifiers, point)
+
+    def drag(self, start, end, modifiers=NO):
+        left = QtCore.Qt.MouseButton.LeftButton
+        here = self.pixel(*start)
+        QtTest.QTest.mousePress(self.viewport, left, modifiers, here)
+        for t in (.25, .5, .75, 1.):
+            x = start[0] + t * (end[0] - start[0])
+            y = start[1] + t * (end[1] - start[1])
+            QtTest.QTest.mouseMove(self.viewport, self.pixel(x, y))
+        there = self.pixel(*end)
+        QtTest.QTest.mouseRelease(self.viewport, left, modifiers, there)
+
+    def traps(self):
+        return list(self.overlay)
+
+    def add(self, x, y):
+        '''Shift-click a trap into place, and wait for its hologram.'''
+        self.after(lambda: self.click(x, y, SHIFT))
+        return self.traps()[-1]
+
+    # --- the gestures
+
+    def test_a_shift_click_adds_a_trap_where_it_was_clicked(self):
+        trap = self.add(60., 40.)
+        self.assertEqual(len(self.traps()), 1)
+        self.assertAlmostEqual(trap.x, 60., delta=1.)
+        self.assertAlmostEqual(trap.y, 40., delta=1.)
+        self.assertHologramOfTheTraps()
+
+    def test_a_drag_moves_the_trap_and_its_hologram(self):
+        trap = self.add(60., 40.)
+        self.after(lambda: self.drag((60., 40.), (100., 80.)))
+        self.assertAlmostEqual(trap.x, 100., delta=1.5)
+        self.assertAlmostEqual(trap.y, 80., delta=1.5)
+        self.assertHologramOfTheTraps()
+
+    def test_a_drag_can_be_undone(self):
+        trap = self.add(60., 40.)
+        self.after(lambda: self.drag((60., 40.), (100., 80.)))
+        self.after(self.overlay.undoStack.undo)
+        self.assertAlmostEqual(trap.x, 60., delta=1.5)
+        self.assertAlmostEqual(trap.y, 40., delta=1.5)
+        self.assertHologramOfTheTraps()
+
+    def test_ctrl_shift_click_removes_a_trap(self):
+        self.add(60., 40.)
+        self.after(lambda: self.click(60., 40., QtCore.Qt.KeyboardModifier
+                                      .ControlModifier
+                                      | SHIFT))
+        self.assertEqual(self.traps(), [])
+        self.assertHologramOfTheTraps()
+
+    def test_ctrl_click_marks_a_trap(self):
+        trap = self.add(60., 40.)
+        self.click(60., 40., CTRL)
+        self.assertEqual(self.overlay.markedGroups, [trap])
+
+    def test_ctrl_alt_click_locks_a_trap_and_it_stays_where_it_is(self):
+        trap = self.add(60., 40.)
+        self.click(60., 40., CTRL | ALT)
+        self.assertTrue(trap.locked)
+        self.drag((60., 40.), (100., 80.))
+        self.assertAlmostEqual(trap.x, 60., delta=1.)
+        self.assertAlmostEqual(trap.y, 40., delta=1.)
+
+    def test_a_rubber_band_groups_the_traps_that_it_encloses(self):
+        for x in (60., 100., 140.):
+            self.add(x, 40.)
+        far = self.add(60., 160.)
+        self.after(lambda: self.drag((40., 20.), (170., 70.)))
+        groups = [t for t in self.traps() if isinstance(t, QTrapGroup)]
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(len(list(groups[0])), 3)
+        self.assertIn(far, self.traps())
+        self.assertHologramOfTheTraps()
+
+    def test_a_drag_moves_a_group_as_a_whole(self):
+        for x in (60., 100.):
+            self.add(x, 40.)
+        self.after(lambda: self.drag((40., 20.), (120., 70.)))
+        (group,) = [t for t in self.traps() if isinstance(t, QTrapGroup)]
+        before = group.r
+        self.after(lambda: self.drag((60., 40.), (60., 90.)))
+        self.assertAlmostEqual(group.y - before[1], 50., delta=1.5)
+        self.assertHologramOfTheTraps()
+
+    def test_alt_shift_click_breaks_a_group(self):
+        for x in (60., 100., 140.):
+            self.add(x, 40.)
+        self.after(lambda: self.drag((40., 20.), (170., 70.)))
+        self.after(lambda: self.click(100., 40., QtCore.Qt.KeyboardModifier
+                                      .AltModifier
+                                      | SHIFT))
+        self.assertEqual(len(self.traps()), 2)
+        self.assertHologramOfTheTraps()
+
+    def test_an_alt_drag_rotates_a_group_about_its_center(self):
+        for x in (60., 140.):
+            self.add(x, 100.)
+        self.after(lambda: self.drag((40., 80.), (170., 120.)))
+        (group,) = [t for t in self.traps() if isinstance(t, QTrapGroup)]
+        cx, cy = group.x, group.y
+        first, second = group.leaves()
+        # The trap follows the cursor about the center of the group.
+        start, end = (first.x, first.y), (cx, cy - 40.)
+        self.after(lambda: self.drag(start, end, ALT))
+        self.assertAlmostEqual(group.x, cx, delta=1.5)    # not moved
+        self.assertAlmostEqual(group.y, cy, delta=1.5)
+        self.assertAlmostEqual(first.x, cx, delta=2.)
+        self.assertAlmostEqual(first.y, cy - 40., delta=2.)
+        self.assertAlmostEqual(second.x, cx, delta=2.)
+        self.assertAlmostEqual(second.y, cy + 40., delta=2.)
+        self.assertHologramOfTheTraps()
+
+    def test_the_wheel_changes_the_height(self):
+        trap = self.add(60., 40.)
+        z = trap.z
+        pos = QtCore.QPointF(self.pixel(60., 40.))
+        where = QtCore.QPointF(self.viewport.mapToGlobal(pos.toPoint()))
+        event = QtGui.QWheelEvent(
+            pos,
+            where,
+            QtCore.QPoint(0, 0),
+            QtCore.QPoint(0, 120),
+            QtCore.Qt.MouseButton.NoButton,
+            NO,
+            QtCore.Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        send = QtWidgets.QApplication.sendEvent
+        self.after(lambda: send(self.viewport, event))
+        self.assertAlmostEqual(trap.z, z + 1.)
+        self.assertHologramOfTheTraps()
 
 
 class TestTheConfigurationThatCannotBeSaved(WindowCase):

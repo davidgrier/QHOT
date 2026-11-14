@@ -4,7 +4,7 @@ Core library
 Types
 -----
 
-.. automodule:: QHOT.lib.types
+.. automodule:: QHOT.lib.hottypes
    :members:
 
 QHOTScreen

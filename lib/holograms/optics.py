@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 import numpy as np
 
-from QHOT.lib.types import Shape
+from QHOT.lib.hottypes import Shape
 
 
 __all__ = 'Geometry Optics'.split()

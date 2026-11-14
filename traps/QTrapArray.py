@@ -6,7 +6,7 @@ import numpy.typing as npt
 from qtpy import QtCore
 
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
-from QHOT.lib.types import Shape
+from QHOT.lib.hottypes import Shape
 from .QTweezer import QTweezer
 
 

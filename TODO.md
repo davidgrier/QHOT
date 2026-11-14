@@ -260,7 +260,7 @@ Strengthen the test suite and catch regressions early.
 
 ~~Strengthen type safety across the codebase.~~
 
-- ~~Create `lib/types.py` defining `Hologram` and `Field` type aliases~~  **Done**
+- ~~Create `lib/hottypes.py` defining `Hologram` and `Field` type aliases~~  **Done**
 - ~~Use those types consistently throughout `lib/holograms/` and `traps/`~~  **Done**
 
 ---

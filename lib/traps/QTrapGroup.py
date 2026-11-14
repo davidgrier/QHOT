@@ -9,7 +9,7 @@ from qtpy import QtCore
 
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.trapspec import TrapSpec
-from QHOT.lib.types import Displacement
+from QHOT.lib.hottypes import Displacement
 
 
 class QTrapGroup(QTrap):

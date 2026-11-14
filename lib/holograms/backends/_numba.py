@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from QHOT.lib.types import Hologram
+from QHOT.lib.hottypes import Hologram
 from ._numpy import NumpyBackend
 
 # The checker is told that the library is there; at run time it may not be.

@@ -10,7 +10,7 @@ import numpy as np
 from qtpy import QtCore, QtGui
 
 from QHOT.lib.traps import TrapSpec
-from QHOT.lib.types import PatternSource
+from QHOT.lib.hottypes import PatternSource
 from .backends import Backend, NumpyBackend
 from .optics import Optics
 from .QHologramWorker import QHologramWorker

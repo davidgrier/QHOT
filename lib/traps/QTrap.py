@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from qtpy import QtCore
 
-from QHOT.lib.types import Field, Position
+from QHOT.lib.hottypes import Field, Position
 from QHOT.lib.traps.trapspec import TrapSpec
 
 

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 
-from QHOT.lib.types import Hologram
+from QHOT.lib.hottypes import Hologram
 from ._base import Backend
 from ..optics import Optics
 

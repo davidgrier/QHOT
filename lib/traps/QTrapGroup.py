@@ -1,5 +1,7 @@
 '''A trap made of other traps, moved, rotated and saved together.'''
+import contextlib
 from collections.abc import Iterator
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -7,7 +9,7 @@ from qtpy import QtCore
 
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.trapspec import TrapSpec
-from QHOT.lib.types import Displacement
+from QHOT.lib.hottypes import Displacement
 
 
 class QTrapGroup(QTrap):
@@ -87,12 +89,14 @@ class QTrapGroup(QTrap):
         record them: two groups of the same members in the same place
         have equal specs.  A composite records its own.
         '''
-        weight = (dict(amplitude=float(self._amplitude),
-                       phase=float(self._phase))
-                  if self.composite else {})
+        weight: dict[str, Any] = {}
+        if self.composite:
+            weight = dict(amplitude=float(self._amplitude),
+                          phase=float(self._phase))
+        x, y, z = map(float, self._r)
         return TrapSpec(
             kind=type(self).__name__,
-            r=tuple(float(v) for v in self._r),
+            r=(x, y, z),
             children=tuple(child.spec() for child in self),
             isGroup=True,
             **weight)
@@ -130,10 +134,8 @@ class QTrapGroup(QTrap):
             if event.added():
                 child.changed.connect(self.changed)
             elif event.removed():
-                try:
-                    child.changed.disconnect(self.changed)
-                except (TypeError, RuntimeError):
-                    pass    # it was never connected
+                with contextlib.suppress(TypeError, RuntimeError):
+                    child.changed.disconnect(self.changed)  # if connected
         super().childEvent(event)
 
     def _translateSilently(self, delta: Displacement) -> None:

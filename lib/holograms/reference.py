@@ -58,7 +58,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from QHOT.lib.traps import QTrap, TrapSpec
-from QHOT.lib.types import Field, Hologram
+from QHOT.lib.hottypes import Field, Hologram
 from .optics import Optics
 
 

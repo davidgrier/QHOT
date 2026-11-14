@@ -47,7 +47,7 @@ def hologram(width: int, height: int) -> QtGui.QImage:
     rgb = np.clip(PURPLE * brightness[..., None] * 1.15, 0., 1.)
     pixels = np.ascontiguousarray(255 * rgb, dtype=np.uint8)
     image = QtGui.QImage(
-        pixels.data,
+        pixels.tobytes(),
         width,
         height,
         3 * width,

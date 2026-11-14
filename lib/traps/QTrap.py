@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from qtpy import QtCore
 
-from QHOT.lib.types import Field, Position
+from QHOT.lib.hottypes import Field, Position
 from QHOT.lib.traps.trapspec import TrapSpec
 
 
@@ -212,9 +212,10 @@ class QTrap(QtCore.QObject):
 
     def spec(self) -> TrapSpec:
         '''Return a snapshot of this trap as a plain value.'''
+        x, y, z = map(float, self._r)
         return TrapSpec(
             kind=type(self).__name__,
-            r=tuple(float(v) for v in self._r),
+            r=(x, y, z),
             amplitude=float(self._amplitude),
             phase=float(self._phase),
             params=tuple(sorted((name, getattr(self, name))
@@ -293,7 +294,7 @@ class QTrap(QtCore.QObject):
             Mapping of property name to current value for every property
             registered via ``registerProperty``.
         '''
-        return {p: getattr(self, p) for p in self.properties.keys()}
+        return {p: getattr(self, p) for p in self.properties}
 
     def toDict(self) -> dict:
         '''Serialize this trap to a plain dict suitable for JSON export.

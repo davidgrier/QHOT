@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from QHOT.lib.types import Hologram
+from QHOT.lib.hottypes import Hologram
 from ._base import Backend
 from ..optics import Optics
 

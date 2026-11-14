@@ -601,6 +601,7 @@ class TestTheCommandLine(unittest.TestCase):
         return subprocess.run([sys.executable, '-c', script, *args],
                               capture_output=True,
                               text=True,
+                              check=False,
                               timeout=120,
                               env=env)
 
@@ -639,6 +640,7 @@ class TestTheCommandLine(unittest.TestCase):
         return subprocess.run([sys.executable, '-c', script],
                               capture_output=True,
                               text=True,
+                              check=False,
                               timeout=120,
                               env=env)
 

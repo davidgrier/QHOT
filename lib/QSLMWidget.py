@@ -1,11 +1,12 @@
 '''The preview of the hologram that the SLM shows.'''
 import logging
+from typing import Any, cast
 
 import numpy as np
 from qtpy import QtCore
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 
-from QHOT.lib.types import Hologram
+from QHOT.lib.hottypes import Hologram
 
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,8 @@ class QSLMWidget(GraphicsLayoutWidget):
         self._hologram: Hologram | None = None
 
     def _setupUi(self) -> None:
-        self.ci.layout.setContentsMargins(0, 0, 0, 0)
-        self.view = self.addViewBox(enableMenu=False)
+        cast(Any, self.ci).layout.setContentsMargins(0, 0, 0, 0)
+        self.view = self.ci.addViewBox(enableMenu=False)
         self.view.setDefaultPadding(0)
         self.view.setAspectLocked(True)
         self.image = ImageItem(axisOrder='row-major')

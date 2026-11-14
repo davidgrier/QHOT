@@ -321,6 +321,7 @@ class TestTheOptionalBackendsAreLazy(unittest.TestCase):
              + code],
             capture_output=True,
             text=True,
+            check=False,
             env={**os.environ, 'QT_QPA_PLATFORM': 'offscreen'},
             timeout=60,
         )

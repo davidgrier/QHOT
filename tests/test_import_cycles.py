@@ -24,6 +24,7 @@ class TestFirstImport(unittest.TestCase):
                     [sys.executable, '-I', '-c', f'import {module}'],
                     capture_output=True,
                     text=True,
+                    check=False,
                     env=env,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)

@@ -1,4 +1,6 @@
 '''The video screen on which the traps are placed and moved.'''
+from typing import Any
+
 from qtpy import QtCore, QtGui, QtWidgets
 
 from QVideo.lib import QVideoScreen
@@ -57,9 +59,8 @@ class QHOTScreen(QVideoScreen):
             The corresponding position in the overlay item's local
             coordinate system.
         '''
-        pt = (event.position().toPoint()
-              if hasattr(event, 'position')
-              else event.pos())
+        e: Any = event      # Qt 6 has position(), Qt 5 pos()
+        pt = e.position().toPoint() if hasattr(e, 'position') else e.pos()
         return self.overlay.mapFromScene(self.mapToScene(pt))
 
     @QtCore.Slot()

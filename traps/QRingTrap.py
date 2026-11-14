@@ -10,7 +10,7 @@ from QHOT.lib.lettersymbol import letterSymbol
 from QHOT.lib.traps.QTrap import QTrap
 
 if TYPE_CHECKING:
-    from QHOT.lib.types import Field
+    from QHOT.lib.hottypes import Field
 
 
 class QRingTrap(QTrap):

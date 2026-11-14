@@ -578,7 +578,7 @@ class TestFollow(PipelineCase):
         calls = []
         source = Source(10)
         cgh = self.follow(source)
-        cgh.compute = lambda pattern: calls.append(pattern)
+        cgh.compute = calls.append
         cgh.start()
         QtTest.QTest.qWait(30)
         calls.clear()

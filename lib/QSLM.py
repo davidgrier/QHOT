@@ -1,11 +1,12 @@
 '''The window that shows the hologram on the SLM.'''
 import logging
+from typing import Any, cast
 
 import numpy as np
 from qtpy import QtCore, QtGui
 from pyqtgraph import GraphicsLayoutWidget, ImageItem
 
-from QHOT.lib.types import Hologram, Shape
+from QHOT.lib.hottypes import Hologram, Shape
 
 
 logger = logging.getLogger(__name__)
@@ -57,9 +58,9 @@ class QSLM(GraphicsLayoutWidget):
             If True, always use the primary screen fallback.
         '''
         self.setWindowFlags(QtCore.Qt.WindowType.FramelessWindowHint)
-        self.ci.layout.setContentsMargins(0, 0, 0, 0)
-        self.view = self.addViewBox(enableMenu=False,
-                                    enableMouse=False)
+        cast(Any, self.ci).layout.setContentsMargins(0, 0, 0, 0)
+        self.view = self.ci.addViewBox(enableMenu=False,
+                                       enableMouse=False)
         self.view.setDefaultPadding(0)
         self.image = ImageItem(axisOrder='row-major')
         self.view.addItem(self.image)
@@ -127,7 +128,7 @@ class QSLM(GraphicsLayoutWidget):
         npt.NDArray[np.uint8]
             The current image data from the underlying ``ImageItem``.
         '''
-        return self.image.image
+        return cast(Hologram, self.image.image)
 
     @classmethod
     def example(cls) -> None:  # pragma: no cover

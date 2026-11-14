@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 from qtpy import QtCore, QtWidgets
 
@@ -33,7 +34,7 @@ class QDocument(QFileAction):
         What the dialogs call it: ``'Trap Configuration'``.
     dump : Callable[[], object]
         Returns what to write.
-    load : Callable[[object], None]
+    load : Callable[[Any], None]
         Takes what was read, and makes it part of the program.
     files : QSaveFile
         The file helper.
@@ -55,7 +56,7 @@ class QDocument(QFileAction):
                  kind: str,
                  *,
                  dump: Callable[[], object],
-                 load: Callable[[object], None],
+                 load: Callable[[Any], None],
                  files: QSaveFile,
                  parent: QtWidgets.QWidget) -> None:
         super().__init__(

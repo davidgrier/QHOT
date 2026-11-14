@@ -88,12 +88,10 @@ def _char_positions(char: str) -> list[tuple[int, int]]:
     right; row increases downward.
     '''
     rows = _FONT.get(char, _FONT.get(char.upper(), _FONT[' ']))
-    positions = []
-    for row_idx, bits in enumerate(rows):
-        for col_idx in range(5):
-            if bits & (1 << (4 - col_idx)):
-                positions.append((col_idx, row_idx))
-    return positions
+    return [(col, row)
+            for row, bits in enumerate(rows)
+            for col in range(5)
+            if bits & (1 << (4 - col))]
 
 
 def _char_mask(char: str) -> np.ndarray:

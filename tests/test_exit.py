@@ -41,6 +41,7 @@ class TestExit(unittest.TestCase):
             [sys.executable, '-c', SCRIPT.format(root=os.path.dirname(root))],
             capture_output=True,
             text=True,
+            check=False,
             env=environment,
             timeout=60,
         )

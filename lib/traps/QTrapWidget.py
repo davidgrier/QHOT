@@ -1,6 +1,8 @@
 '''The panel that shows the properties of the traps and edits them.'''
+import contextlib
 import functools
 import logging
+from typing import cast
 
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -44,9 +46,10 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         are clipped.  Computed from the application font and style, and
         cached per concrete class (not shared across subclasses).
         '''
-        if cls.__dict__.get('_field_width') is None:
+        width = cls.__dict__.get('_field_width')
+        if width is None:
             edit = QtWidgets.QLineEdit()
-            style = edit.style()
+            style = cast(QtWidgets.QStyle, edit.style())
             option = QtWidgets.QStyleOptionFrame()
             option.initFrom(edit)
             option.lineWidth = style.pixelMetric(
@@ -58,12 +61,13 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
             text = QtCore.QSize(
                 metrics.horizontalAdvance('12345.6') + margin,
                 metrics.height())
-            cls._field_width = style.sizeFromContents(
+            width = style.sizeFromContents(
                 QtWidgets.QStyle.ContentsType.CT_LineEdit,
                 option,
                 text,
                 edit).width()
-        return cls._field_width
+            cls._field_width = width
+        return width
 
     def __init__(self,
                  name: str,
@@ -86,7 +90,8 @@ class QTrapPropertyEdit(QtWidgets.QLineEdit):
         # sign (1) + up to 5 integer digits + optional '.' + decimal places
         max_len = 1 + 5 + (1 + self.decimals if self.decimals > 0 else 0)
         self.setMaxLength(max_len)
-        v = QtGui.QDoubleValidator(decimals=self.decimals)
+        v = QtGui.QDoubleValidator()
+        v.setDecimals(self.decimals)
         v.setNotation(QtGui.QDoubleValidator.Notation.StandardNotation)
         self.setValidator(v)
 
@@ -159,7 +164,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
         layout.setContentsMargins(indent, 0, 0, 0)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.wid: dict[str, QTrapPropertyEdit] = {}
-        for name in trap.properties.keys():
+        for name in trap.properties:
             value = getattr(trap, name)
             decimals = trap.properties[name]['decimals']
             wid = QTrapPropertyEdit(name, value, decimals=decimals)
@@ -180,7 +185,7 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
 
     def updateValues(self, trap: QTrap) -> None:
         '''Refresh all editors from the trap's current property values.'''
-        for name in trap.properties.keys():
+        for name in trap.properties:
             self.wid[name].value = getattr(trap, name)
 
     def updateMembers(self) -> None:
@@ -196,10 +201,8 @@ class QTrapPropertyWidget(QtWidgets.QWidget):
     def cleanup(self) -> None:
         '''Disconnect from ``changed`` signal before deleting trap.'''
         for slot in (self._updateSlot, self.updateMembers):
-            try:
+            with contextlib.suppress(TypeError, RuntimeError):
                 self._trap.changed.disconnect(slot)
-            except (TypeError, RuntimeError):
-                pass
 
 
 class QTrapWidget(QtWidgets.QFrame):

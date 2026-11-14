@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, cast
 
 from qtpy import QtCore, QtGui, QtWidgets
 
@@ -16,11 +17,16 @@ __all__ = ['QTaskManagerWidget']
 _ROLE = QtCore.Qt.ItemDataRole.UserRole
 
 
+def _taskAt(widget: QtWidgets.QListWidget, row: int) -> QTask:
+    '''Return the task of the item at *row*: every item of a queue has one.'''
+    return cast(QtWidgets.QListWidgetItem, widget.item(row)).data(_ROLE)
+
+
 def _dropPoint(event: QtGui.QDropEvent) -> QtCore.QPoint:
     '''Return where *event* happened: Qt6 has ``position()``, Qt5 ``pos()``.'''
     if hasattr(event, 'position'):
         return event.position().toPoint()
-    return event.pos()
+    return cast(Any, event).pos()
 
 
 class _DraggableQueueList(QtWidgets.QListWidget):
@@ -59,7 +65,7 @@ class _DraggableQueueList(QtWidgets.QListWidget):
         '''
         first_pending = next(
             (i for i in range(self.count())
-             if self.item(i).data(_ROLE).state is QTask.State.PENDING),
+             if _taskAt(self, i).state is QTask.State.PENDING),
             self.count())
         return insert_row >= first_pending
 
@@ -163,7 +169,8 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         self._clearButton.clicked.connect(self._onClearClicked)
         self._queueList.itemClicked.connect(self._onTaskItemClicked)
         self._bgList.itemClicked.connect(self._onTaskItemClicked)
-        self._queueList.model().rowsMoved.connect(self._onRowsMoved)
+        model = cast(QtCore.QAbstractItemModel, self._queueList.model())
+        model.rowsMoved.connect(self._onRowsMoved)
         self._queueList.customContextMenuRequested.connect(
             self._onQueueContextMenu)
         for key in (QtCore.Qt.Key.Key_Delete, QtCore.Qt.Key.Key_Backspace):
@@ -227,9 +234,8 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             return
         for lst in (self._queueList, self._bgList):
             for i in range(lst.count()):
-                item = lst.item(i)
-                if item.data(_ROLE) is self._selectedTask:
-                    lst.setCurrentItem(item)
+                if _taskAt(lst, i) is self._selectedTask:
+                    lst.setCurrentItem(lst.item(i))
                     return
         # Task is gone — remove tree
         self._selectedTask = None
@@ -280,7 +286,7 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             return
         task = item.data(_ROLE)
         menu = QtWidgets.QMenu(self)
-        remove_action = menu.addAction('Remove')
+        remove_action = cast(QtGui.QAction, menu.addAction('Remove'))
         remove_action.setEnabled(task is not self._manager.activeRaw)
         chosen = menu.exec(self._queueList.mapToGlobal(pos))
         if chosen is remove_action:
@@ -307,21 +313,20 @@ class QTaskManagerWidget(QtWidgets.QWidget):
         '''Forward a drag-reorder to the task manager.'''
         if self._manager is None:
             return
-        tasks = [self._queueList.item(i).data(_ROLE)
+        tasks = [_taskAt(self._queueList, i)
                  for i in range(self._queueList.count())]
         self._manager.reorder(tasks)
 
     @QtCore.Slot()
     def _refresh(self) -> None:
         '''Repopulate all display elements from the manager state.'''
-        has_manager = self._manager is not None
-        has_schedule = bool(
-            has_manager and self._manager.scheduled)
+        manager = self._manager
+        has_schedule = manager is not None and bool(manager.scheduled)
         self._playButton.setEnabled(has_schedule)
         self._stopButton.setEnabled(has_schedule)
-        self._clearButton.setEnabled(has_manager)
+        self._clearButton.setEnabled(manager is not None)
 
-        if not has_manager:
+        if manager is None:
             self.status.emit('Task manager: not connected')
             self._queueList.clear()
             self._bgList.clear()
@@ -330,14 +335,14 @@ class QTaskManagerWidget(QtWidgets.QWidget):
             return
 
         # Status signal and play-button label
-        if self._manager.paused:
+        if manager.paused:
             self.status.emit('Task manager: Paused')
             self._playButton.setText('Play')
-        elif (self._manager.active is not None
-              or self._manager.background):
+        elif (manager.active is not None
+              or manager.background):
             self.status.emit('Task manager: Running')
             self._playButton.setText('Pause')
-        elif self._manager.queued:
+        elif manager.queued:
             self.status.emit('Task manager: Ready')
             self._playButton.setText('Play')
         else:
@@ -346,12 +351,12 @@ class QTaskManagerWidget(QtWidgets.QWidget):
 
         # Blocking queue: all scheduled tasks with state-based styling
         self._queueList.clear()
-        for task in self._manager.scheduled:
+        for task in manager.scheduled:
             self._queueList.addItem(self._taskItem(task))
 
         # Background tasks
         self._bgList.clear()
-        for task in self._manager.background:
+        for task in manager.background:
             self._bgList.addItem(self._taskItem(task))
 
         self._reselectTask()

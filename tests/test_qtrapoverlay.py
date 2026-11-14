@@ -362,13 +362,13 @@ class TestFinalizeSelection(unittest.TestCase):
         self.overlay.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
                               QTrap(r=(7., 7., 0.), phase=0.)])
         self.overlay._finalizeSelection(self.rect)
-        grp = list(self.overlay)[0]
+        grp = next(iter(self.overlay))
         self.assertIs(grp.parent(), self.overlay)
 
     def test_fewer_than_two_no_group_created(self):
         self.overlay.addTrap(QTrap(r=(3., 3., 0.), phase=0.))
         self.overlay._finalizeSelection(self.rect)
-        self.assertNotIsInstance(list(self.overlay)[0], QTrapGroup)
+        self.assertNotIsInstance(next(iter(self.overlay)), QTrapGroup)
 
     def test_outside_trap_excluded(self):
         t_in = QTrap(r=(3., 3., 0.), phase=0.)
@@ -394,7 +394,7 @@ class TestFinalizeSelection(unittest.TestCase):
         self.overlay.addTrap([QTrap(r=(2., 2., 0.), phase=0.),
                               QTrap(r=(8., 8., 0.), phase=0.)])
         self.overlay._finalizeSelection(self.rect)
-        grp = list(self.overlay)[0]
+        grp = next(iter(self.overlay))
         np.testing.assert_array_almost_equal(grp._r, [5., 5., 0.])
 
 

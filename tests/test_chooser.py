@@ -364,10 +364,8 @@ class TestBuildParser(unittest.TestCase):
         from QVideo.cameras.chooser import choose_camera
         # choose_camera should work with the pre-built parser without
         # raising or duplicating flags.
-        try:
+        with contextlib.suppress(SystemExit):   # no camera hardware
             choose_camera(self.parser)
-        except SystemExit:
-            pass  # expected when no camera hardware is present
 
 
 class TestConfigureLogging(unittest.TestCase):

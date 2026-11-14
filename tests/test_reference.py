@@ -303,7 +303,8 @@ class TestPlainGroupsAndComposites(unittest.TestCase):
                         for a in (0.2, 5.))
         for c in (weak, strong):
             c.addTrap(self.members()[:2])
-        near = lambda c: ref.hologram([c.spec(), other], self.o)
+        def near(c):
+            return ref.hologram([c.spec(), other], self.o)
         self.assertFalse(np.array_equal(near(weak), near(strong)))
 
     def test_the_phase_of_a_composite_shifts_its_hologram(self):

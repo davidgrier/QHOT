@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtTest, QtWidgets
 
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
@@ -18,6 +18,9 @@ LEFT = QtCore.Qt.MouseButton.LeftButton
 RIGHT = QtCore.Qt.MouseButton.RightButton
 MOD = QtCore.Qt.KeyboardModifier
 NONE = MOD.NoModifier
+
+
+make_overlay = QTrapOverlay
 
 
 def point(x, y):
@@ -99,20 +102,20 @@ class TestPress(unittest.TestCase):
         self.gestures = self.overlay.gestures
 
     def test_a_press_is_always_taken(self):
-        self.assertTrue(self.overlay.mousePress(press(), point(50., 50.)))
+        self.assertTrue(self.overlay.gestures.press(press(), point(50., 50.)))
 
     def test_shift_adds_a_trap(self):
-        self.overlay.mousePress(press(modifiers=MOD.ShiftModifier),
+        self.overlay.gestures.press(press(modifiers=MOD.ShiftModifier),
                                 point(20., 20.))
         self.assertEqual(len(list(self.overlay)), 2)
 
     def test_what_is_done_remembers_the_cursor(self):
         pos = point(20., 20.)
-        self.overlay.mousePress(press(modifiers=MOD.ShiftModifier), pos)
+        self.overlay.gestures.press(press(modifiers=MOD.ShiftModifier), pos)
         self.assertEqual(self.gestures.dragLast, pos)
 
     def test_ctrl_shift_removes_a_trap(self):
-        self.overlay.mousePress(
+        self.overlay.gestures.press(
             press(modifiers=MOD.ControlModifier | MOD.ShiftModifier),
             point(5., 5.))
         self.assertEqual(list(self.overlay), [])
@@ -121,46 +124,38 @@ class TestPress(unittest.TestCase):
         group, t1, t2 = pair()
         overlay = overlay_with(group)
         pos = point(t1.x, t1.y)
-        overlay.mousePress(
+        overlay.gestures.press(
             press(modifiers=MOD.AltModifier | MOD.ShiftModifier), pos)
         self.assertEqual(len(list(overlay)), 2)
 
     def test_ctrl_alt_locks_a_trap(self):
-        self.overlay.mousePress(
+        self.overlay.gestures.press(
             press(modifiers=MOD.ControlModifier | MOD.AltModifier),
             point(5., 5.))
         self.assertTrue(self.trap.locked)
 
     def test_ctrl_marks_a_trap(self):
-        self.overlay.mousePress(press(modifiers=MOD.ControlModifier),
+        self.overlay.gestures.press(press(modifiers=MOD.ControlModifier),
                                 point(5., 5.))
         self.assertEqual(self.overlay.markedGroups, [self.trap])
 
     def test_alt_begins_to_rotate_a_group(self):
         group, t1, t2 = pair()
         overlay = overlay_with(group)
-        overlay.mousePress(press(modifiers=MOD.AltModifier),
+        overlay.gestures.press(press(modifiers=MOD.AltModifier),
                            point(t1.x, t1.y))
         rotation = overlay.gestures.rotation
         self.assertIsNotNone(rotation)
         self.assertIs(rotation.group, group)
 
     def test_a_plain_press_grabs_the_trap(self):
-        self.overlay.mousePress(press(), point(5., 5.))
+        self.overlay.gestures.press(press(), point(5., 5.))
         self.assertIs(self.gestures.dragged, self.trap)
 
     def test_a_plain_press_on_nothing_begins_a_rubber_band(self):
-        self.overlay.mousePress(press(), point(50., 50.))
+        self.overlay.gestures.press(press(), point(50., 50.))
         self.assertTrue(self.gestures.band.isVisible())
         self.assertIsNone(self.gestures.dragged)
-
-    def test_the_standalone_event_does_the_same_and_is_accepted(self):
-        event = press(modifiers=MOD.ShiftModifier)
-        event.pos.return_value = point(20., 20.)
-        self.overlay.mousePressEvent(event)
-        self.assertEqual(len(list(self.overlay)), 2)
-        event.accept.assert_called_once()
-
 
 class TestGrab(unittest.TestCase):
 
@@ -204,42 +199,34 @@ class TestDrag(unittest.TestCase):
         self.trap = QTrap(r=(5., 5., 0.), phase=0.)
         self.overlay = overlay_with(self.trap)
         self.gestures = self.overlay.gestures
-        self.overlay.mousePress(press(), point(5., 5.))
+        self.overlay.gestures.press(press(), point(5., 5.))
 
     def test_the_group_follows_the_cursor(self):
-        self.overlay.mouseMove(move(), point(8., 9.))
+        self.overlay.gestures.move(move(), point(8., 9.))
         self.assertAlmostEqual(self.trap.x, 8.)
         self.assertAlmostEqual(self.trap.y, 9.)
 
     def test_the_height_does_not_change(self):
-        self.overlay.mouseMove(move(), point(8., 9.))
+        self.overlay.gestures.move(move(), point(8., 9.))
         self.assertAlmostEqual(self.trap.z, 0.)
 
     def test_a_step_is_the_distance_since_the_last_one(self):
-        self.overlay.mouseMove(move(), point(8., 9.))
-        self.overlay.mouseMove(move(), point(10., 9.))
+        self.overlay.gestures.move(move(), point(8., 9.))
+        self.overlay.gestures.move(move(), point(10., 9.))
         self.assertAlmostEqual(self.trap.x, 10.)
         self.assertAlmostEqual(self.trap.y, 9.)
 
     def test_it_remembers_the_cursor(self):
         pos = point(8., 9.)
-        self.overlay.mouseMove(move(), pos)
+        self.overlay.gestures.move(move(), pos)
         self.assertEqual(self.gestures.dragLast, pos)
 
     def test_a_move_is_taken(self):
-        self.assertTrue(self.overlay.mouseMove(move(), point(6., 6.)))
+        self.assertTrue(self.overlay.gestures.move(move(), point(6., 6.)))
 
     def test_another_button_is_not_taken_and_moves_nothing(self):
-        self.assertFalse(self.overlay.mouseMove(move(RIGHT), point(8., 9.)))
+        self.assertFalse(self.overlay.gestures.move(move(RIGHT), point(8., 9.)))
         self.assertAlmostEqual(self.trap.x, 5.)
-
-    def test_the_standalone_event_does_the_same_and_is_accepted(self):
-        event = move()
-        event.pos.return_value = point(8., 9.)
-        self.overlay.mouseMoveEvent(event)
-        self.assertAlmostEqual(self.trap.x, 8.)
-        event.accept.assert_called_once()
-
 
 class TestRubberBand(unittest.TestCase):
 
@@ -292,9 +279,9 @@ class TestRubberBand(unittest.TestCase):
     def test_it_groups_the_traps_that_it_enclosed(self):
         for r in ((3., 3., 0.), (6., 6., 0.), (50., 50., 0.)):
             self.overlay.addTrap(QTrap(r=r, phase=0.))
-        self.overlay.mousePress(press(), point(0., 0.))
-        self.overlay.mouseMove(move(), point(10., 10.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.press(press(), point(0., 0.))
+        self.overlay.gestures.move(move(), point(10., 10.))
+        self.overlay.gestures.release(press())
         groups = [t for t in self.overlay if isinstance(t, QTrapGroup)]
         self.assertEqual(len(groups), 1)
         self.assertEqual(len(list(groups[0])), 2)
@@ -303,13 +290,13 @@ class TestRubberBand(unittest.TestCase):
         self.gestures.startSelection(point(0., 0.))
         pos = point(5., 5.)
         with patch.object(self.gestures, 'growSelection') as grow:
-            self.overlay.mouseMove(move(), pos)
+            self.overlay.gestures.move(move(), pos)
         grow.assert_called_once_with(pos)
 
     def test_the_release_ends_it_when_it_is_going_on(self):
         self.gestures.startSelection(point(0., 0.))
         with patch.object(self.gestures, 'endSelection') as end:
-            self.overlay.mouseRelease(press())
+            self.overlay.gestures.release(press())
         end.assert_called_once()
 
 
@@ -322,28 +309,28 @@ class TestRelease(unittest.TestCase):
         self.stack = self.overlay.undoStack
 
     def drag(self, to):
-        self.overlay.mousePress(press(), point(5., 5.))
-        self.overlay.mouseMove(move(), to)
+        self.overlay.gestures.press(press(), point(5., 5.))
+        self.overlay.gestures.move(move(), to)
 
     def test_a_release_is_taken(self):
-        self.assertTrue(self.overlay.mouseRelease(press()))
+        self.assertTrue(self.overlay.gestures.release(press()))
 
     def test_nothing_is_grabbed_after_it(self):
         self.drag(point(8., 9.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertIsNone(self.gestures.dragged)
         self.assertIsNone(self.gestures.dragOrigin)
         self.assertIsNone(self.gestures.dragLast)
 
     def test_the_group_is_in_its_own_color_again(self):
         self.drag(point(8., 9.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertEqual(self.overlay.points()[0].brush(),
                          self.overlay.brush[self.overlay.State.NORMAL])
 
     def test_a_move_can_be_undone(self):
         self.drag(point(8., 9.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertEqual(self.stack.count(), 1)
         self.stack.undo()
         self.assertAlmostEqual(self.trap.x, 5.)
@@ -351,20 +338,12 @@ class TestRelease(unittest.TestCase):
 
     def test_a_press_that_moved_nothing_is_not_an_edit(self):
         self.drag(point(5., 5.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertEqual(self.stack.count(), 0)
 
     def test_a_release_with_nothing_going_on_changes_nothing(self):
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertEqual(self.stack.count(), 0)
-
-    def test_the_standalone_event_does_the_same_and_is_accepted(self):
-        self.drag(point(8., 9.))
-        event = MagicMock()
-        self.overlay.mouseReleaseEvent(event)
-        self.assertIsNone(self.gestures.dragged)
-        event.accept.assert_called_once()
-
 
 class TestWheel(unittest.TestCase):
 
@@ -373,40 +352,40 @@ class TestWheel(unittest.TestCase):
         self.overlay = overlay_with(self.trap)
 
     def test_nothing_under_the_cursor(self):
-        self.assertFalse(self.overlay.wheel(wheel(120), point(50., 50.)))
+        self.assertFalse(self.overlay.gestures.wheel(wheel(120), point(50., 50.)))
 
     def test_a_trap_under_the_cursor(self):
-        self.assertTrue(self.overlay.wheel(wheel(120), point(5., 5.)))
+        self.assertTrue(self.overlay.gestures.wheel(wheel(120), point(5., 5.)))
 
     def test_a_notch_up_is_a_step_up(self):
-        self.overlay.wheel(wheel(120), point(5., 5.))
+        self.overlay.gestures.wheel(wheel(120), point(5., 5.))
         self.assertAlmostEqual(self.trap.z, 11.)
 
     def test_a_notch_down_is_a_step_down(self):
-        self.overlay.wheel(wheel(-120), point(5., 5.))
+        self.overlay.gestures.wheel(wheel(-120), point(5., 5.))
         self.assertAlmostEqual(self.trap.z, 9.)
 
     def test_the_position_in_the_plane_does_not_change(self):
-        self.overlay.wheel(wheel(120), point(5., 5.))
+        self.overlay.gestures.wheel(wheel(120), point(5., 5.))
         self.assertAlmostEqual(self.trap.x, 5.)
         self.assertAlmostEqual(self.trap.y, 5.)
 
     def test_the_whole_group_moves(self):
         group, t1, t2 = pair()
         overlay = overlay_with(group)
-        overlay.wheel(wheel(120), point(t1.x, t1.y))
+        overlay.gestures.wheel(wheel(120), point(t1.x, t1.y))
         self.assertAlmostEqual(group.z, 1.)
         self.assertAlmostEqual(t1.z, 1.)
         self.assertAlmostEqual(t2.z, 1.)
 
     def test_it_can_be_undone(self):
-        self.overlay.wheel(wheel(120), point(5., 5.))
+        self.overlay.gestures.wheel(wheel(120), point(5., 5.))
         self.overlay.undoStack.undo()
         self.assertAlmostEqual(self.trap.z, 10.)
 
     def test_a_locked_trap_is_taken_and_does_not_move(self):
         self.trap.locked = True
-        self.assertTrue(self.overlay.wheel(wheel(120), point(5., 5.)))
+        self.assertTrue(self.overlay.gestures.wheel(wheel(120), point(5., 5.)))
         self.assertAlmostEqual(self.trap.z, 10.)
         self.assertEqual(self.overlay.undoStack.count(), 0)
 
@@ -477,28 +456,28 @@ class TestRotation(unittest.TestCase):
         self.group, self.t1, self.t2 = pair()
         self.overlay = overlay_with(self.group)
         self.gestures = self.overlay.gestures
-        self.overlay.mousePress(press(modifiers=MOD.AltModifier),
+        self.overlay.gestures.press(press(modifiers=MOD.AltModifier),
                                 point(4., 0.))
 
     def test_the_traps_turn_with_the_cursor(self):
-        self.overlay.mouseMove(move(), point(0., 4.))
+        self.overlay.gestures.move(move(), point(0., 4.))
         np.testing.assert_array_almost_equal(self.t1.r[:2], [0., 4.])
         np.testing.assert_array_almost_equal(self.t2.r[:2], [0., -4.])
 
     def test_the_spots_follow_the_traps(self):
-        self.overlay.mouseMove(move(), point(0., 4.))
+        self.overlay.gestures.move(move(), point(0., 4.))
         spot = self.overlay.points()[self.t1._index]
         self.assertAlmostEqual(spot._data['x'], 0., places=5)
         self.assertAlmostEqual(spot._data['y'], 4., places=5)
 
     def test_the_same_cursor_gives_the_same_turn(self):
-        self.overlay.mouseMove(move(), point(0., 4.))
+        self.overlay.gestures.move(move(), point(0., 4.))
         r = self.t1.r
-        self.overlay.mouseMove(move(), point(0., 4.))
+        self.overlay.gestures.move(move(), point(0., 4.))
         np.testing.assert_array_almost_equal(self.t1.r, r)
 
     def test_a_turn_is_never_more_than_a_half_circle(self):
-        self.overlay.mouseMove(move(), point(-4., -0.001))
+        self.overlay.gestures.move(move(), point(-4., -0.001))
         self.assertLessEqual(abs(self.gestures.rotation.angle), np.pi)
 
     def test_nested_groups_turn_about_the_center_of_the_outer_one(self):
@@ -508,32 +487,32 @@ class TestRotation(unittest.TestCase):
         inner.addTrap(leaf)
         outer.addTrap(inner)
         overlay = overlay_with(outer)
-        overlay.mousePress(press(modifiers=MOD.AltModifier), point(2., 0.))
-        overlay.mouseMove(move(), point(0., 2.))
+        overlay.gestures.press(press(modifiers=MOD.AltModifier), point(2., 0.))
+        overlay.gestures.move(move(), point(0., 2.))
         np.testing.assert_array_almost_equal(inner.r[:2], [0., 2.])
         np.testing.assert_array_almost_equal(leaf.r[:2], [0., 2.])
 
     def test_the_release_ends_it(self):
-        self.overlay.mouseMove(move(), point(0., 4.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.move(move(), point(0., 4.))
+        self.overlay.gestures.release(press())
         self.assertIsNone(self.gestures.rotation)
 
     def test_the_traps_are_in_their_own_color_again(self):
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         for trap in (self.t1, self.t2):
             self.assertEqual(
                 self.overlay.points()[trap._index].brush(),
                 self.overlay.brush[self.overlay.State.NORMAL])
 
     def test_a_rotation_can_be_undone(self):
-        self.overlay.mouseMove(move(), point(0., 4.))
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.move(move(), point(0., 4.))
+        self.overlay.gestures.release(press())
         self.assertEqual(self.overlay.undoStack.count(), 1)
         self.overlay.undoStack.undo()
         np.testing.assert_array_almost_equal(self.t1.r[:2], [4., 0.])
 
     def test_a_press_that_turned_nothing_is_not_an_edit(self):
-        self.overlay.mouseRelease(press())
+        self.overlay.gestures.release(press())
         self.assertEqual(self.overlay.undoStack.count(), 0)
 
 
@@ -543,6 +522,201 @@ class TestARotationIsAValue(unittest.TestCase):
         group, _, _ = pair()
         rotation = Rotation(group, (0., 0.), 0., {})
         self.assertEqual(rotation.angle, 0.)
+
+
+class TestAdd(unittest.TestCase):
+
+    def test_creates_trap_at_position(self):
+        overlay = make_overlay()
+        overlay.gestures.add(QtCore.QPointF(3., 7.))
+        self.assertEqual(len(overlay._traps), 1)
+
+    def test_trap_is_tweezer(self):
+        overlay = make_overlay()
+        overlay.gestures.add(QtCore.QPointF(1., 1.))
+        self.assertIsInstance(overlay._traps[0], QTweezer)
+
+    def test_tweezer_position_matches(self):
+        overlay = make_overlay()
+        overlay.gestures.add(QtCore.QPointF(3., 7.))
+        trap = overlay._traps[0]
+        self.assertAlmostEqual(trap.x, 3.)
+        self.assertAlmostEqual(trap.y, 7.)
+
+    def test_returns_true(self):
+        overlay = make_overlay()
+        self.assertTrue(overlay.gestures.add(QtCore.QPointF(1., 1.)))
+
+
+class TestRemove(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+
+    def test_removes_nearest_trap(self):
+        spot = self.overlay.points()[0]
+        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
+            self.overlay.gestures.remove(QtCore.QPointF(5., 5.))
+        self.assertNotIn(self.trap, self.overlay._traps)
+
+    def test_returns_true_when_trap_found(self):
+        spot = self.overlay.points()[0]
+        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
+            result = self.overlay.gestures.remove(QtCore.QPointF(5., 5.))
+        self.assertTrue(result)
+
+    def test_returns_false_when_no_trap(self):
+        with patch.object(self.overlay, 'pointsAt', return_value=[]):
+            result = self.overlay.gestures.remove(QtCore.QPointF(99., 99.))
+        self.assertFalse(result)
+
+
+class TestBreakGroup(unittest.TestCase):
+
+    '''The handler of the gesture finds the trap; the rest is in
+    ``test_grouping``.'''
+
+    def test_returns_false_when_no_trap(self):
+        overlay = make_overlay()
+        with patch.object(overlay, 'trapAt', return_value=None):
+            self.assertFalse(overlay.gestures.breakGroup(QtCore.QPointF(0., 0.)))
+
+    def test_returns_false_for_ungrouped_trap(self):
+        overlay = make_overlay()
+        trap = QTrap(r=(1., 1., 0.), phase=0.)
+        overlay.addTrap(trap)
+        with patch.object(overlay, 'trapAt', return_value=trap):
+            self.assertFalse(overlay.gestures.breakGroup(QtCore.QPointF(1., 1.)))
+
+    def test_breaks_the_group_of_the_trap_under_the_cursor(self):
+        overlay = make_overlay()
+        t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        t2 = QTrap(r=(2., 2., 0.), phase=0.)
+        group = QTrapGroup(r=(1.5, 1.5, 0.))
+        group.addTrap([t1, t2])
+        overlay.addTrap(group)
+        with patch.object(overlay, 'trapAt', return_value=t1):
+            self.assertTrue(overlay.gestures.breakGroup(QtCore.QPointF(1., 1.)))
+        self.assertIs(t1.parent(), overlay)
+
+
+class TestToggleLock(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+
+    def test_returns_false_no_trap(self):
+        with patch.object(self.overlay, 'trapAt', return_value=None):
+            result = self.overlay.gestures.toggleLock(QtCore.QPointF(99., 99.))
+        self.assertFalse(result)
+
+    def test_returns_true_when_trap_found(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            result = self.overlay.gestures.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertTrue(result)
+
+    def test_locks_trap(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertTrue(self.trap.locked)
+
+    def test_unlocks_trap(self):
+        self.trap.locked = True
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleLock(QtCore.QPointF(5., 5.))
+        self.assertFalse(self.trap.locked)
+
+    def test_lock_sets_static_brush(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleLock(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.STATIC].color())
+
+    def test_unlock_restores_normal_brush(self):
+        self.trap.locked = True
+        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleLock(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.NORMAL].color())
+
+
+class TestToggleMark(unittest.TestCase):
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
+        self.overlay.addTrap(self.trap)
+
+    def test_returns_false_no_trap(self):
+        with patch.object(self.overlay, 'trapAt', return_value=None):
+            result = self.overlay.gestures.toggleMark(QtCore.QPointF(99., 99.))
+        self.assertFalse(result)
+
+    def test_returns_true_when_trap_found(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            result = self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        self.assertTrue(result)
+
+    def test_mark_adds_group_to_marked_set(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        self.assertIn(self.trap, self.overlay._marked)
+
+    def test_second_toggle_removes_from_marked_set(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        self.assertNotIn(self.trap, self.overlay._marked)
+
+    def test_mark_sets_special_brush(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.MARKED].color())
+
+    def test_unmark_restores_normal_brush(self):
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.NORMAL].color())
+
+    def test_unmark_locked_trap_restores_static_brush(self):
+        self.trap.locked = True
+        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
+        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+            self.overlay.gestures.toggleMark(QtCore.QPointF(5., 5.))
+        spot = self.overlay.points()[0]
+        self.assertEqual(
+            spot.brush().color(),
+            self.overlay.brush[self.overlay.State.STATIC].color())
+
+    def test_mark_group_adds_group_not_leaf(self):
+        g = QTrapGroup()
+        g.setParent(self.overlay)
+        t1 = QTrap(r=(1., 1., 0.), phase=0.)
+        t2 = QTrap(r=(2., 2., 0.), phase=0.)
+        t1.setParent(g)
+        t2.setParent(g)
+        self.overlay.addTrap(g)
+        with patch.object(self.overlay, 'trapAt', return_value=t1):
+            self.overlay.gestures.toggleMark(QtCore.QPointF(1., 1.))
+        self.assertIn(g, self.overlay._marked)
+        self.assertNotIn(t1, self.overlay._marked)
 
 
 if __name__ == '__main__':

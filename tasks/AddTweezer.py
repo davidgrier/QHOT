@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from qtpy import QtCore
-
 from QHOT.lib.tasks.QTask import QTask
 
 
@@ -69,4 +67,4 @@ class AddTweezer(QTask):
         self._y = float(y)
 
     def initialize(self) -> None:
-        self.overlay.addTrap(QtCore.QPointF(self.x, self.y))
+        self.overlay.addTweezer(self.x, self.y)

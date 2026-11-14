@@ -92,7 +92,7 @@ class PatternCase(unittest.TestCase):
     def breakAt(self, leaf):
         '''Detach a trap from its group, as a click on it would.'''
         with patch.object(self.overlay, 'trapAt', return_value=leaf):
-            return self.overlay.breakGroup(QtCore.QPointF(leaf.x, leaf.y))
+            return self.overlay.gestures.breakGroup(QtCore.QPointF(leaf.x, leaf.y))
 
 
 class TestSingleTraps(PatternCase):
@@ -140,8 +140,8 @@ class TestSingleTraps(PatternCase):
         self.check()
 
     def test_undo_and_redo(self):
-        self.overlay.addTrap(QtCore.QPointF(20., 15.))
-        self.overlay.addTrap(QtCore.QPointF(40., 25.))
+        self.overlay.addTweezer(20., 15.)
+        self.overlay.addTweezer(40., 25.)
         self.check()
         self.overlay._undoStack.undo()
         self.check()
@@ -312,7 +312,7 @@ class TestPatternChanged(PatternCase):
         self.assertTrue(self.emitted(lambda: setattr(g, 'r', (40., 30., 0.))))
 
     def test_undoing_and_redoing(self):
-        self.overlay.addTrap(QtCore.QPointF(10., 12.))
+        self.overlay.addTweezer(10., 12.)
         stack = self.overlay.undoStack
         self.assertTrue(self.emitted(stack.undo))
         self.assertEqual(self.overlay.pattern(), ())

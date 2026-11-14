@@ -68,6 +68,27 @@ class TestAddTrapGroup(unittest.TestCase):
         self.assertEqual(list(self.overlay), [self.grp])
 
 
+class TestAddTweezer(unittest.TestCase):
+
+    '''A tweezer that is added at a position can be undone.'''
+
+    def setUp(self):
+        self.overlay = make_overlay()
+        self.overlay.addTweezer(3., 7.)
+
+    def test_a_tweezer_is_at_the_position(self):
+        (trap,) = list(self.overlay)
+        self.assertIsInstance(trap, QTweezer)
+        self.assertAlmostEqual(trap.x, 3.)
+        self.assertAlmostEqual(trap.y, 7.)
+
+    def test_it_can_be_undone_and_done_again(self):
+        self.overlay.undoStack.undo()
+        self.assertEqual(list(self.overlay), [])
+        self.overlay.undoStack.redo()
+        self.assertEqual(len(list(self.overlay)), 1)
+
+
 class TestAddTrapList(unittest.TestCase):
 
     def setUp(self):
@@ -403,55 +424,6 @@ class TestTrapSignals(unittest.TestCase):
         self.assertEqual(len(spy), 3)
 
 
-class TestAddTrapFromPosition(unittest.TestCase):
-
-    def test_creates_trap_at_position(self):
-        overlay = make_overlay()
-        overlay.addTrap(QtCore.QPointF(3., 7.))
-        self.assertEqual(len(overlay._traps), 1)
-
-    def test_trap_is_tweezer(self):
-        overlay = make_overlay()
-        overlay.addTrap(QtCore.QPointF(1., 1.))
-        self.assertIsInstance(overlay._traps[0], QTweezer)
-
-    def test_tweezer_position_matches(self):
-        overlay = make_overlay()
-        overlay.addTrap(QtCore.QPointF(3., 7.))
-        trap = overlay._traps[0]
-        self.assertAlmostEqual(trap.x, 3.)
-        self.assertAlmostEqual(trap.y, 7.)
-
-    def test_returns_true(self):
-        overlay = make_overlay()
-        self.assertTrue(overlay.addTrap(QtCore.QPointF(1., 1.)))
-
-
-class TestRemoveTrapFromPosition(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
-        self.overlay.addTrap(self.trap)
-
-    def test_removes_nearest_trap(self):
-        spot = self.overlay.points()[0]
-        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
-            self.overlay.removeTrap(QtCore.QPointF(5., 5.))
-        self.assertNotIn(self.trap, self.overlay._traps)
-
-    def test_returns_true_when_trap_found(self):
-        spot = self.overlay.points()[0]
-        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
-            result = self.overlay.removeTrap(QtCore.QPointF(5., 5.))
-        self.assertTrue(result)
-
-    def test_returns_false_when_no_trap(self):
-        with patch.object(self.overlay, 'pointsAt', return_value=[]):
-            result = self.overlay.removeTrap(QtCore.QPointF(99., 99.))
-        self.assertFalse(result)
-
-
 class TestTrapAt(unittest.TestCase):
 
     def setUp(self):
@@ -498,35 +470,6 @@ class TestGroupAt(unittest.TestCase):
         with patch.object(self.overlay, 'trapAt', return_value=None):
             result = self.overlay.groupAt(QtCore.QPointF(99., 99.))
         self.assertIsNone(result)
-
-
-class TestBreakGroup(unittest.TestCase):
-
-    '''The handler of the gesture finds the trap; the rest is in
-    ``test_grouping``.'''
-
-    def test_returns_false_when_no_trap(self):
-        overlay = make_overlay()
-        with patch.object(overlay, 'trapAt', return_value=None):
-            self.assertFalse(overlay.breakGroup(QtCore.QPointF(0., 0.)))
-
-    def test_returns_false_for_ungrouped_trap(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(1., 1., 0.), phase=0.)
-        overlay.addTrap(trap)
-        with patch.object(overlay, 'trapAt', return_value=trap):
-            self.assertFalse(overlay.breakGroup(QtCore.QPointF(1., 1.)))
-
-    def test_breaks_the_group_of_the_trap_under_the_cursor(self):
-        overlay = make_overlay()
-        t1 = QTrap(r=(1., 1., 0.), phase=0.)
-        t2 = QTrap(r=(2., 2., 0.), phase=0.)
-        group = QTrapGroup(r=(1.5, 1.5, 0.))
-        group.addTrap([t1, t2])
-        overlay.addTrap(group)
-        with patch.object(overlay, 'trapAt', return_value=t1):
-            self.assertTrue(overlay.breakGroup(QtCore.QPointF(1., 1.)))
-        self.assertIs(t1.parent(), overlay)
 
 
 class TestReshapeSignals(unittest.TestCase):
@@ -630,53 +573,6 @@ class TestSaveLoad(unittest.TestCase):
         self.assertEqual(len(self.overlay._traps), 1)
 
 
-class TestToggleLock(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
-        self.overlay.addTrap(self.trap)
-
-    def test_returns_false_no_trap(self):
-        with patch.object(self.overlay, 'trapAt', return_value=None):
-            result = self.overlay.toggleLock(QtCore.QPointF(99., 99.))
-        self.assertFalse(result)
-
-    def test_returns_true_when_trap_found(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            result = self.overlay.toggleLock(QtCore.QPointF(5., 5.))
-        self.assertTrue(result)
-
-    def test_locks_trap(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
-        self.assertTrue(self.trap.locked)
-
-    def test_unlocks_trap(self):
-        self.trap.locked = True
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
-        self.assertFalse(self.trap.locked)
-
-    def test_lock_sets_static_brush(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.STATIC].color())
-
-    def test_unlock_restores_normal_brush(self):
-        self.trap.locked = True
-        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleLock(QtCore.QPointF(5., 5.))
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.NORMAL].color())
-
-
 class TestLockedTrapIgnored(unittest.TestCase):
     '''A locked trap is shown with the static brush (the gestures that it
     ignores are tested with the gestures).'''
@@ -762,76 +658,6 @@ class TestMarkerSize(unittest.TestCase):
         self.overlay.addTrap([gone, kept])
         self.overlay.removeTrap(gone)
         self.assertAlmostEqual(self.size(kept), 2. * self.base)
-
-
-class TestToggleMark(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.trap = QTrap(r=(5., 5., 0.), phase=0.)
-        self.overlay.addTrap(self.trap)
-
-    def test_returns_false_no_trap(self):
-        with patch.object(self.overlay, 'trapAt', return_value=None):
-            result = self.overlay.toggleMark(QtCore.QPointF(99., 99.))
-        self.assertFalse(result)
-
-    def test_returns_true_when_trap_found(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            result = self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        self.assertTrue(result)
-
-    def test_mark_adds_group_to_marked_set(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        self.assertIn(self.trap, self.overlay._marked)
-
-    def test_second_toggle_removes_from_marked_set(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        self.assertNotIn(self.trap, self.overlay._marked)
-
-    def test_mark_sets_special_brush(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.MARKED].color())
-
-    def test_unmark_restores_normal_brush(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.NORMAL].color())
-
-    def test_unmark_locked_trap_restores_static_brush(self):
-        self.trap.locked = True
-        self.overlay.setGroupBrush(self.trap, self.overlay.State.STATIC)
-        with patch.object(self.overlay, 'trapAt', return_value=self.trap):
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-            self.overlay.toggleMark(QtCore.QPointF(5., 5.))
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.STATIC].color())
-
-    def test_mark_group_adds_group_not_leaf(self):
-        g = QTrapGroup()
-        g.setParent(self.overlay)
-        t1 = QTrap(r=(1., 1., 0.), phase=0.)
-        t2 = QTrap(r=(2., 2., 0.), phase=0.)
-        t1.setParent(g)
-        t2.setParent(g)
-        self.overlay.addTrap(g)
-        with patch.object(self.overlay, 'trapAt', return_value=t1):
-            self.overlay.toggleMark(QtCore.QPointF(1., 1.))
-        self.assertIn(g, self.overlay._marked)
-        self.assertNotIn(t1, self.overlay._marked)
 
 
 class TestMarkedGroups(unittest.TestCase):

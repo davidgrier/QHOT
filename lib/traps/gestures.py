@@ -16,8 +16,9 @@ from pyqtgraph import mkBrush, mkPen
 
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
-from QHOT.lib.traps.commands import MoveCommand, RotateCommand, WheelCommand
-from QHOT.lib.traps.grouping import group_within
+from QHOT.lib.traps.commands import (
+    RemoveTrapCommand, LockCommand, MoveCommand, RotateCommand, WheelCommand)
+from QHOT.lib.traps.grouping import break_group, group_within
 
 if TYPE_CHECKING:
     from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
@@ -57,9 +58,9 @@ class Gestures:
 
     '''The mouse gestures on the traps of an overlay.
 
-    The overlay forwards what the window gives it, a press, a move, a
-    release and a turn of the wheel, with the position of the cursor in
-    its own coordinates.  A press that has a binding below does what the
+    The screen that hosts the overlay gives it a press, a move, a release
+    and a turn of the wheel, with the position of the cursor in the
+    coordinates of the overlay.  A press that has a binding below does what the
     binding says; any other press grabs the group under the cursor, and a
     press on nothing begins a rubber band that groups the traps that it
     encloses.
@@ -122,13 +123,11 @@ class Gestures:
         mod = QtCore.Qt.KeyboardModifier
         # (button, modifiers) of the press, and what it does
         self._handlers = {
-            (left, mod.ShiftModifier): overlay.addTrap,
-            (left, mod.ControlModifier | mod.ShiftModifier):
-                overlay.removeTrap,
-            (left, mod.AltModifier | mod.ShiftModifier): overlay.breakGroup,
-            (left, mod.ControlModifier | mod.AltModifier):
-                overlay.toggleLock,
-            (left, mod.ControlModifier): overlay.toggleMark,
+            (left, mod.ShiftModifier): self.add,
+            (left, mod.ControlModifier | mod.ShiftModifier): self.remove,
+            (left, mod.AltModifier | mod.ShiftModifier): self.breakGroup,
+            (left, mod.ControlModifier | mod.AltModifier): self.toggleLock,
+            (left, mod.ControlModifier): self.toggleMark,
             (left, mod.AltModifier): self.startRotation,
         }
 
@@ -250,6 +249,109 @@ class Gestures:
 
     # ------------------------------------------------------------------
     # The gestures that begin with a press
+
+    def add(self, pos: QtCore.QPointF) -> bool:
+        '''Add a tweezer at the cursor, so that it can be undone.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Cursor position in the coordinates of the overlay.
+
+        Returns
+        -------
+        bool
+            Always ``True``.
+        '''
+        self.overlay.addTweezer(pos.x(), pos.y())
+        return True
+
+    def remove(self, pos: QtCore.QPointF) -> bool:
+        '''Remove the trap under the cursor, with its group, so that it can
+        be undone.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Cursor position in the coordinates of the overlay.
+
+        Returns
+        -------
+        bool
+            ``True`` if there is a trap under the cursor, ``False`` if not.
+        '''
+        group = self.overlay.groupAt(pos)
+        if group is None:
+            return False
+        self.overlay.undoStack.push(RemoveTrapCommand(self.overlay, group))
+        return True
+
+    def breakGroup(self, pos: QtCore.QPointF) -> bool:
+        '''Take the trap under the cursor, or its subgroup, out of its group.
+
+        See :func:`~QHOT.lib.traps.grouping.break_group`.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Cursor position in the coordinates of the overlay.
+
+        Returns
+        -------
+        bool
+            ``True`` if a trap was taken out, ``False`` if there is no trap
+            under the cursor or it is in no group.
+        '''
+        trap = self.overlay.trapAt(pos)
+        return trap is not None and break_group(self.overlay, trap)
+
+    def toggleLock(self, pos: QtCore.QPointF) -> bool:
+        '''Lock the group under the cursor, or unlock it, so that it can be
+        undone.
+
+        A locked group is shown with the ``STATIC`` brush, and cannot be
+        moved, scrolled or rotated.
+
+        Parameters
+        ----------
+        pos : QPointF
+            Cursor position in the coordinates of the overlay.
+
+        Returns
+        -------
+        bool
+            ``True`` if there is a trap under the cursor, ``False`` if not.
+        '''
+        group = self.overlay.groupAt(pos)
+        if group is None:
+            return False
+        self.overlay.undoStack.push(LockCommand(self.overlay, group))
+        return True
+
+    def toggleMark(self, pos: QtCore.QPointF) -> bool:
+        '''Mark the group under the cursor for the tasks, or clear its mark.
+
+        A marked group is shown with the ``MARKED`` brush (see
+        :meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.mark`).
+
+        Parameters
+        ----------
+        pos : QPointF
+            Cursor position in the coordinates of the overlay.
+
+        Returns
+        -------
+        bool
+            ``True`` if there is a trap under the cursor, ``False`` if not.
+        '''
+        group = self.overlay.groupAt(pos)
+        if group is None:
+            return False
+        if group in self.overlay.markedGroups:
+            self.overlay.unmark(group)
+        else:
+            self.overlay.mark(group)
+        return True
 
     def grab(self, pos: QtCore.QPointF) -> bool:
         '''Grab the group under the cursor, to drag it.

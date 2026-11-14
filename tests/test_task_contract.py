@@ -103,8 +103,8 @@ class TestWhatTheTasksDoWithTheirResources(ContractCase):
     def test_a_tweezer_is_added_on_the_axis_of_the_cgh(self):
         task = self.queue('AddTweezer')
         task.initialize()
-        pos = self.manager.overlay.addTrap.call_args.args[0]
-        self.assertEqual((pos.x(), pos.y()), (320., 240.))
+        x, y = self.manager.overlay.addTweezer.call_args.args
+        self.assertEqual((x, y), (320., 240.))
 
     def test_a_snapshot_is_of_the_live_image(self):
         task = self.queue('Snapshot')

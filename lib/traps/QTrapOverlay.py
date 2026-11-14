@@ -7,7 +7,6 @@ from enum import Enum
 from typing import Any, ClassVar, cast
 
 from qtpy import QtCore, QtGui
-import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
 from pyqtgraph import mkBrush
 
@@ -15,11 +14,8 @@ from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
 from QHOT.lib.traps.gestures import Gestures
-from QHOT.lib.traps.grouping import break_group
 from QHOT.lib.traps.trapspec import TrapSpec
-from QHOT.lib.traps.commands import (
-    AddTrapCommand, RemoveTrapCommand, LockCommand, PropertyCommand)
-from QHOT.traps import QTweezer
+from QHOT.lib.traps.commands import AddTrapCommand, PropertyCommand
 
 
 logger = logging.getLogger(__name__)
@@ -27,23 +23,15 @@ logger = logging.getLogger(__name__)
 
 class QTrapOverlay(ScatterPlotItem):
 
-    '''Graphical overlay for interacting with optical traps.
+    '''The traps, shown as colored scatter-plot spots.
 
-    Renders each trap as a colored scatter-plot spot and dispatches mouse
-    events to trap operations (add, remove, select, drag, group, break).
     Traps and trap groups are Qt children of the overlay; iterating over
-    the overlay yields its top-level QTrap/QTrapGroup children.
-
-    The mouse is handled by a :class:`~QHOT.lib.traps.gestures.Gestures`
-    that the overlay owns (``gestures``) and forwards its events to.  The
-    overlay supports two event-delivery modes:
-
-    * **Standalone** – embedded directly in a ``pyqtgraph.PlotWidget``;
-      Qt calls ``mousePressEvent`` / ``mouseMoveEvent`` /
-      ``mouseReleaseEvent`` automatically.
-    * **Hosted** – embedded in a ``QHOTScreen``; the screen calls
-      ``mousePress`` / ``mouseMove`` / ``mouseRelease`` / ``wheel``
-      explicitly with pre-transformed coordinates.
+    the overlay yields its top-level QTrap/QTrapGroup children.  The overlay
+    keeps them, their spots and brushes, the marks and the undo stack.  What
+    the mouse does to them is in a
+    :class:`~QHOT.lib.traps.gestures.Gestures` that the overlay owns
+    (``gestures``) and that the screen that hosts the overlay
+    (:class:`~QHOT.lib.QHOTScreen.QHOTScreen`) gives the mouse events.
 
     Attributes
     ----------
@@ -218,34 +206,28 @@ class QTrapOverlay(ScatterPlotItem):
             self.watch(traps)
         self.trapAdded.emit(traps)
 
-    def addTrap(self, traps: QTrap | list[QTrap] | QtCore.QPointF) -> bool:
-        '''Register a trap or group with the overlay.
+    def addTrap(self, traps: QTrap | list[QTrap]) -> None:
+        '''Add a trap or a group, or a list of them, to the overlay.
 
-        When called as a mouse handler with a ``QPointF``, pushes an
-        ``AddTrapCommand`` onto the undo stack so the operation can be
-        undone.
+        This does not go on the undo stack: the undo commands call it.
 
         Parameters
         ----------
-        traps : QTrap or list[QTrap] or QPointF
-            A single trap or group, a list of traps, or a position at
-            which to create a new ``QTweezer``.
-
-        Returns
-        -------
-        bool
-            ``True`` on success.
+        traps : QTrap or list[QTrap]
+            A single trap or group, or a list of them.
         '''
-        if isinstance(traps, QtCore.QPointF):
-            self._undoStack.push(
-                AddTrapCommand(self, traps.x(), traps.y()))
-            return True
-        if isinstance(traps, list):
-            for trap in traps:
-                self._addTrap(trap)
-            return True
-        self._addTrap(traps)
-        return True
+        for trap in (traps if isinstance(traps, list) else [traps]):
+            self._addTrap(trap)
+
+    def addTweezer(self, x: float, y: float) -> None:
+        '''Add a tweezer at a position, so that the user can undo it.
+
+        Parameters
+        ----------
+        x, y : float
+            Where to put it, in the coordinates of the overlay.
+        '''
+        self._undoStack.push(AddTrapCommand(self, x, y))
 
     def _removeTrap(self, group: QTrap) -> None:
         '''Deregister a top-level trap or group from the overlay (internal).
@@ -276,33 +258,18 @@ class QTrapOverlay(ScatterPlotItem):
         self._rebuildSpots()
         self.patternChanged.emit()   # ``trapRemoved`` was emitted at the start
 
-    def removeTrap(self, trap: QTrap | QtCore.QPointF) -> bool:
-        '''Remove a trap from the overlay.
+    def removeTrap(self, trap: QTrap) -> None:
+        '''Remove a trap from the overlay; if it belongs to a group, the
+        whole group goes.
 
-        If the trap belongs to a group, the entire group is removed.
-        When called as a mouse handler with a ``QPointF``, pushes a
-        ``RemoveTrapCommand`` onto the undo stack so the operation can
-        be undone.
+        This does not go on the undo stack: the undo commands call it.
 
         Parameters
         ----------
-        trap : QTrap or QPointF
-            The trap to remove, or a position identifying the nearest trap.
-
-        Returns
-        -------
-        bool
-            ``True`` if a trap was removed, ``False`` if no trap was found.
+        trap : QTrap
+            The trap or group to remove.
         '''
-        if isinstance(trap, QtCore.QPointF):
-            pts = self.pointsAt(trap)
-            if len(pts) == 0:
-                return False
-            group = self.groupOf(pts[0].data())
-            self._undoStack.push(RemoveTrapCommand(self, group))
-            return True
         self._removeTrap(self.groupOf(trap))
-        return True
 
     def clearTraps(self) -> None:
         '''Remove all traps, and their marks, and clear the undo stack.'''
@@ -470,27 +437,6 @@ class QTrapOverlay(ScatterPlotItem):
             return None
         return self.groupOf(trap)
 
-    # Mouse action handlers (the bindings of the gestures)
-
-    def breakGroup(self, pos: QtCore.QPointF) -> bool:
-        '''Take the clicked trap, or its subgroup, out of its group.
-
-        See :func:`~QHOT.lib.traps.grouping.break_group`.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Click position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a trap was detached, ``False`` if no trap was found
-            or the trap is not part of a group.
-        '''
-        trap = self.trapAt(pos)
-        return trap is not None and break_group(self, trap)
-
     # ------------------------------------------------------------------
     # Marking traps for task operations
 
@@ -533,107 +479,6 @@ class QTrapOverlay(ScatterPlotItem):
         if group in self._marked:
             self._marked.discard(group)
             self.rest(group)
-
-    def toggleMark(self, pos: QtCore.QPointF) -> bool:
-        '''Toggle the mark of the group at pos.
-
-        Marked groups are highlighted with the ``MARKED`` brush.
-        Clicking a marked group a second time clears its mark.
-        Used as the ``Ctrl+left`` mouse handler so the user can
-        designate traps for scripted task operations.  A change of the
-        structure of a marked group (:mod:`~QHOT.lib.traps.grouping`)
-        clears its mark.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Click position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a trap was found, ``False`` otherwise.
-        '''
-        trap = self.trapAt(pos)
-        if trap is None:
-            return False
-        group = self.groupOf(trap)
-        if group in self._marked:
-            self.unmark(group)
-        else:
-            self.mark(group)
-        return True
-
-    def toggleLock(self, pos: QtCore.QPointF) -> bool:
-        '''Toggle the locked state of the trap group under the cursor.
-
-        Locked traps are displayed with the ``STATIC`` (white) brush and
-        cannot be moved, scrolled, or rotated.  Clicking again unlocks
-        them.  If no trap is found at ``pos``, returns ``False``.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Click position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a trap was found (lock toggled), ``False``
-            if no trap is nearby.
-        '''
-        trap = self.trapAt(pos)
-        if trap is None:
-            return False
-        group = self.groupOf(trap)
-        self._undoStack.push(LockCommand(self, group))
-        return True
-
-    # QGraphicsItem event overrides (used when embedded in a PlotWidget)
-
-    def mousePressEvent(self, event) -> None:
-        self.gestures.press(event, event.pos())
-        event.accept()
-
-    def mouseMoveEvent(self, event) -> None:
-        self.gestures.move(event, event.pos())
-        event.accept()
-
-    def mouseReleaseEvent(self, event) -> None:
-        self.gestures.release(event)
-        event.accept()
-
-    # Event handlers (called by QHOTScreen)
-
-    def mousePress(self,
-                   event: QtGui.QMouseEvent,
-                   pos: QtCore.QPointF) -> bool:
-        '''Handle a press forwarded by QHOTScreen.
-
-        See :meth:`~QHOT.lib.traps.gestures.Gestures.press`.
-        '''
-        return self.gestures.press(event, pos)
-
-    def mouseMove(self, event: QtGui.QMouseEvent, pos: QtCore.QPointF) -> bool:
-        '''Handle a move forwarded by QHOTScreen.
-
-        See :meth:`~QHOT.lib.traps.gestures.Gestures.move`.
-        '''
-        return self.gestures.move(event, pos)
-
-    def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
-        '''Handle a release forwarded by QHOTScreen.
-
-        See :meth:`~QHOT.lib.traps.gestures.Gestures.release`.
-        '''
-        return self.gestures.release(event)
-
-    def wheel(self, event: QtGui.QWheelEvent, pos: QtCore.QPointF) -> bool:
-        '''Handle a turn of the wheel forwarded by QHOTScreen.
-
-        See :meth:`~QHOT.lib.traps.gestures.Gestures.wheel`.
-        '''
-        return self.gestures.wheel(event, pos)
 
     # Serialization
 
@@ -685,43 +530,3 @@ class QTrapOverlay(ScatterPlotItem):
         self.clearTraps()
         for d in data:
             self.addTrap(self._makeTrap(d))
-
-    @classmethod
-    def example(cls) -> None:  # pragma: no cover
-        '''Display an interactive trap overlay demo.
-
-        Opens a plot window with several individual traps and a grouped
-        triple of traps. Supports adding, removing, grouping, and
-        dragging traps interactively.
-        '''
-        pg.mkQApp()
-
-        win = pg.PlotWidget(title='QTrapOverlay Demo')
-        win.setWindowTitle('QTrap Demo')
-        win.setBackground('w')
-        win.showGrid(x=True, y=True, alpha=0.3)
-
-        overlay = cls(size=18, pen=pg.mkPen('k', width=1))
-
-        positions = [(2., 3.), (4., 7.), (6., 2.),
-                     (7., 6.), (3., 5.), (8., 4.)]
-        for x, y in positions:
-            overlay.addTrap(QTweezer(r=(x, y, 100.)))
-
-        tg1 = QTweezer(r=(5., 5.5, 150.))
-        tg2 = QTweezer(r=(4.1, 4.2, 150.))
-        tg3 = QTweezer(r=(5.9, 4.2, 150.))
-        grp = QTrapGroup(r=(5., 5., 150.))
-        for t in (tg1, tg2, tg3):
-            grp.addTrap(t)
-        overlay.addTrap(grp)
-
-        win.addItem(overlay)
-        win.setXRange(0, 10)
-        win.setYRange(0, 9)
-        win.show()
-        pg.exec()
-
-
-if __name__ == '__main__':  # pragma: no cover
-    QTrapOverlay.example()

@@ -54,6 +54,16 @@
   the hit test of the spots, which needs a view.
 
 ### Removed
+- **The overlay is the model, and the mouse is in `Gestures`.**  The
+  handlers that take a position (`toggleMark`, `toggleLock`, `breakGroup`,
+  and the forms of `addTrap` and `removeTrap` that took a `QPointF`) are
+  `Gestures.toggleMark`, `toggleLock`, `breakGroup`, `add` and `remove`; the
+  forwarders (`mousePress` and the rest), the standalone `mousePressEvent`
+  family (only the example used them) and `QTrapOverlay.example` are gone,
+  and `QHOTScreen` gives its events to `overlay.gestures`.  `addTrap` and
+  `removeTrap` take traps, and say nothing of the undo stack; the undoable
+  add at a position is `addTweezer(x, y)`, which the mouse, the `AddTweezer`
+  task and the Add Tweezer action use.
 - `QTrapOverlay.marked` (the leaf traps of the marked groups) and the unused
   `parent` argument of `QTrapOverlay`.  `Move` is `MoveTraps` for the marked
   groups, with the displacement that takes their centroid to the target, so

@@ -334,8 +334,7 @@ class QHOT(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def addTweezerAtCenter(self) -> None:
         '''Add a tweezer at the optical axis (CGH center).'''
-        pos = QtCore.QPointF(self.cgh.xc, self.cgh.yc)
-        self.videoScreen.overlay.addTrap(pos)
+        self.videoScreen.overlay.addTweezer(self.cgh.xc, self.cgh.yc)
 
     @QtCore.Slot()
     def toggleOverlay(self) -> None:

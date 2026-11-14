@@ -73,28 +73,28 @@ class QHOTScreen(QVideoScreen):
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         '''Forward press to overlay; fall back to video screen handler.'''
-        if self.overlay.mousePress(event, self._overlayPos(event)):
+        if self.overlay.gestures.press(event, self._overlayPos(event)):
             event.accept()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         '''Forward move to overlay; fall back to video screen handler.'''
-        if self.overlay.mouseMove(event, self._overlayPos(event)):
+        if self.overlay.gestures.move(event, self._overlayPos(event)):
             event.accept()
         else:
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         '''Forward release to overlay; fall back to video screen handler.'''
-        if self.overlay.mouseRelease(event):
+        if self.overlay.gestures.release(event):
             event.accept()
         else:
             super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
         '''Forward wheel to overlay; fall back to video screen handler.'''
-        if self.overlay.wheel(event, self._overlayPos(event)):
+        if self.overlay.gestures.wheel(event, self._overlayPos(event)):
             event.accept()
         else:
             super().wheelEvent(event)

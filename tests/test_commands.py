@@ -371,7 +371,7 @@ class TestUndoStackIntegration(unittest.TestCase):
         from qtpy import QtCore
         self.overlay = make_overlay()
         self.stack = self.overlay._undoStack
-        self.overlay.addTrap(QtCore.QPointF(5., 5.))
+        self.overlay.addTweezer(5., 5.)
 
     def test_undo_add_empties_overlay(self):
         self.stack.undo()

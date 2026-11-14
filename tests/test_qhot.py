@@ -141,25 +141,25 @@ class WindowCase(unittest.TestCase):
 class TestTheHologramFollowsTheTraps(WindowCase):
 
     def test_adding_a_trap(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         self.assertHologramOfTheTraps()
 
     def test_moving_a_trap(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         trap = next(iter(self.overlay))
         self.after(lambda: setattr(trap, 'r', (30., 50., 2.)))
         self.assertHologramOfTheTraps()
 
     def test_removing_a_trap(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(20., 70.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
+        self.after(lambda: self.overlay.addTweezer(20., 70.))
         self.after(lambda: self.overlay.removeTrap(next(iter(self.overlay))))
         self.assertEqual(len(self.overlay.pattern()), 1)
         self.assertHologramOfTheTraps()
 
     def test_undo_and_redo(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(20., 70.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
+        self.after(lambda: self.overlay.addTweezer(20., 70.))
         self.after(self.overlay.undoStack.undo)
         self.assertEqual(len(self.overlay.pattern()), 1)
         self.assertHologramOfTheTraps()
@@ -168,7 +168,7 @@ class TestTheHologramFollowsTheTraps(WindowCase):
         self.assertHologramOfTheTraps()
 
     def test_an_edit_in_the_panel_can_be_undone(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         trap = next(iter(self.overlay))
         row = self.window.traps._trapWidgets[trap]
 
@@ -184,7 +184,7 @@ class TestTheHologramFollowsTheTraps(WindowCase):
         self.assertHologramOfTheTraps()
 
     def test_clearing_the_traps(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         self.after(self.overlay.clearTraps)
         self.assertHologramOfTheTraps()
 
@@ -208,24 +208,24 @@ class TestTheHologramFollowsTheTraps(WindowCase):
         self.assertHologramOfTheTraps()
 
     def test_a_change_of_the_calibration(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         self.after(lambda: setattr(self.cgh, 'wavelength', 0.9))
         self.assertHologramOfTheTraps()
 
     def test_nothing_is_computed_when_nothing_changes(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         count = len(self.ready)
         QtTest.QTest.qWait(200)
         self.assertEqual(len(self.ready), count)
 
     def test_the_hologram_reaches_the_slm(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         made = np.array(self.ready[len(self.ready) - 1][0])
         self.assertEqual(self.window.slm.shape, made.shape)
         self.assertTrue(np.array_equal(self.window.slm.data, made))
 
     def test_the_hologram_reaches_the_view_of_the_slm(self):
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
         made = np.array(self.ready[len(self.ready) - 1][0])
         # The preview draws nothing while its tab is hidden, but keeps
         # the newest hologram for when it is shown.
@@ -654,8 +654,8 @@ class TestTheFileMenu(WindowCase):
         self.data = Path(Window.home.name) / 'data'
         for path in self.data.glob('*'):
             path.unlink()
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(60., 40.)))
-        self.after(lambda: self.overlay.addTrap(QtCore.QPointF(90., 70.)))
+        self.after(lambda: self.overlay.addTweezer(60., 40.))
+        self.after(lambda: self.overlay.addTweezer(90., 70.))
 
     def files(self):
         return sorted(self.data.glob('*'))

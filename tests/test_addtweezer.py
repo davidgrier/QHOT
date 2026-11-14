@@ -85,17 +85,15 @@ class TestAddTweezerExecution(unittest.TestCase):
         task = attached(AddTweezer(x=10., y=20.), overlay=self.overlay)
         task._start()
         task._step()
-        self.overlay.addTrap.assert_called_once()
+        self.overlay.addTweezer.assert_called_once()
 
     def test_add_trap_called_with_correct_position(self):
         task = attached(AddTweezer(x=10., y=20.), overlay=self.overlay)
         task._start()
         task._step()
-        args = self.overlay.addTrap.call_args[0]
-        pos = args[0]
-        self.assertIsInstance(pos, QtCore.QPointF)
-        self.assertAlmostEqual(pos.x(), 10.)
-        self.assertAlmostEqual(pos.y(), 20.)
+        x, y = self.overlay.addTweezer.call_args[0]
+        self.assertAlmostEqual(x, 10.)
+        self.assertAlmostEqual(y, 20.)
 
     def test_completes_after_one_step(self):
         task = attached(AddTweezer(x=0., y=0.), overlay=self.overlay)
@@ -106,14 +104,14 @@ class TestAddTweezerExecution(unittest.TestCase):
     def test_add_trap_not_called_before_start(self):
         task = attached(AddTweezer(x=0., y=0.), overlay=self.overlay)
         task._step()
-        self.overlay.addTrap.assert_not_called()
+        self.overlay.addTweezer.assert_not_called()
 
     def test_add_trap_called_exactly_once(self):
         task = attached(AddTweezer(x=0., y=0.), overlay=self.overlay)
         task._start()
         task._step()
         task._step()
-        self.overlay.addTrap.assert_called_once()
+        self.overlay.addTweezer.assert_called_once()
 
     def test_process_never_called(self):
         task = attached(AddTweezer(x=0., y=0.), overlay=self.overlay)
@@ -130,7 +128,7 @@ class TestAddTweezerExecution(unittest.TestCase):
         self.assertEqual(len(spy), 1)
 
     def test_overlay_exception_fails_task(self):
-        self.overlay.addTrap.side_effect = RuntimeError('scene error')
+        self.overlay.addTweezer.side_effect = RuntimeError('scene error')
         task = attached(AddTweezer(x=0., y=0.), overlay=self.overlay)
         spy = QtTest.QSignalSpy(task.failed)
         task._start()
@@ -165,9 +163,9 @@ class TestAddTweezerParamSync(unittest.TestCase):
         tree._params.child('y').setValue(75.)
         task._start()
         task._step()
-        args = overlay.addTrap.call_args[0]
-        self.assertAlmostEqual(args[0].x(), 50.)
-        self.assertAlmostEqual(args[0].y(), 75.)
+        x, y = overlay.addTweezer.call_args[0]
+        self.assertAlmostEqual(x, 50.)
+        self.assertAlmostEqual(y, 75.)
 
 
 class TestAddTweezerSerialization(unittest.TestCase):

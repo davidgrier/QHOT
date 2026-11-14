@@ -1,9 +1,8 @@
 '''Types used throughout the QHOT pipeline.'''
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
-from qtpy import QtCore
 
 
 __all__ = ('Field Hologram Shape Position Displacement '
@@ -35,8 +34,10 @@ class PatternSource(Protocol):
     :class:`~QHOT.lib.holograms.CGH.CGH` follows it.
     '''
 
-    #: Emitted, with no arguments, when the pattern changes.
-    patternChanged: QtCore.SignalInstance
+    #: Emitted, with no arguments, when the pattern changes.  It is a Qt
+    #: signal, which the class has as a descriptor and an instance as a bound
+    #: signal, and no annotation says both.
+    patternChanged: Any
 
     def pattern(self) -> tuple:
         '''Return the traps as they are now, a tuple of ``TrapSpec``.'''

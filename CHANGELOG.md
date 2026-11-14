@@ -32,6 +32,12 @@
   history.
 
 ### Changed
+- **Pyright checks the whole program**, not only `lib/`: `traps/`, `tasks/`
+  and `qhot.py` too.  The widgets that `QHOT.ui` makes are declared on the
+  window (they are what `uic.loadUi` sets), `QTask.manager` is a
+  `QTaskManager`, `QSaveFile.readJson` returns what `json.load` makes of the
+  file (`Any`), and `Configurable` and `PatternSource` say what the
+  checker can follow.  Nothing changes at run time.
 - **The mouse gestures are in `QHOT.lib.traps.gestures`** (`Gestures`), which
   `QTrapOverlay` owns (`overlay.gestures`) and forwards its events to; the
   state of a drag, a rotation and a rubber band is there and not in the

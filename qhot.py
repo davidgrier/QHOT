@@ -9,22 +9,26 @@ it is what the command ``qhot`` runs.
 import logging
 import sys
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, cast
 
 from qtpy import QtCore, QtWidgets, QtGui, uic
 import pyqtgraph as pg
 
 from QVideo.cameras import chooser
-from QVideo.lib import QCameraOpener, QCameraTree, QFilterRack
-from QHOT.lib import (QSLM, QSaveFile, build_parser, choose_cgh,
+from QVideo.dvr import QDVRWidget
+from QVideo.lib import QCamera, QCameraOpener, QCameraTree, QFilterRack
+from QHOT.lib import (QSLM, QSLMWidget, QSaveFile, build_parser, choose_cgh,
                       choose_slm, configure_logging)
 from QHOT.lib.holograms import CGH
+from QHOT.lib.holograms.QCGHTree import QCGHTree
+from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.QJsonDocument import QJsonDocument
 from QHOT.lib.QTomlDocument import QTomlDocument
 from QHOT.lib.splash import say, splash
-from QHOT.lib.tasks import QTaskManager
-from QHOT.lib.traps import QTrap
+from QHOT.lib.tasks import QTaskManager, QTaskManagerWidget, QueueMenu
+from QHOT.lib.traps import QTrap, QTrapMenu
+from QHOT.lib.traps.QTrapWidget import QTrapWidget
 
 
 logger = logging.getLogger(__name__)
@@ -80,6 +84,33 @@ class QHOT(QtWidgets.QMainWindow):
     SETTLE = 300
     _expected: tuple[int, int] | None = None    # size of the last correction
 
+    # The widgets that QHOT.ui makes (uic.loadUi sets them as attributes).
+    videoScreen: QHOTScreen
+    dvr: QDVRWidget
+    traps: QTrapWidget
+    cghTree: QCGHTree
+    slmView: QSLMWidget
+    taskManagerWidget: QTaskManagerWidget
+    splitter: QtWidgets.QSplitter
+    tabWidget: QtWidgets.QTabWidget
+    videoTab: QtWidgets.QWidget
+    helpBrowser: QtWidgets.QTextBrowser
+    menubar: QtWidgets.QMenuBar
+    menuTasks: QtWidgets.QMenu
+    menuAddTrap: QTrapMenu
+    menuQueue: QueueMenu
+    actionOpenTraps: QtGui.QAction
+    actionSaveTraps: QtGui.QAction
+    actionSaveTrapsAs: QtGui.QAction
+    actionClearTraps: QtGui.QAction
+    actionOpenQueue: QtGui.QAction
+    actionSaveQueue: QtGui.QAction
+    actionSaveQueueAs: QtGui.QAction
+    actionSaveImage: QtGui.QAction
+    actionSaveImageAs: QtGui.QAction
+    actionSaveHologram: QtGui.QAction
+    actionSaveHologramAs: QtGui.QAction
+
     def __init__(self,
                  cameraTree: QCameraTree,
                  *args,
@@ -127,9 +158,10 @@ class QHOT(QtWidgets.QMainWindow):
         uic.loadUi(self.UIFILE, self)
         self.splitter.setStretchFactor(0, 1)    # the screen takes the width
         self.splitter.setStretchFactor(1, 0)    # that the panels do not use
-        self.videoTab.layout().addWidget(self.cameraTree)
+        layout = cast(QtWidgets.QLayout, self.videoTab.layout())
+        layout.addWidget(self.cameraTree)
         self.filter = QFilterRack(source=self.source)
-        self.videoTab.layout().addWidget(self.filter)
+        layout.addWidget(self.filter)
         self.videoScreen.framerate = 30
         self.videoScreen.source = self.filter.pipeline
         self.dvr.source = self.source
@@ -192,9 +224,9 @@ class QHOT(QtWidgets.QMainWindow):
         '''Insert an Edit menu with Undo/Redo/Toggle Overlay between
         File and Tasks.'''
         stack = self.videoScreen.overlay.undoStack
-        undoAction = stack.createUndoAction(self, '&Undo')
+        undoAction = cast(QtGui.QAction, stack.createUndoAction(self, '&Undo'))
         undoAction.setShortcut(QtGui.QKeySequence.StandardKey.Undo)
-        redoAction = stack.createRedoAction(self, '&Redo')
+        redoAction = cast(QtGui.QAction, stack.createRedoAction(self, '&Redo'))
         redoAction.setShortcut(QtGui.QKeySequence.StandardKey.Redo)
         toggleAction = QtGui.QAction('Toggle &Overlay', self)
         toggleAction.setShortcut(QtGui.QKeySequence('Ctrl+\\'))
@@ -282,13 +314,13 @@ class QHOT(QtWidgets.QMainWindow):
     @QtCore.Slot(str)
     def _onCameraLost(self, reason: str) -> None:
         '''Say that the camera is gone: the screen keeps its last frame.'''
-        self.statusBar().showMessage(
+        self._statusBar.showMessage(
             f'Camera lost: {reason}.  Restart the program to use it again.')
 
     @QtCore.Slot(str)
     def _onRecordingStopped(self, reason: str) -> None:
         '''Say why a recording stopped by itself.'''
-        self.statusBar().showMessage(f'Recording stopped: {reason}')
+        self._statusBar.showMessage(f'Recording stopped: {reason}')
 
     @QtCore.Slot(bool)
     def dvrPlayback(self, playback: bool) -> None:
@@ -343,13 +375,20 @@ class QHOT(QtWidgets.QMainWindow):
             self.setStatus('No saved configuration; using the defaults')
 
     @property
+    def _statusBar(self) -> QtWidgets.QStatusBar:
+        '''The status bar, which a main window always has (Qt 6 says it may
+        not).'''
+        return cast(QtWidgets.QStatusBar, self.statusBar())
+
+    @property
     def _chromeHeight(self) -> int:
         '''Height of window chrome (menu bar, status bar) in pixels.
 
         Measured from actual geometry rather than widget height reports,
         which are unreliable on macOS with native menus.
         '''
-        return self.height() - self.centralWidget().height()
+        central = cast(QtWidgets.QWidget, self.centralWidget())
+        return self.height() - central.height()
 
     def sizeHint(self) -> QtCore.QSize:
         '''Return the size at which the screen shows the video as it is.
@@ -409,8 +448,8 @@ class QHOT(QtWidgets.QMainWindow):
         # whose frame is taller than the available height is shrunk by the
         # window manager, and the two then undo each other's work.
         decoration = max(0, self.frameGeometry().height() - self.height())
-        available_h = (QtWidgets.QApplication.primaryScreen()
-                       .availableGeometry().height() - decoration)
+        screen = cast(QtGui.QScreen, QtWidgets.QApplication.primaryScreen())
+        available_h = screen.availableGeometry().height() - decoration
         desired_h = min(ideal_h + self._chromeHeight, available_h)
         request = (self.width(), desired_h)
         if self.height() != desired_h and request not in self._requested:
@@ -426,7 +465,7 @@ class QHOT(QtWidgets.QMainWindow):
     @QtCore.Slot(str)
     def setStatus(self, message: str) -> None:
         '''Display a transient status message in the status bar.'''
-        self.statusBar().showMessage(message, 5000)
+        self._statusBar.showMessage(message, 5000)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         '''Save settings, shut down CGH thread, and close the SLM on exit.'''
@@ -494,7 +533,9 @@ def main() -> None:
         _quit(screen, opener, opener.reason)
     say(screen, 'Building the interface...')
     try:
-        tree = chooser.make_tree(opener.key, opener.camera).start()
+        # both are there once the opener has waited for the camera
+        tree = chooser.make_tree(cast(str, opener.key),
+                                 cast(QCamera, opener.camera)).start()
     except Exception as error:      # the camera opened, and will do no more
         _quit(screen, opener, error)
     opener.camera = None  # the interface has it now

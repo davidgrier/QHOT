@@ -131,12 +131,13 @@ docstring-quotes = "single"
              "RUF012", "RUF059", "SIM115"]
 
 [tool.pyright]
-# Type checking of lib/, as in QVideo.  Run it in an environment with PyQt6
+# Type checking of the program (lib/, traps/, tasks/ and qhot.py, not the
+# tests), as in QVideo.  Run it in an environment with PyQt6
 # and no other Qt binding.  qtpy does not declare Slot and Signal as exports
 # of its modules (reportPrivateImportUsage), and the Qt stubs type the
 # arguments of event handlers as Optional (reportIncompatibleMethodOverride):
 # neither says anything about our code.
-include = ["lib"]
+include = ["lib", "traps", "tasks", "qhot.py"]
 pythonVersion = "3.11"
 extraPaths = [".."]
 reportPrivateImportUsage = "none"

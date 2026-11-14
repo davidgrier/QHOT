@@ -125,7 +125,7 @@ class QTextArray(QTrapGroup):
         #   stride = 6 columns; cell center at column 2 within each cell.
         #   For n characters the layout center is at column 3*(n-1).
         #   Offset of char i = 6*i + 2 - 3*(n-1) = 3*(2*i - n + 1) columns.
-        letters = [
+        letters: list[QTrap] = [
             QLetterArray(char=char,
                          separation=self._separation,
                          r=(cx + self._separation * 3 * (2 * i - n + 1),

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import Enum, auto
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from qtpy import QtCore
 
@@ -12,6 +12,9 @@ from QVideo.dvr import QDVRWidget
 from QHOT.lib.QSaveFile import QSaveFile
 from QHOT.lib.traps.QTrapOverlay import QTrapOverlay
 from QHOT.lib.holograms.CGH import CGH
+
+if TYPE_CHECKING:
+    from QHOT.lib.tasks.QTaskManager import QTaskManager
 
 
 logger = logging.getLogger(__name__)
@@ -123,6 +126,7 @@ class QTask(QtCore.QObject):
     dvr: QDVRWidget
     save: QSaveFile
     image: ImageItem
+    manager: QTaskManager
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -141,7 +145,6 @@ class QTask(QtCore.QObject):
         self._frame = 0
         self._skip = 0
         self.previous: QTask | None = None
-        self.manager: object | None = None  # set by QTaskManager
 
     # ------------------------------------------------------------------
     # Public read-only state

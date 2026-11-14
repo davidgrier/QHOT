@@ -19,7 +19,7 @@ jobs:
       - run: ruff check .
 
   types:
-    name: Types (pyright on lib/)
+    name: Types (pyright)
     runs-on: ubuntu-latest
     # The report is empty, so a type error fails the workflow.  Pyright is
     # pinned, as in QVideo: a newer version finds new things, for us to fix

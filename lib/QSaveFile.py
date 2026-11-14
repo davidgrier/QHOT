@@ -23,7 +23,14 @@ class Configurable(Protocol):
 
     '''Something with a ``settings`` dict that is saved and restored.'''
 
-    settings: dict
+    @property
+    def settings(self) -> dict:
+        '''The values to save.'''
+        ...
+
+    @settings.setter
+    def settings(self, settings: dict) -> None:
+        ...
 
 
 class QSaveFile(QtCore.QObject):
@@ -223,7 +230,7 @@ class QSaveFile(QtCore.QObject):
         return filename
 
     @staticmethod
-    def readJson(filename: str) -> object:
+    def readJson(filename: str) -> Any:
         '''Read the data in a JSON file.
 
         Parameters
@@ -233,8 +240,8 @@ class QSaveFile(QtCore.QObject):
 
         Returns
         -------
-        object
-            What the file holds.
+        Any
+            What the file holds: whatever ``json.load`` makes of it.
 
         Raises
         ------

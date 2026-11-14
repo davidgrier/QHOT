@@ -11,10 +11,12 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: pip install ruff
       - run: ruff check .
 
@@ -27,10 +29,12 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       # PyQt6 6.12.1 types every QtCore.Signal(...) as missing an argument
       # (and super().__init__(parent) as a wrong type): 40 reports that are
       # not ours.  Stay on 6.12.0 until a release has the stubs right.
@@ -43,10 +47,12 @@ jobs:
     env:
       QT_QPA_PLATFORM: offscreen
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: Install system dependencies
         run: |
           sudo apt-get update -q
@@ -87,35 +93,53 @@ jobs:
           EOF
 
   test:
-    name: Python ${{ matrix.python-version }} (${{ matrix.binding }}${{ matrix.extras }})
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} Python ${{ matrix.python-version }} (${{ matrix.binding }}${{ matrix.extras }})
+    runs-on: ${{ matrix.os }}
+    # A leg that is marked experimental reports and does not fail the
+    # workflow, until it has been green for a while and is made to count.
+    continue-on-error: ${{ matrix.experimental }}
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       QT_QPA_PLATFORM: offscreen
 
     strategy:
       fail-fast: false
+      # Every leg is written out: a leg that the matrix has no other
+      # combination for would lack the keys that it does not name.
       matrix:
-        python-version: ["3.11", "3.12"]
-        binding: ["pyqt6"]
-        extras: [""]
         include:
-          - python-version: "3.12"
-            binding: "pyqt5"
+          - {os: ubuntu-latest, python-version: "3.11", binding: pyqt6,
+             extras: "", experimental: false}
+          - {os: ubuntu-latest, python-version: "3.12", binding: pyqt6,
+             extras: "", experimental: false}
+          - {os: ubuntu-latest, python-version: "3.12", binding: pyqt5,
+             extras: "", experimental: false}
           # one leg also tests the optional numba backend
-          - python-version: "3.12"
-            binding: "pyqt6"
-            extras: ",numba"
+          - {os: ubuntu-latest, python-version: "3.12", binding: pyqt6,
+             extras: ",numba", experimental: false}
+          # newer Pythons
+          - {os: ubuntu-latest, python-version: "3.13", binding: pyqt6,
+             extras: "", experimental: true}
+          - {os: ubuntu-latest, python-version: "3.14", binding: pyqt6,
+             extras: "", experimental: true}
+          # the platform that QHOT runs on
+          - {os: macos-latest, python-version: "3.12", binding: pyqt6,
+             extras: "", experimental: true}
+          # declared, and not yet shown to work
+          - {os: ubuntu-latest, python-version: "3.12", binding: pyside6,
+             extras: "", experimental: true}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
       - name: Install system dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q \
@@ -128,11 +152,13 @@ jobs:
         run: pip install -e ".[dev,${{ matrix.binding }}${{ matrix.extras }}]"
 
       - name: Run tests
-        run: python -m pytest --tb=short -q --cov=QHOT
+        run: python -m pytest --tb=short -q --cov=QHOT --cov-report=xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
+          files: coverage.xml
+          name: ${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.binding }}
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

@@ -120,14 +120,22 @@ class WindowCase(unittest.TestCase):
                         'no hologram followed the change')
         self.settle()
 
-    def assertHologramOfTheTraps(self):
+    def disagreement(self):
+        '''Return the fraction of pixels where the hologram that the SLM got
+        last is not that of the traps, which the reference computes.'''
         shown = np.array(self.ready[len(self.ready) - 1][0]).astype(int)
         expected = ref.hologram(self.overlay.pattern(),
                                 self.cgh.optics).astype(int)
         difference = np.abs(shown - expected)
         difference = np.minimum(difference, 256 - difference)   # it wraps
         # Where fields nearly cancel, float32 and float64 may disagree.
-        self.assertLess((difference > 2).mean(), 1e-3)
+        return (difference > 2).mean()
+
+    def assertHologramOfTheTraps(self):
+        # The hologram of the traps may be computed after the quiet that
+        # ``settle`` waits for, on a slow machine: wait until it arrives.
+        wait_for(lambda: self.disagreement() < 1e-3)
+        self.assertLess(self.disagreement(), 1e-3)
 
 
 class TestTheHologramFollowsTheTraps(WindowCase):
@@ -242,8 +250,10 @@ class TestTheWindow(WindowCase):
         # The window is a QMainWindow, and a widget of the .ui file or an
         # attribute that takes the name of one of its methods (a widget
         # called ``screen`` once hid QWidget.screen) hides it from Python.
-        hidden = [name for name in vars(self.window)
-                  if hasattr(QtWidgets.QMainWindow, name)]
+        # (PySide6 keeps the signals that were asked for in the instance.)
+        hidden = [name for name, value in vars(self.window).items()
+                  if hasattr(QtWidgets.QMainWindow, name)
+                  and not isinstance(value, QtCore.SignalInstance)]
         self.assertEqual(hidden, [])
         self.assertIsInstance(self.window.videoScreen, QHOTScreen)
 

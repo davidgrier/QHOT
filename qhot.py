@@ -103,6 +103,11 @@ class QHOT(QtWidgets.QMainWindow):
             image=self.videoScreen.image,
             parent=self)
         self.videoScreen.newFrame.connect(self.manager.step)
+        # The manager reports that it has stopped, and the reason follows.
+        self.source.lost.connect(self.manager.fail)
+        self.source.lost.connect(self._onCameraLost)
+        self.dvr.stopped.connect(self.manager.fail)
+        self.dvr.stopped.connect(self._onRecordingStopped)
         self.taskManagerWidget.manager = self.manager
         self.menuQueue.manager = self.manager
         self._setupFiles()
@@ -263,6 +268,17 @@ class QHOT(QtWidgets.QMainWindow):
         The next change of the traps asks for another.
         '''
         self.setStatus(f'Hologram computation failed: {reason}')
+
+    @QtCore.Slot(str)
+    def _onCameraLost(self, reason: str) -> None:
+        '''Say that the camera is gone: the screen keeps its last frame.'''
+        self.statusBar().showMessage(
+            f'Camera lost: {reason}.  Restart the program to use it again.')
+
+    @QtCore.Slot(str)
+    def _onRecordingStopped(self, reason: str) -> None:
+        '''Say why a recording stopped by itself.'''
+        self.statusBar().showMessage(f'Recording stopped: {reason}')
 
     @QtCore.Slot(bool)
     def dvrPlayback(self, playback: bool) -> None:

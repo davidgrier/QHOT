@@ -276,9 +276,27 @@ class QTaskManager(QtCore.QObject):
         The ``scheduled`` list is preserved.  Call ``clear()`` to
         discard it entirely.
         '''
-        self._abortActiveAndBackground()
-        self._resetToStart()
-        self.changed.emit()
+        self._stop('manager stopped')
+
+    @QtCore.Slot(str)
+    def fail(self, reason: str) -> None:
+        '''Stop a run that cannot go on, and say why.
+
+        Something that the tasks need has gone: the camera was lost, or
+        a recording stopped by itself.  The run is stopped as by
+        :meth:`stop`, with *reason* given to the tasks that it aborts, so
+        that an unattended queue does not carry on without it.  Nothing
+        happens when no task is running.
+
+        Parameters
+        ----------
+        reason : str
+            What went wrong, as the source reports it.
+        '''
+        if self._current is None and not self._background:
+            return
+        logger.error(f'Stopping the queue: {reason}')
+        self._stop(reason)
 
     def clear(self) -> None:
         '''Stop all tasks and discard the entire schedule.
@@ -286,7 +304,7 @@ class QTaskManager(QtCore.QObject):
         After this call the manager is completely idle with no
         registered blocking tasks.
         '''
-        self._abortActiveAndBackground()
+        self._abortActiveAndBackground('manager stopped')
         self._schedule.clear()
         self._queue.clear()
         self._current = None
@@ -441,7 +459,13 @@ class QTaskManager(QtCore.QObject):
     # ------------------------------------------------------------------
     # Private helpers
 
-    def _abortActiveAndBackground(self) -> None:
+    def _stop(self, reason: str) -> None:
+        '''Abort the running tasks for *reason*, and rewind the schedule.'''
+        self._abortActiveAndBackground(reason)
+        self._resetToStart()
+        self.changed.emit()
+
+    def _abortActiveAndBackground(self, reason: str) -> None:
         '''Abort the active and all background tasks.
 
         Clears ``_queue`` first so that ``_onBlockingFailed`` (which
@@ -450,9 +474,9 @@ class QTaskManager(QtCore.QObject):
         '''
         self._queue.clear()
         if self._current is not None:
-            self._current.abort('manager stopped')
+            self._current.abort(reason)
         for task in list(self._background):
-            task.abort('manager stopped')
+            task.abort(reason)
         self._background.clear()
         self._current = None
         self._currentStepped = False

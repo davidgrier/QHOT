@@ -252,6 +252,40 @@ class TestTheWindow(WindowCase):
         self.assertIsInstance(manager.active, Delay)
         manager.clear()
 
+    def test_a_recording_that_stops_by_itself_is_reported(self):
+        self.window.dvr.stopped.emit('the file could not be written')
+        self.assertIn('the file could not be written',
+                      self.window.statusBar().currentMessage())
+
+    def test_a_recording_that_stops_by_itself_stops_the_queue(self):
+        from QHOT.tasks import Delay
+        manager = self.window.manager
+        manager.clear()
+        manager.register(Delay(frames=50))
+        failed = QtTest.QSignalSpy(manager.activeRaw.failed)
+        self.window.videoScreen.newFrame.emit(np.zeros((4, 4), np.uint8), None)
+        self.window.dvr.stopped.emit('the writer stopped')
+        self.assertEqual(failed[0][0], 'the writer stopped')
+        manager.clear()
+
+    def test_a_lost_camera_is_reported_and_stops_the_queue(self):
+        from QHOT.tasks import Delay
+        manager = self.window.manager
+        manager.clear()
+        manager.register(Delay(frames=50))
+        failed = QtTest.QSignalSpy(manager.activeRaw.failed)
+        self.window.videoScreen.newFrame.emit(np.zeros((4, 4), np.uint8), None)
+        tree = self.window.cameraTree
+        try:
+            self.window.source.lost.emit('unplugged')
+            self.assertIn('unplugged',
+                          self.window.statusBar().currentMessage())
+            self.assertEqual(failed[0][0], 'unplugged')
+        finally:
+            tree.setEnabled(True)    # the tree is shared by the tests
+            tree.setToolTip('')
+            manager.clear()
+
     def test_the_trap_tab_follows_the_overlay(self):
         traps = self.window.traps
         self.assertEqual(len(traps._trapWidgets), 0)

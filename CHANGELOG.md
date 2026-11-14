@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- **A lost camera, or a recording that stops by itself, stops the queue**
+  and says why in the status bar.  A queue that runs unattended carried on
+  without the camera (no frame came to step it, so it hung) or without
+  the recording.  `QTaskManager.fail(reason)` does it; the window connects
+  `QVideoSource.lost` and `QDVRWidget.stopped` to it.
+
 ### Changed
 - `CGH` takes its calibration as keywords and gets the defaults from
   `Optics`, which names the fields: the sixteen arguments and defaults were

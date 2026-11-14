@@ -48,6 +48,19 @@
   image, and the camera panel is disabled.  Click Stop to return to the
   live image.  The recorder does not record while a video plays.</p>
 
+<h3>When a recording stops by itself</h3>
+<p>A recording stops by itself when the writer falls too far behind the
+  camera, when the file cannot be written, and when the camera is lost.
+  The frames that were recorded are kept, and the status bar says why the
+  recording stopped.  If a queue of tasks is running, it stops too, and
+  waits at its first task: a run that has lost its recording or its camera
+  should not go on.</p>
+
+<h3>A lost camera</h3>
+<p>If the camera is lost (it is unplugged, or the connection breaks), the
+  screen keeps the last image, the camera panel is disabled, and the
+  status bar says so.  Restart the program to use the camera again.</p>
+
 <h3>Keyboard shortcuts</h3>
 <p>Press the <b>R</b> key to start recording, and press it again to stop.
   Press the <b>S</b> key to stop.</p>

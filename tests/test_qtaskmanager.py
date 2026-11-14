@@ -427,6 +427,53 @@ class TestQTaskManagerStop(unittest.TestCase):
         self.manager.stop()
 
 
+class TestQTaskManagerFail(unittest.TestCase):
+
+    '''A run that cannot go on: the camera is lost, a recording stops.'''
+
+    def setUp(self):
+        self.screen = Screen()
+        self.manager = manager_for(self.screen)
+
+    def running(self):
+        task = QTask(duration=10)
+        self.manager.register(task)
+        self.manager.register(QTask())
+        self.screen.draw()
+        return task
+
+    def test_the_running_task_fails_with_the_reason(self):
+        task = self.running()
+        spy = QtTest.QSignalSpy(task.failed)
+        self.manager.fail('the camera was lost')
+        self.assertEqual(spy[0][0], 'the camera was lost')
+
+    def test_a_background_task_fails_with_the_reason(self):
+        task = QTask(duration=10)
+        self.manager.register(task, blocking=False)
+        self.screen.draw()
+        spy = QtTest.QSignalSpy(task.failed)
+        self.manager.fail('the writer stopped')
+        self.assertEqual(spy[0][0], 'the writer stopped')
+        self.assertEqual(self.manager.background, [])
+
+    def test_the_queue_waits_to_be_started_again(self):
+        self.running()
+        self.manager.fail('the camera was lost')
+        self.assertTrue(self.manager.paused)
+
+    def test_the_schedule_is_kept(self):
+        self.running()
+        self.manager.fail('the camera was lost')
+        self.assertEqual(len(self.manager.scheduled), 2)
+
+    def test_nothing_is_running(self):
+        self.manager.fail('the camera was lost')
+        spy = QtTest.QSignalSpy(self.manager.changed)
+        self.manager.fail('the camera was lost')
+        self.assertEqual(len(spy), 0)
+
+
 class TestQTaskManagerSchedule(unittest.TestCase):
 
     def setUp(self):

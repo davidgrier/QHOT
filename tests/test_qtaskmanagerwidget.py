@@ -469,14 +469,18 @@ class TestDraggableQueueListCanDropAt(unittest.TestCase):
 
     def setUp(self):
         from QHOT.lib.tasks.QTaskManagerWidget import _DraggableQueueList
-        screen = Screen()
-        manager = manager_for(screen)
-        t1, t2, t3 = QTask(), QTask(), QTask()
-        manager.register(t1)   # RUNNING at row 0
-        manager.register(t2)   # PENDING at row 1
-        manager.register(t3)   # PENDING at row 2
+        # The items hold only a Qt-level reference to their tasks, so the
+        # test keeps the tasks and the manager that owns them alive: a
+        # task that is collected leaves the item with a dangling pointer,
+        # and reading it crashed the interpreter.
+        self.screen = Screen()
+        self.manager = manager_for(self.screen)
+        self.tasks = t1, t2, t3 = QTask(), QTask(), QTask()
+        self.manager.register(t1)   # RUNNING at row 0
+        self.manager.register(t2)   # PENDING at row 1
+        self.manager.register(t3)   # PENDING at row 2
         self.lst = _DraggableQueueList()
-        for task in (t1, t2, t3):
+        for task in self.tasks:
             item = QtWidgets.QListWidgetItem()
             item.setData(_ROLE, task)
             self.lst.addItem(item)

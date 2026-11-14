@@ -3,6 +3,7 @@ from typing import Protocol
 
 import numpy as np
 from numpy.typing import NDArray
+from qtpy import QtCore
 
 
 __all__ = ('Field Hologram Shape Position Displacement '
@@ -35,7 +36,8 @@ class PatternSource(Protocol):
     '''
 
     #: Emitted, with no arguments, when the pattern changes.
-    patternChanged: object
+    patternChanged: QtCore.SignalInstance
 
     def pattern(self) -> tuple:
         '''Return the traps as they are now, a tuple of ``TrapSpec``.'''
+        ...

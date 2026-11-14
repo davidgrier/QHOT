@@ -32,7 +32,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev,pyqt6]" pyright==1.1.414
+      # PyQt6 6.12.1 types every QtCore.Signal(...) as missing an argument
+      # (and super().__init__(parent) as a wrong type): 40 reports that are
+      # not ours.  Stay on 6.12.0 until a release has the stubs right.
+      - run: pip install -e ".[dev,pyqt6]" pyright==1.1.414 PyQt6==6.12.0 PyQt6-Qt6==6.12.0
       - run: pyright
 
   package:

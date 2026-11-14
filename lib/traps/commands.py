@@ -1,13 +1,16 @@
 '''The undoable operations on the traps of the overlay.'''
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from qtpy import QtGui, QtWidgets
 
-# Qt 6: QUndoCommand/QUndoStack live in QtGui.
-# Qt 5: they live in QtWidgets.
-if hasattr(QtGui, 'QUndoStack'):
+# Qt 6: QUndoCommand and QUndoStack live in QtGui.  Qt 5: in QtWidgets.
+# qtpy is a chain of bindings that the checker cannot choose between, so it
+# is told Qt 6.
+if TYPE_CHECKING:
+    from PyQt6.QtGui import QUndoCommand, QUndoStack
+elif hasattr(QtGui, 'QUndoStack'):
     QUndoCommand = QtGui.QUndoCommand
     QUndoStack = QtGui.QUndoStack
 else:
@@ -331,5 +334,6 @@ class PropertyCommand(QUndoCommand):
     def undo(self) -> None:
         '''Set the property back, and the mask of an array with it.'''
         self._trap.setTrapProperty(self._name, self._before)
-        if self._mask is not None and self._trap.mask is not self._mask:
-            self._trap.mask = self._mask
+        trap: Any = self._trap      # an array has a mask, a trap has not
+        if self._mask is not None and trap.mask is not self._mask:
+            trap.mask = self._mask

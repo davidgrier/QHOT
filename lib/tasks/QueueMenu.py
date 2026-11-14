@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from QHOT.lib.tasks.QTask import QTask
 from QHOT.lib.tasks.QTaskManager import QTaskManager
@@ -66,7 +66,8 @@ class QueueMenu(QtWidgets.QMenu):
         '''
         import QHOT.tasks  # noqa: F401 -- fills QTask._registry
         for name in QTask._registry:
-            action = self.addAction(name)
+            action = QtGui.QAction(name, self)
+            self.addAction(action)
             action.triggered.connect(
                 functools.partial(self._onTaskSelected, name))
 

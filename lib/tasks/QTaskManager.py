@@ -4,6 +4,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections import deque
+from typing import cast
 
 from qtpy import QtCore
 
@@ -404,7 +405,7 @@ class QTaskManager(QtCore.QObject):
 
     @QtCore.Slot()
     def _onBlockingFinished(self) -> None:
-        task = self.sender()
+        task = cast(QTask, self.sender())
         if self._current is task:
             logger.debug(f'Blocking task {type(task).__name__} finished')
             self._activateNext(previous=task)
@@ -422,7 +423,7 @@ class QTaskManager(QtCore.QObject):
 
     @QtCore.Slot()
     def _onBackgroundFinished(self) -> None:
-        task = self.sender()
+        task = cast(QTask, self.sender())
         logger.debug(f'Background task {type(task).__name__} finished')
         if task in self._background:
             self._background.remove(task)
@@ -430,7 +431,7 @@ class QTaskManager(QtCore.QObject):
 
     @QtCore.Slot(str)
     def _onBackgroundFailed(self, reason: str) -> None:
-        task = self.sender()
+        task = cast(QTask, self.sender())
         logger.error(f'Background task {type(task).__name__} '
                      f'failed: {reason}')
         if task in self._background:

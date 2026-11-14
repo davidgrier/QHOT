@@ -5,7 +5,7 @@ import logging
 import operator
 from collections.abc import Callable, Iterator
 from enum import Enum
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 
 import numpy as np
 from qtpy import QtCore, QtWidgets, QtGui
@@ -311,10 +311,11 @@ class QTrapOverlay(ScatterPlotItem):
             self._traps.append(trap)
             self.addPoints([self._spot(trap, self.brush[brush_state])])
             trap.changed.connect(self._onTrapChanged)
-        if hasattr(traps, 'reshaping'):
-            traps.reshaping.connect(
+        if hasattr(traps, 'reshaping'):     # an array can change its shape
+            array: Any = traps
+            array.reshaping.connect(
                 functools.partial(self._onGroupReshaping, traps))
-            traps.reshaped.connect(
+            array.reshaped.connect(
                 functools.partial(self._onGroupReshaped, traps))
         if isinstance(traps, QTrapGroup):
             traps.changed.connect(self._onGroupChanged)
@@ -455,8 +456,8 @@ class QTrapOverlay(ScatterPlotItem):
         QTrap
             The root of the group hierarchy containing ``trap``.
         '''
-        while isinstance(trap.parent(), QTrapGroup):
-            trap = trap.parent()
+        while isinstance(parent := trap.parent(), QTrapGroup):
+            trap = parent
         return trap
 
     def _onGroupReshaping(self, group: QTrap) -> None:
@@ -500,14 +501,14 @@ class QTrapOverlay(ScatterPlotItem):
     @QtCore.Slot()
     def _onTrapChanged(self) -> None:
         '''Slot called when a trap's position changes; updates its spot.'''
-        trap: QTrap = self.sender()
+        trap = cast(QTrap, self.sender())
         self._follow(self.points()[trap._index], trap)
         self.patternChanged.emit()
 
     @QtCore.Slot()
     def _onGroupChanged(self) -> None:
         '''Slot called when a group is translated; updates all leaf spots.'''
-        group: QTrapGroup = self.sender()
+        group = cast(QTrapGroup, self.sender())
         spots = self.points()
         for trap in group.leaves():
             if trap._index is not None:
@@ -577,7 +578,8 @@ class QTrapOverlay(ScatterPlotItem):
         pos : QPointF
             Current cursor position in item coordinates.
         '''
-        rect = QtCore.QRectF(self._selectionOrigin, pos).normalized()
+        origin = cast(QtCore.QPointF, self._selectionOrigin)
+        rect = QtCore.QRectF(origin, pos).normalized()
         self._selection.setRect(rect)
         for item in self:
             state = (self.State.GROUPING if item.isWithin(rect)

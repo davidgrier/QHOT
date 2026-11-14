@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -9,10 +10,14 @@ from QHOT.lib.types import Hologram
 from ._base import Backend
 from ..optics import Optics
 
-try:
-    import cupy as cp
-except ImportError:  # pragma: no cover
-    cp = None
+# The checker is told that the library is there; at run time it may not be.
+if TYPE_CHECKING:
+    import cupy as cp  # pyright: ignore[reportMissingImports]
+else:
+    try:
+        import cupy as cp
+    except ImportError:  # pragma: no cover
+        cp = None
 
 
 __all__ = ['CupyBackend']

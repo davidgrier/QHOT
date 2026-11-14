@@ -2,16 +2,21 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from QHOT.lib.types import Hologram
 from ._numpy import NumpyBackend
 
-try:
-    from numba import njit, prange
-except ImportError:  # pragma: no cover
-    njit = None
+# The checker is told that the library is there; at run time it may not be.
+if TYPE_CHECKING:
+    from numba import njit, prange  # pyright: ignore[reportMissingImports]
+else:
+    try:
+        from numba import njit, prange
+    except ImportError:  # pragma: no cover
+        njit = None
 
 
 __all__ = ['NumbaBackend']

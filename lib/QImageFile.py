@@ -4,7 +4,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+import numpy.typing as npt
 from qtpy import QtCore, QtWidgets
+from pyqtgraph import ImageItem
 
 from QHOT.lib.QFileAction import QFileAction
 from QHOT.lib.QSaveFile import QSaveFile
@@ -43,7 +45,7 @@ class QImageFile(QFileAction):
                  name: str,
                  *,
                  prefix: str,
-                 source: Callable[[], object],
+                 source: Callable[[], ImageItem | npt.NDArray],
                  files: QSaveFile,
                  parent: QtWidgets.QWidget) -> None:
         super().__init__(name, self.FORMATS, files=files, parent=parent)

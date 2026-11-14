@@ -212,9 +212,10 @@ class QTrap(QtCore.QObject):
 
     def spec(self) -> TrapSpec:
         '''Return a snapshot of this trap as a plain value.'''
+        x, y, z = map(float, self._r)
         return TrapSpec(
             kind=type(self).__name__,
-            r=tuple(float(v) for v in self._r),
+            r=(x, y, z),
             amplitude=float(self._amplitude),
             phase=float(self._phase),
             params=tuple(sorted((name, getattr(self, name))

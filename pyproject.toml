@@ -130,3 +130,5 @@ pythonVersion = "3.11"
 extraPaths = [".."]
 reportPrivateImportUsage = "none"
 reportIncompatibleMethodOverride = "none"
+# pyright cannot read ``__all__ = 'a b'.split()``, which is the style.
+reportUnsupportedDunderAll = "none"

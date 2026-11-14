@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from qtpy import QtCore, QtWidgets
 
@@ -58,7 +59,7 @@ class QFileAction(QtCore.QObject):
     def chooseToSave(self, default: str) -> str:
         '''Ask for the file to write; return its path, or ``''``.'''
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self.parent(),
+            cast(QtWidgets.QWidget, self.parent()),
             f'Save {self.name.capitalize()} As',
             default,
             self.filter,
@@ -68,7 +69,7 @@ class QFileAction(QtCore.QObject):
     def chooseToOpen(self) -> str:
         '''Ask for the file to read; return its path, or ``''``.'''
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.parent(),
+            cast(QtWidgets.QWidget, self.parent()),
             f'Open {self.name.capitalize()}',
             str(self.files.datadir),
             self.filter,

@@ -2,7 +2,7 @@
 import functools
 import logging
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 import QHOT.traps
 from QHOT.lib.traps.QTrap import QTrap
@@ -61,7 +61,8 @@ class QTrapMenu(QtWidgets.QMenu):
     def _populateMenu(self) -> None:
         '''Add one action per trap type listed in ``QHOT.traps.__all__``.'''
         for trapname in QHOT.traps.__all__:
-            action = self.addAction(trapname)
+            action = QtGui.QAction(trapname, self)
+            self.addAction(action)
             action.triggered.connect(
                 functools.partial(self._onTrapSelected, trapname))
 
@@ -92,10 +93,12 @@ def main() -> None:  # pragma: no cover
 
     pg.mkQApp('QTrapMenu Example')
     demo = QtWidgets.QMainWindow()
-    demo.menuBar().setNativeMenuBar(False)
+    menubar = QtWidgets.QMenuBar(demo)
+    menubar.setNativeMenuBar(False)
+    demo.setMenuBar(menubar)
     trapmenu = QTrapMenu(demo)
     trapmenu.trapRequested.connect(handler)
-    demo.menuBar().addMenu(trapmenu)
+    menubar.addMenu(trapmenu)
     demo.show()
     pg.exec()
 

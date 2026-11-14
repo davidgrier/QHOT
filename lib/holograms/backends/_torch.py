@@ -2,17 +2,23 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import numpy as np
+import numpy.typing as npt
 
 from QHOT.lib.types import Hologram
 from ._base import Backend
 from ..optics import Optics
 
-try:
-    import torch
-except ImportError:  # pragma: no cover
-    torch = None
+# The checker is told that the library is there; at run time it may not be.
+if TYPE_CHECKING:
+    import torch  # pyright: ignore[reportMissingImports]
+else:
+    try:
+        import torch
+    except ImportError:  # pragma: no cover
+        torch = None
 
 
 __all__ = ['TorchBackend']
@@ -66,7 +72,7 @@ class TorchBackend(Backend):
 
     def _tensor(self,
                 array: np.ndarray,
-                dtype=np.float32) -> torch.Tensor:
+                dtype: npt.DTypeLike = np.float32) -> torch.Tensor:
         '''Return an array as a tensor on the device.'''
         array = np.ascontiguousarray(array, dtype=dtype)
         return torch.as_tensor(array, device=self.device)

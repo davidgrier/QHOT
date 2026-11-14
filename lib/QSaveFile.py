@@ -6,6 +6,7 @@ import os
 import tomllib
 from datetime import datetime
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
@@ -16,6 +17,13 @@ from pyqtgraph.exporters import ImageExporter
 
 
 logger = logging.getLogger(__name__)
+
+
+class Configurable(Protocol):
+
+    '''Something with a ``settings`` dict that is saved and restored.'''
+
+    settings: dict
 
 
 class QSaveFile(QtCore.QObject):
@@ -87,12 +95,12 @@ class QSaveFile(QtCore.QObject):
             path = self.datadir / f'{stem}_{n}{suffix}'
         return str(path)
 
-    def configname(self, qobj: QtCore.QObject) -> str:
-        '''Return the TOML configuration file path for a QObject.
+    def configname(self, qobj: object) -> str:
+        '''Return the TOML configuration file path for an object.
 
         Parameters
         ----------
-        qobj : QtCore.QObject
+        qobj : object
             Object whose class name determines the filename.
 
         Returns
@@ -169,7 +177,11 @@ class QSaveFile(QtCore.QObject):
             raise ValueError(f'an image cannot have the shape {array.shape}')
         array = np.ascontiguousarray(array)
         height, width = array.shape[:2]
-        image = QtGui.QImage(array.data, width, height, array.strides[0], fmt)
+        image = QtGui.QImage(array.tobytes(),
+                             width,
+                             height,
+                             array.strides[0],
+                             fmt)
         return image.copy()             # the copy owns its pixels
 
     @staticmethod
@@ -314,12 +326,12 @@ class QSaveFile(QtCore.QObject):
         with open(filename, 'rb') as f:
             return tomllib.load(f)
 
-    def toToml(self, qobj: QtCore.QObject) -> str:
-        '''Save the settings of a QObject to a TOML configuration file.
+    def toToml(self, qobj: Configurable) -> str:
+        '''Save the settings of an object to a TOML configuration file.
 
         Parameters
         ----------
-        qobj : QtCore.QObject
+        qobj : Configurable
             Object whose ``settings`` property will be serialized.
 
         Returns
@@ -333,12 +345,12 @@ class QSaveFile(QtCore.QObject):
         self._write(filename, tomlkit.dumps(doc))
         return filename
 
-    def fromToml(self, qobj: QtCore.QObject) -> str:
-        '''Restore the settings of a QObject from a TOML configuration file.
+    def fromToml(self, qobj: Configurable) -> str:
+        '''Restore the settings of an object from a TOML configuration file.
 
         Parameters
         ----------
-        qobj : QtCore.QObject
+        qobj : Configurable
             Object whose ``settings`` property will be populated.
 
         Returns

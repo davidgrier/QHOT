@@ -86,6 +86,13 @@ class CGH(QtCore.QObject):
 
     #: The names of the calibration: the fields of ``Optics``.
     _fields = tuple(field.name for field in fields(Optics))
+    # The fields are set from ``Optics``, by name, so the checker is told of
+    # the ones that this module reads.
+    shape: tuple[int, int]
+    xc: float
+    yc: float
+    zc: float
+    _optics: Optics | None
 
     def __init__(self, *,
                  backend: Backend | None = None,
@@ -136,10 +143,11 @@ class CGH(QtCore.QObject):
         It does not change when the calibration does; ask again for the
         new calibration.
         '''
-        if self._optics is None:
-            object.__setattr__(
-                self, '_optics', Optics.from_settings(self.settings))
-        return self._optics
+        optics = self._optics
+        if optics is None:
+            optics = Optics.from_settings(self.settings)
+            object.__setattr__(self, '_optics', optics)
+        return optics
 
     @property
     def properties(self) -> list[str]:
@@ -318,6 +326,7 @@ class CGH(QtCore.QObject):
         self._timer.stop()
         self._thread.quit()
         self._thread.wait()
+        assert self._finalizer is not None      # made with the thread
         self._finalizer.detach()
         # The worker is gone, and Qt has dropped its connections.
         self._thread = None

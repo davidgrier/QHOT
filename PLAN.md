@@ -4,6 +4,9 @@ Written 2026-10-27 after a review of pyfab (`~/python/pyfab`), QInstrument
 3.0.2, QVideo 4.9 and QHOT 1.5.0.  Code-level claims come from reading
 source; pyfab was not run.  Items marked "unverified" need confirmation.
 
+Status updated 2026-11-14: Phase 0 is done (see section 4), and sections 2
+and 3 say where it changed what they describe.
+
 ## 1. What pyfab does
 
 | Capability | pyfab implementation |
@@ -27,12 +30,16 @@ Ahead of pyfab:
 
 - Trap model: `QTrap`, `QTrapGroup` and `QTrapOverlay` are separate; undo/redo,
   locking, group rotation and JSON round-trip.
-- CGH: CPU and Torch backends (CUDA, MPS, CPU) with auto-selection; per-trap
-  and per-group field cache (a group move costs one outer product).
+- CGH: NumPy, numba, PyTorch (Apple GPU, CUDA, CPU) and CuPy backends with
+  automatic selection, each tested against a plain reference implementation
+  (CuPy only against a NumPy stand-in until it is tried on a GPU).  A
+  hologram is computed from an immutable pattern, with no cache to
+  invalidate.
 - Tasks: `QTask` state machine, `QTaskManager` with blocking and background
   tasks, saved and reorderable queue, parameter tree.
 - Calibration: ParameterTree backed by TOML.
-- Hygiene: `qtpy`, PyPI, Zenodo, CI, about 1400 tests, docs.
+- Hygiene: `qtpy`, PyPI, Zenodo, CI with lint, type checking and a coverage
+  floor, about 1,900 tests, docs.
 
 Missing relative to pyfab:
 
@@ -50,20 +57,20 @@ Missing relative to pyfab:
 |---|---|---|
 | Delegate video, DVR, filters, histogram to QVideo | Positive | Removes about 40% of pyfab's code; QVideo 4.9 has recorder and player, filter rack, histogram, ROI, YOLO and trackpy overlays |
 | `qtpy` instead of PyQt5 | Positive | PyQt6 is production on macOS; future-proof |
-| `QTrapOverlay` as `QGraphicsScene` plus signals | Positive | Much cleaner than `ScatterPlotItem` plus raw mouse signals |
+| `QTrapOverlay` for the traps, `Gestures` and `grouping` for what the mouse does to them | Positive | Much cleaner than `ScatterPlotItem` plus raw mouse signals |
 | Trap tree with groups, `toDict`, class registry | Positive | Makes tasks and files serializable |
-| Per-trap field cache | Positive | Large efficiency gain |
+| Per-trap field cache | Replaced | The 2.0 redesign computes a hologram from a flat pattern with a separable matrix product, measured about 100 times faster, so there is no cache |
 | Torch CGH | Positive | Portable replacement for CUDA-only code |
 | TOML and ParameterTree for calibration | Mostly positive | Declarative and editable; TOML suits instrument profiles |
 | `QUndoStack` | Positive | Accidental moves are common |
-| Compute driven by `screen.newFrame` | Mixed, leaning negative | Couples hologram latency to the display rate (capped at 30 fps); already in TODO |
-| CGH on a `QThread` reading live trap objects | Risk (unverified) | `compute()` and `fieldOf()` read trap attributes and write the cache on the worker thread, while the cache is invalidated by main-thread `changed` signals; expect a rare race during fast drags; `_computePending` only partly helps |
+| Compute driven by `screen.newFrame` | Fixed | It coupled hologram latency to the display rate (capped at 30 fps); Phase 0, item 2 |
+| CGH on a `QThread` reading live trap objects | Fixed | The worker read trap attributes while the main thread changed them; it now computes from an immutable snapshot; Phase 0, item 1 |
 | One monolithic window and `.ui` | Mixed | Fine now; unwieldy once hardware and vision arrive |
-| Tasks call `animateClick()` on `QDVRWidget` buttons | Negative | Should use the headless `QRecorder` and `QPlayer` in QVideo 4.9 |
+| Tasks call `animateClick()` on `QDVRWidget` buttons | Fixed | They drive the headless recorder and player; Phase 0, item 3 |
 | `QHOT.__init__` reaches into `dvr.source` and `playback` | Neutral | Ties it to QDVRWidget internals |
 
-Net: QHOT is a clear improvement.  The two things to change are the
-frame-coupled compute and the thread-safety model.
+Net: QHOT is a clear improvement.  The two things to change were the
+frame-coupled compute and the thread-safety model, and both are done.
 
 ## 4. Plan
 
@@ -115,6 +122,7 @@ frame-coupled compute and the thread-safety model.
 
 ## 5. Recommended order
 
-Items 1 and 2 first, because everything later depends on a reliable compute
-loop.  Then the QInstrument Hardware tab (items 8 to 11), the largest gap
-relative to pyfab and built on code that already exists.
+Items 1 and 2 came first, because everything later depends on a reliable
+compute loop, and they are done.  Next is the QInstrument Hardware tab (items
+8 to 11), the largest gap relative to pyfab and built on code that already
+exists.

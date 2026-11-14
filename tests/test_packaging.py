@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-NOT_PACKAGES = ('tests', 'docs', 'old', 'devel', 'build', 'htmlcov')
+NOT_PACKAGES = ('tests', 'docs', 'build', 'htmlcov')
 
 
 def configuration() -> dict:

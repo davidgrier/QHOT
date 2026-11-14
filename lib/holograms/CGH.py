@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from dataclasses import fields
 
 import numpy as np
-from qtpy import QtCore, QtGui
+from qtpy import QtCore
 
 from QHOT.lib.traps import TrapSpec
 from QHOT.lib.hottypes import PatternSource
@@ -204,17 +204,6 @@ class CGH(QtCore.QObject):
     def width(self) -> int:
         '''Width of the hologram in pixels.'''
         return self.shape[1]
-
-    @property
-    def rc(self) -> QtGui.QVector3D:
-        '''Coordinates of optical axis in camera plane.
-
-        Returns
-        -------
-        QtGui.QVector3D
-            Position (xc, yc, zc) as a 3D vector.
-        '''
-        return QtGui.QVector3D(self.xc, self.yc, self.zc)
 
     @property
     def wavenumber(self) -> float:

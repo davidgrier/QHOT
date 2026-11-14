@@ -14,7 +14,7 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKIP = ('old', 'devel', 'htmlcov', 'build', '_build')
+SKIP = ('htmlcov', 'build', '_build')
 
 
 def arguments(node: ast.AST) -> list[ast.AST]:

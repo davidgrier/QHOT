@@ -25,6 +25,12 @@
   the recording.  `QTaskManager.fail(reason)` does it; the window connects
   `QVideoSource.lost` and `QDVRWidget.stopped` to it.
 
+### Removed
+- `QTrapOverlay.trapsIn` and `QTrapOverlay.clearMarked`, and `CGH.rc`: nothing
+  used them.  The `devel/` directory of diagnostic scripts for FLIR cameras
+  (the problem that `QRemoteCamera` in QVideo solved) is gone; it is in the
+  history.
+
 ### Changed
 - **The mouse gestures are in `QHOT.lib.traps.gestures`** (`Gestures`), which
   `QTrapOverlay` owns (`overlay.gestures`) and forwards its events to; the

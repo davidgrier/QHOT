@@ -32,6 +32,8 @@ pip install -e ".[docs]"  # for documentation builds
 qhot
 ```
 
+**Before a commit:** `pre-commit install` (with `pip install pre-commit ruff`) runs ruff and the style, import-order, docstring and import-cycle tests, about seven seconds, which are the checks that otherwise fail late in CI.
+
 ## Releasing
 
 `pyproject.toml` is the single source of truth for the version.  `CITATION.cff`

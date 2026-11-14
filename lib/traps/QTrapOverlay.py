@@ -451,22 +451,6 @@ class QTrapOverlay(ScatterPlotItem):
             return None
         return self._traps[pts[0].index()]
 
-    def trapsIn(self, rect: QtCore.QRectF) -> list[QTrap]:
-        '''Return all traps within a rectangle.
-
-        Parameters
-        ----------
-        rect : QRectF
-            Query rectangle in item coordinates.
-
-        Returns
-        -------
-        list[QTrap]
-            Traps whose spots fall within ``rect``, or ``[]`` if none.
-        '''
-        pts = self.pointsAt(rect)
-        return [self._traps[p.index()] for p in pts]
-
     def groupAt(self, pos: QtCore.QPointF) -> QTrap | None:
         '''Return the topmost group containing the trap nearest to a position.
 
@@ -575,15 +559,6 @@ class QTrapOverlay(ScatterPlotItem):
         else:
             self.mark(group)
         return True
-
-    def clearMarked(self) -> None:
-        '''Remove the SPECIAL mark from all currently marked groups.
-
-        Restores each group's brush to ``STATIC`` (if locked) or
-        ``NORMAL``, then clears the marked set.
-        '''
-        for group in list(self._marked):
-            self.unmark(group)
 
     def toggleLock(self, pos: QtCore.QPointF) -> bool:
         '''Toggle the locked state of the trap group under the cursor.

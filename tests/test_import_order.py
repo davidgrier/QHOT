@@ -24,7 +24,7 @@ def sources():
         parts = path.relative_to(ROOT).parts
         if (path.suffix in SUFFIXES and path.is_file()
                 and not any(part.startswith('.') or part in
-                            ('devel', 'build', '_build') or
+                            ('build', '_build') or
                             part.endswith('.egg-info') for part in parts)):
             yield path
 

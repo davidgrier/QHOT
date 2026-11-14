@@ -250,15 +250,6 @@ class TestDerivedProperties(unittest.TestCase):
     def test_width(self):
         self.assertEqual(self.cgh.width, 640)
 
-    def test_rc_type(self):
-        self.assertIsInstance(self.cgh.rc, QtGui.QVector3D)
-
-    def test_rc_values(self):
-        cgh = CGH(xc=10., yc=20., zc=5.)
-        self.assertAlmostEqual(cgh.rc.x(), 10.)
-        self.assertAlmostEqual(cgh.rc.y(), 20.)
-        self.assertAlmostEqual(cgh.rc.z(), 5.)
-
     def test_wavenumber(self):
         cgh = CGH(wavelength=1.0, n_m=1.0)
         self.assertAlmostEqual(cgh.wavenumber, 2.*np.pi)

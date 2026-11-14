@@ -471,27 +471,6 @@ class TestTrapAt(unittest.TestCase):
         self.assertIsNone(result)
 
 
-class TestTrapsIn(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.t1 = QTrap(r=(2., 2., 0.), phase=0.)
-        self.t2 = QTrap(r=(7., 7., 0.), phase=0.)
-        self.overlay.addTrap([self.t1, self.t2])
-
-    def test_returns_traps_in_rect(self):
-        spots = list(self.overlay.points())
-        with patch.object(self.overlay, 'pointsAt', return_value=spots):
-            result = self.overlay.trapsIn(QtCore.QRectF(0., 0., 10., 10.))
-        self.assertIn(self.t1, result)
-        self.assertIn(self.t2, result)
-
-    def test_returns_empty_when_none_in_rect(self):
-        with patch.object(self.overlay, 'pointsAt', return_value=[]):
-            result = self.overlay.trapsIn(QtCore.QRectF(50., 50., 10., 10.))
-        self.assertEqual(result, [])
-
-
 class TestGroupAt(unittest.TestCase):
 
     def setUp(self):
@@ -893,7 +872,7 @@ class TestMarkedProperty(unittest.TestCase):
         self.assertNotIn(t2, leaves)
 
 
-class TestClearMarked(unittest.TestCase):
+class TestRemovingATrapClearsItsMark(unittest.TestCase):
 
     def setUp(self):
         self.overlay = make_overlay()
@@ -902,27 +881,10 @@ class TestClearMarked(unittest.TestCase):
         self.overlay.addTrap(self.t1)
         self.overlay.addTrap(self.t2)
 
-    def test_clear_empties_marked_set(self):
-        self.overlay._marked.update({self.t1, self.t2})
-        self.overlay.clearMarked()
-        self.assertEqual(len(self.overlay._marked), 0)
-
-    def test_clear_restores_normal_brush(self):
-        self.overlay._marked.add(self.t1)
-        self.overlay.setGroupBrush(self.t1, self.overlay.State.SPECIAL)
-        self.overlay.clearMarked()
-        spot = self.overlay.points()[0]
-        self.assertEqual(
-            spot.brush().color(),
-            self.overlay.brush[self.overlay.State.NORMAL].color())
-
-    def test_clear_on_empty_set_does_not_raise(self):
-        self.overlay.clearMarked()   # should not raise
-
     def test_remove_trap_clears_from_marked(self):
-        self.overlay._marked.add(self.t1)
+        self.overlay.mark(self.t1)
         self.overlay.removeTrap(self.t1)
-        self.assertNotIn(self.t1, self.overlay._marked)
+        self.assertEqual(self.overlay.markedGroups, [])
 
 
 if __name__ == '__main__':

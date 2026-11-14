@@ -355,7 +355,7 @@ class TestFinalizeSelection(unittest.TestCase):
     def test_groups_two_traps_inside_rect(self):
         self.overlay.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
                               QTrap(r=(7., 7., 0.), phase=0.)])
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         top_items = list(self.overlay)
         self.assertEqual(len(top_items), 1)
         self.assertIsInstance(top_items[0], QTrapGroup)
@@ -363,20 +363,20 @@ class TestFinalizeSelection(unittest.TestCase):
     def test_new_group_is_child_of_overlay(self):
         self.overlay.addTrap([QTrap(r=(3., 3., 0.), phase=0.),
                               QTrap(r=(7., 7., 0.), phase=0.)])
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         grp = next(iter(self.overlay))
         self.assertIs(grp.parent(), self.overlay)
 
     def test_fewer_than_two_no_group_created(self):
         self.overlay.addTrap(QTrap(r=(3., 3., 0.), phase=0.))
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         self.assertNotIsInstance(next(iter(self.overlay)), QTrapGroup)
 
     def test_outside_trap_excluded(self):
         t_in = QTrap(r=(3., 3., 0.), phase=0.)
         t_out = QTrap(r=(15., 5., 0.), phase=0.)
         self.overlay.addTrap([t_in, t_out])
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         # only 1 inside → no group; both items remain top-level
         self.assertEqual(len(list(self.overlay)), 2)
 
@@ -388,14 +388,14 @@ class TestFinalizeSelection(unittest.TestCase):
         lone = QTrap(r=(5., 5., 0.), phase=0.)
         self.overlay.addTrap(straddler)
         self.overlay.addTrap(lone)
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         # straddler is not fully inside → no new group
         self.assertEqual(len(list(self.overlay)), 2)
 
     def test_centroid_of_new_group(self):
         self.overlay.addTrap([QTrap(r=(2., 2., 0.), phase=0.),
                               QTrap(r=(8., 8., 0.), phase=0.)])
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         grp = next(iter(self.overlay))
         np.testing.assert_array_almost_equal(grp._r, [5., 5., 0.])
 
@@ -586,22 +586,22 @@ class TestFinalizeSelectionSignals(unittest.TestCase):
 
     def test_emits_trap_removed_for_each_candidate(self):
         spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         self.assertEqual(len(spy), 2)
 
     def test_trap_removed_carries_individual_traps(self):
         spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         self.assertEqual({spy[0][0], spy[1][0]}, {self.t1, self.t2})
 
     def test_emits_trap_added_once_for_new_group(self):
         spy = QtTest.QSignalSpy(self.overlay.trapAdded)
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         self.assertEqual(len(spy), 1)
 
     def test_trap_added_carries_new_group(self):
         spy = QtTest.QSignalSpy(self.overlay.trapAdded)
-        self.overlay._finalizeSelection(self.rect)
+        self.overlay.groupWithin(self.rect)
         self.assertIsInstance(spy[0][0], QTrapGroup)
 
     def test_no_signals_when_fewer_than_two_candidates(self):
@@ -609,7 +609,7 @@ class TestFinalizeSelectionSignals(unittest.TestCase):
         overlay.addTrap(QTrap(r=(3., 3., 0.), phase=0.))
         spy_removed = QtTest.QSignalSpy(overlay.trapRemoved)
         spy_added = QtTest.QSignalSpy(overlay.trapAdded)
-        overlay._finalizeSelection(self.rect)
+        overlay.groupWithin(self.rect)
         self.assertEqual(len(spy_removed), 0)
         self.assertEqual(len(spy_added), 0)
 
@@ -766,377 +766,6 @@ class TestBreakGroup(unittest.TestCase):
         self.assertIn(inner_grp, added)
 
 
-class TestSelectGroup(unittest.TestCase):
-
-    def test_returns_false_when_no_trap(self):
-        overlay = make_overlay()
-        with patch.object(overlay, 'pointsAt', return_value=[]):
-            self.assertFalse(overlay.selectGroup(QtCore.QPointF(0., 0.)))
-
-    def test_returns_true_when_trap_found(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        spot = overlay.points()[0]
-        with patch.object(overlay, 'pointsAt', return_value=[spot]):
-            self.assertTrue(overlay.selectGroup(QtCore.QPointF(5., 5.)))
-
-    def test_selected_is_set(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        spot = overlay.points()[0]
-        with patch.object(overlay, 'pointsAt', return_value=[spot]):
-            overlay.selectGroup(QtCore.QPointF(5., 5.))
-        self.assertIs(overlay._selected, trap)
-
-    def test_brush_changes_to_selected(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        spot = overlay.points()[0]
-        with patch.object(overlay, 'pointsAt', return_value=[spot]):
-            overlay.selectGroup(QtCore.QPointF(5., 5.))
-        self.assertEqual(overlay.points()[0].brush(),
-                         overlay.brush[overlay.State.SELECTED])
-
-
-class TestRubberBandSelection(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-
-    def test_start_selection_sets_origin(self):
-        pos = QtCore.QPointF(5., 5.)
-        self.overlay.startSelection(pos)
-        self.assertEqual(self.overlay._selectionOrigin, pos)
-
-    def test_start_selection_shows_rect(self):
-        self.overlay.startSelection(QtCore.QPointF(2., 2.))
-        self.assertTrue(self.overlay._selection.isVisible())
-
-    def test_grow_selection_updates_rect(self):
-        self.overlay.startSelection(QtCore.QPointF(0., 0.))
-        self.overlay.growSelection(QtCore.QPointF(5., 5.))
-        rect = self.overlay._selection.rect()
-        self.assertAlmostEqual(rect.width(), 5.)
-        self.assertAlmostEqual(rect.height(), 5.)
-
-    def test_grow_selection_highlights_traps_inside(self):
-        trap = QTrap(r=(3., 3., 0.), phase=0.)
-        self.overlay.addTrap(trap)
-        self.overlay.startSelection(QtCore.QPointF(0., 0.))
-        self.overlay.growSelection(QtCore.QPointF(10., 10.))
-        self.assertEqual(self.overlay.points()[0].brush(),
-                         self.overlay.brush[self.overlay.State.GROUPING])
-
-    def test_end_selection_hides_rect(self):
-        self.overlay.startSelection(QtCore.QPointF(0., 0.))
-        self.overlay.growSelection(QtCore.QPointF(5., 5.))
-        self.overlay.endSelection()
-        self.assertFalse(self.overlay._selection.isVisible())
-
-    def test_end_selection_clears_origin(self):
-        self.overlay.startSelection(QtCore.QPointF(0., 0.))
-        self.overlay.endSelection()
-        self.assertIsNone(self.overlay._selectionOrigin)
-
-    def test_end_selection_resets_brushes(self):
-        trap = QTrap(r=(3., 3., 0.), phase=0.)
-        self.overlay.addTrap(trap)
-        self.overlay.startSelection(QtCore.QPointF(0., 0.))
-        self.overlay.growSelection(QtCore.QPointF(10., 10.))
-        self.overlay.endSelection()
-        self.assertEqual(self.overlay.points()[0].brush(),
-                         self.overlay.brush[self.overlay.State.NORMAL])
-
-
-class TestMousePressEvent(unittest.TestCase):
-    '''Tests for the QGraphicsItem standalone event path.'''
-
-    def _make_event(self, button, modifiers, pos):
-        event = MagicMock()
-        event.button.return_value = button
-        event.modifiers.return_value = modifiers
-        event.pos.return_value = pos
-        return event
-
-    def test_shift_left_creates_trap_and_sets_drag_last(self):
-        overlay = make_overlay()
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.ShiftModifier,
-                                 pos)
-        overlay.mousePressEvent(event)
-        self.assertEqual(len(overlay._traps), 1)
-        self.assertEqual(overlay._dragLast, pos)
-
-    def test_left_no_trap_starts_selection(self):
-        overlay = make_overlay()
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.NoModifier,
-                                 pos)
-        overlay.mousePressEvent(event)
-        self.assertTrue(overlay._selection.isVisible())
-
-    def test_event_accepted(self):
-        overlay = make_overlay()
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.NoModifier,
-                                 pos)
-        overlay.mousePressEvent(event)
-        event.accept.assert_called_once()
-
-
-class TestMouseMoveEvent(unittest.TestCase):
-    '''Tests for the QGraphicsItem standalone event path.'''
-
-    def _make_event(self, pos):
-        event = MagicMock()
-        event.pos.return_value = pos
-        event.buttons.return_value = QtCore.Qt.MouseButton.LeftButton
-        return event
-
-    def test_moves_selected_group(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay._dragLast = QtCore.QPointF(5., 5.)
-        overlay.mouseMoveEvent(self._make_event(QtCore.QPointF(8., 9.)))
-        self.assertAlmostEqual(trap.x, 8.)
-        self.assertAlmostEqual(trap.y, 9.)
-
-    def test_updates_drag_last(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay._dragLast = QtCore.QPointF(5., 5.)
-        new_pos = QtCore.QPointF(8., 9.)
-        overlay.mouseMoveEvent(self._make_event(new_pos))
-        self.assertEqual(overlay._dragLast, new_pos)
-
-    def test_grows_selection_when_active(self):
-        overlay = make_overlay()
-        overlay.startSelection(QtCore.QPointF(0., 0.))
-        pos = QtCore.QPointF(5., 5.)
-        with patch.object(overlay, 'growSelection') as mock_grow:
-            overlay.mouseMoveEvent(self._make_event(pos))
-        mock_grow.assert_called_once_with(pos)
-
-    def test_event_accepted(self):
-        overlay = make_overlay()
-        event = self._make_event(QtCore.QPointF(0., 0.))
-        overlay.mouseMoveEvent(event)
-        event.accept.assert_called_once()
-
-
-class TestMouseReleaseEvent(unittest.TestCase):
-    '''Tests for the QGraphicsItem standalone event path.'''
-
-    def _make_event(self):
-        return MagicMock()
-
-    def test_ends_selection_when_active(self):
-        overlay = make_overlay()
-        overlay.startSelection(QtCore.QPointF(0., 0.))
-        with patch.object(overlay, 'endSelection') as mock_end:
-            overlay.mouseReleaseEvent(self._make_event())
-        mock_end.assert_called_once()
-
-    def test_clears_selected(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay.mouseReleaseEvent(self._make_event())
-        self.assertIsNone(overlay._selected)
-
-    def test_clears_drag_last(self):
-        overlay = make_overlay()
-        overlay._dragLast = QtCore.QPointF(1., 1.)
-        overlay.mouseReleaseEvent(self._make_event())
-        self.assertIsNone(overlay._dragLast)
-
-    def test_resets_selected_brush(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay.setGroupBrush(trap, overlay.State.SELECTED)
-        overlay.mouseReleaseEvent(self._make_event())
-        self.assertEqual(overlay.points()[0].brush(),
-                         overlay.brush[overlay.State.NORMAL])
-
-    def test_event_accepted(self):
-        overlay = make_overlay()
-        event = self._make_event()
-        overlay.mouseReleaseEvent(event)
-        event.accept.assert_called_once()
-
-
-class TestMousePress(unittest.TestCase):
-    '''Tests for the QHOTScreen hosted event path.'''
-
-    def _make_event(self, button, modifiers):
-        event = MagicMock()
-        event.button.return_value = button
-        event.modifiers.return_value = modifiers
-        return event
-
-    def test_returns_true(self):
-        overlay = make_overlay()
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.NoModifier)
-        with patch.object(overlay, 'selectGroup', return_value=False):
-            result = overlay.mousePress(event, QtCore.QPointF(0., 0.))
-        self.assertTrue(result)
-
-    def test_shift_left_creates_trap_and_sets_drag_last(self):
-        overlay = make_overlay()
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.ShiftModifier)
-        overlay.mousePress(event, pos)
-        self.assertEqual(len(overlay._traps), 1)
-        self.assertEqual(overlay._dragLast, pos)
-
-    def test_left_no_trap_starts_selection(self):
-        overlay = make_overlay()
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton,
-                                 QtCore.Qt.KeyboardModifier.NoModifier)
-        with patch.object(overlay, 'selectGroup', return_value=False):
-            overlay.mousePress(event, pos)
-        self.assertTrue(overlay._selection.isVisible())
-
-
-class TestMouseMove(unittest.TestCase):
-    '''Tests for the QHOTScreen hosted event path.'''
-
-    def _make_event(self, buttons):
-        event = MagicMock()
-        event.buttons.return_value = buttons
-        return event
-
-    def test_returns_false_for_non_left_button(self):
-        overlay = make_overlay()
-        event = self._make_event(QtCore.Qt.MouseButton.RightButton)
-        self.assertFalse(overlay.mouseMove(event, QtCore.QPointF(0., 0.)))
-
-    def test_moves_selected_group_on_left_drag(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay._dragLast = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton)
-        overlay.mouseMove(event, QtCore.QPointF(8., 9.))
-        self.assertAlmostEqual(trap.x, 8.)
-        self.assertAlmostEqual(trap.y, 9.)
-
-    def test_returns_true_on_left_drag(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay._dragLast = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton)
-        self.assertTrue(overlay.mouseMove(event, QtCore.QPointF(6., 6.)))
-
-    def test_grows_selection_when_active(self):
-        overlay = make_overlay()
-        overlay.startSelection(QtCore.QPointF(0., 0.))
-        pos = QtCore.QPointF(5., 5.)
-        event = self._make_event(QtCore.Qt.MouseButton.LeftButton)
-        with patch.object(overlay, 'growSelection') as mock_grow:
-            overlay.mouseMove(event, pos)
-        mock_grow.assert_called_once_with(pos)
-
-
-class TestMouseRelease(unittest.TestCase):
-    '''Tests for the QHOTScreen hosted event path.'''
-
-    def _make_event(self):
-        return MagicMock()
-
-    def test_returns_true(self):
-        overlay = make_overlay()
-        self.assertTrue(overlay.mouseRelease(self._make_event()))
-
-    def test_ends_selection_when_active(self):
-        overlay = make_overlay()
-        overlay.startSelection(QtCore.QPointF(0., 0.))
-        with patch.object(overlay, 'endSelection') as mock_end:
-            overlay.mouseRelease(self._make_event())
-        mock_end.assert_called_once()
-
-    def test_clears_selected(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay.mouseRelease(self._make_event())
-        self.assertIsNone(overlay._selected)
-
-    def test_clears_drag_last(self):
-        overlay = make_overlay()
-        overlay._dragLast = QtCore.QPointF(1., 1.)
-        overlay.mouseRelease(self._make_event())
-        self.assertIsNone(overlay._dragLast)
-
-    def test_resets_selected_brush(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        overlay._selected = trap
-        overlay.setGroupBrush(trap, overlay.State.SELECTED)
-        overlay.mouseRelease(self._make_event())
-        self.assertEqual(overlay.points()[0].brush(),
-                         overlay.brush[overlay.State.NORMAL])
-
-
-class TestWheel(unittest.TestCase):
-
-    def _make_event(self, delta_y):
-        event = MagicMock()
-        event.angleDelta.return_value = QtCore.QPoint(0, delta_y)
-        return event
-
-    def test_returns_false_when_no_trap(self):
-        overlay = make_overlay()
-        with patch.object(overlay, 'groupAt', return_value=None):
-            self.assertFalse(overlay.wheel(self._make_event(120),
-                                           QtCore.QPointF(0., 0.)))
-
-    def test_returns_true_when_trap_found(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(trap)
-        with patch.object(overlay, 'groupAt', return_value=trap):
-            self.assertTrue(overlay.wheel(self._make_event(120),
-                                          QtCore.QPointF(5., 5.)))
-
-    def test_adjusts_z_by_one_notch_up(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 10.), phase=0.)
-        overlay.addTrap(trap)
-        with patch.object(overlay, 'groupAt', return_value=trap):
-            overlay.wheel(self._make_event(120), QtCore.QPointF(5., 5.))
-        self.assertAlmostEqual(trap.z, 11.)
-
-    def test_adjusts_z_by_one_notch_down(self):
-        overlay = make_overlay()
-        trap = QTrap(r=(5., 5., 10.), phase=0.)
-        overlay.addTrap(trap)
-        with patch.object(overlay, 'groupAt', return_value=trap):
-            overlay.wheel(self._make_event(-120), QtCore.QPointF(5., 5.))
-        self.assertAlmostEqual(trap.z, 9.)
-
-
 class TestReshapeSignals(unittest.TestCase):
     '''Cover _connectGroup, _onGroupReshaping, _onGroupReshaped.'''
 
@@ -1238,170 +867,6 @@ class TestSaveLoad(unittest.TestCase):
         self.assertEqual(len(self.overlay._traps), 1)
 
 
-class TestStartRotation(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.t1 = QTweezer(r=(4., 0., 0.), phase=0.)
-        self.t2 = QTweezer(r=(-4., 0., 0.), phase=0.)
-        self.grp = QTrapGroup(r=(0., 0., 0.))
-        self.grp.addTrap([self.t1, self.t2])
-        self.overlay.addTrap(self.grp)
-
-    def test_returns_false_no_trap(self):
-        with patch.object(self.overlay, 'trapAt', return_value=None):
-            result = self.overlay.startRotation(QtCore.QPointF(999., 999.))
-        self.assertFalse(result)
-
-    def test_returns_true_on_group(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
-            result = self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertTrue(result)
-
-    def test_sets_rotating_group(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
-            self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertIs(self.overlay._rotating, self.grp)
-
-    def test_records_rotation_center(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
-            self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertAlmostEqual(self.overlay._rotationCenter[0], 0.)
-        self.assertAlmostEqual(self.overlay._rotationCenter[1], 0.)
-
-    def test_snapshot_populated(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
-            self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertIn(id(self.t1), self.overlay._rotationSnapshot)
-        self.assertIn(id(self.t2), self.overlay._rotationSnapshot)
-
-    def test_brush_set_to_selected(self):
-        with patch.object(self.overlay, 'trapAt', return_value=self.t1):
-            self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        for trap in [self.t1, self.t2]:
-            spot = self.overlay.points()[trap._index]
-            self.assertEqual(
-                spot.brush(),
-                self.overlay.brush[self.overlay.State.SELECTED])
-
-    def test_standalone_trap_returns_true_no_rotation(self):
-        overlay = make_overlay()
-        lone = QTweezer(r=(5., 5., 0.), phase=0.)
-        overlay.addTrap(lone)
-        with patch.object(overlay, 'trapAt', return_value=lone):
-            result = overlay.startRotation(QtCore.QPointF(5., 5.))
-        self.assertTrue(result)
-        self.assertIsNone(overlay._rotating)
-
-    def test_uses_outermost_group(self):
-        overlay = make_overlay()
-        outer = QTrapGroup(r=(0., 0., 0.))
-        inner = QTrapGroup(r=(2., 0., 0.))
-        leaf = QTweezer(r=(3., 0., 0.), phase=0.)
-        inner.addTrap(leaf)
-        outer.addTrap(inner)
-        overlay.addTrap(outer)
-        with patch.object(overlay, 'trapAt', return_value=leaf):
-            overlay.startRotation(QtCore.QPointF(3., 0.))
-        self.assertIs(overlay._rotating, outer)
-
-
-class TestRotationGesture(unittest.TestCase):
-
-    def setUp(self):
-        self.overlay = make_overlay()
-        self.t1 = QTweezer(r=(4., 0., 0.), phase=0.)
-        self.t2 = QTweezer(r=(-4., 0., 0.), phase=0.)
-        self.grp = QTrapGroup(r=(0., 0., 0.))
-        self.grp.addTrap([self.t1, self.t2])
-        self.overlay.addTrap(self.grp)
-
-    def _setup_rotation(self, x0, y0):
-        '''Directly configure rotation state from initial cursor position.'''
-        self.overlay._rotating = self.grp
-        cx, cy = self.grp._r[0], self.grp._r[1]
-        self.overlay._rotationCenter = (cx, cy)
-        self.overlay._rotationAngle0 = np.arctan2(y0 - cy, x0 - cx)
-        self.overlay._rotationSnapshot = self.grp._snapshot()
-        self.overlay._dragLast = QtCore.QPointF(x0, y0)
-
-    def test_mouseMove_rotates_traps(self):
-        self._setup_rotation(4., 0.)
-        pos = QtCore.QPointF(0., 4.)
-        event = MagicMock()
-        event.buttons.return_value = self.overlay.button['left']
-        self.overlay.mouseMove(event, pos)
-        np.testing.assert_array_almost_equal(
-            self.t1._r[:2], [0., 4.], decimal=5)
-        np.testing.assert_array_almost_equal(
-            self.t2._r[:2], [0., -4.], decimal=5)
-
-    def test_mouseRelease_clears_rotating(self):
-        self._setup_rotation(4., 0.)
-        event = MagicMock()
-        self.overlay.mouseRelease(event)
-        self.assertIsNone(self.overlay._rotating)
-
-    def test_mouseRelease_clears_snapshot(self):
-        self._setup_rotation(4., 0.)
-        event = MagicMock()
-        self.overlay.mouseRelease(event)
-        self.assertEqual(self.overlay._rotationSnapshot, {})
-
-    def test_mouseRelease_restores_normal_brush(self):
-        self._setup_rotation(4., 0.)
-        self.overlay.setGroupBrush(self.grp, self.overlay.State.SELECTED)
-        event = MagicMock()
-        self.overlay.mouseRelease(event)
-        for trap in [self.t1, self.t2]:
-            spot = self.overlay.points()[trap._index]
-            self.assertEqual(
-                spot.brush(),
-                self.overlay.brush[self.overlay.State.NORMAL])
-
-    def test_spot_positions_updated_after_rotation(self):
-        self._setup_rotation(4., 0.)
-        pos = QtCore.QPointF(0., 4.)
-        event = MagicMock()
-        event.buttons.return_value = self.overlay.button['left']
-        self.overlay.mouseMove(event, pos)
-        spot1 = self.overlay.points()[self.t1._index]
-        self.assertAlmostEqual(spot1._data['x'], 0., places=5)
-        self.assertAlmostEqual(spot1._data['y'], 4., places=5)
-
-    def test_rotation_is_idempotent(self):
-        self._setup_rotation(4., 0.)
-        pos = QtCore.QPointF(0., 4.)
-        event = MagicMock()
-        event.buttons.return_value = self.overlay.button['left']
-        self.overlay.mouseMove(event, pos)
-        r1 = self.t1._r.copy()
-        self.overlay.mouseMove(event, pos)
-        np.testing.assert_array_almost_equal(self.t1._r, r1)
-
-    def test_nested_group_rotates_around_outer_center(self):
-        overlay = make_overlay()
-        outer = QTrapGroup(r=(0., 0., 0.))
-        inner = QTrapGroup(r=(2., 0., 0.))
-        leaf = QTweezer(r=(2., 0., 0.), phase=0.)
-        inner.addTrap(leaf)
-        outer.addTrap(inner)
-        overlay.addTrap(outer)
-        overlay._rotating = outer
-        overlay._rotationCenter = (0., 0.)
-        overlay._rotationAngle0 = 0.
-        overlay._rotationSnapshot = outer._snapshot()
-        overlay._dragLast = QtCore.QPointF(2., 0.)
-        move_pos = QtCore.QPointF(0., 2.)
-        event = MagicMock()
-        event.buttons.return_value = overlay.button['left']
-        overlay.mouseMove(event, move_pos)
-        np.testing.assert_array_almost_equal(
-            inner._r[:2], [0., 2.], decimal=5)
-        np.testing.assert_array_almost_equal(
-            leaf._r[:2], [0., 2.], decimal=5)
-
-
 class TestToggleLock(unittest.TestCase):
 
     def setUp(self):
@@ -1450,40 +915,14 @@ class TestToggleLock(unittest.TestCase):
 
 
 class TestLockedTrapIgnored(unittest.TestCase):
-    '''Locked traps must be unaffected by move, scroll, and rotate.'''
+    '''A locked trap is shown with the static brush (the gestures that it
+    ignores are tested with the gestures).'''
 
     def setUp(self):
         self.overlay = make_overlay()
         self.trap = QTrap(r=(5., 5., 0.), phase=0.)
         self.overlay.addTrap(self.trap)
         self.trap.locked = True
-
-    def test_select_group_skips_locked(self):
-        spot = self.overlay.points()[0]
-        with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
-            result = self.overlay.selectGroup(QtCore.QPointF(5., 5.))
-        self.assertTrue(result)
-        self.assertIsNone(self.overlay._selected)
-
-    def test_wheel_skips_locked(self):
-        initial_z = self.trap.z
-        with patch.object(self.overlay, 'groupAt', return_value=self.trap):
-            event = MagicMock()
-            event.angleDelta.return_value.y.return_value = 120
-            self.overlay.wheel(event, QtCore.QPointF(5., 5.))
-        self.assertAlmostEqual(self.trap.z, initial_z)
-
-    def test_start_rotation_skips_locked_group(self):
-        t1 = QTweezer(r=(4., 0., 0.))
-        t2 = QTweezer(r=(-4., 0., 0.))
-        grp = QTrapGroup(r=(0., 0., 0.))
-        grp.addTrap([t1, t2])
-        self.overlay.addTrap(grp)
-        grp.locked = True
-        with patch.object(self.overlay, 'trapAt', return_value=t1):
-            result = self.overlay.startRotation(QtCore.QPointF(4., 0.))
-        self.assertTrue(result)
-        self.assertIsNone(self.overlay._rotating)
 
     def test_add_locked_uses_static_brush(self):
         overlay = make_overlay()
@@ -1700,20 +1139,6 @@ class TestClearMarked(unittest.TestCase):
         self.overlay._marked.add(self.t1)
         self.overlay.removeTrap(self.t1)
         self.assertNotIn(self.t1, self.overlay._marked)
-
-
-class TestToggleMarkBinding(unittest.TestCase):
-    '''toggleMark is wired to Ctrl+left in the default binding.'''
-
-    def test_togglemark_in_default_descriptions(self):
-        handlers = [hname for (_, hname) in QTrapOverlay.default]
-        self.assertIn('toggleMark', handlers)
-
-    def test_ctrl_left_maps_to_togglemark(self):
-        overlay = make_overlay()
-        sig = (QtCore.Qt.MouseButton.LeftButton,
-               QtCore.Qt.KeyboardModifier.ControlModifier)
-        self.assertEqual(overlay._handler[sig], overlay.toggleMark)
 
 
 if __name__ == '__main__':

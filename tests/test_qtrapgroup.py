@@ -385,12 +385,12 @@ class TestSnapshot(unittest.TestCase):
         self.group.addTrap([self.t1, self.t2])
 
     def test_contains_all_children(self):
-        snap = self.group._snapshot()
+        snap = self.group.snapshot()
         self.assertIn(id(self.t1), snap)
         self.assertIn(id(self.t2), snap)
 
     def test_values_are_copies(self):
-        snap = self.group._snapshot()
+        snap = self.group.snapshot()
         self.t1._r[0] = 99.
         np.testing.assert_array_almost_equal(snap[id(self.t1)], [1., 0., 0.])
 
@@ -400,7 +400,7 @@ class TestSnapshot(unittest.TestCase):
         inner.addTrap(leaf)
         outer = QTrapGroup(r=(0., 0., 0.))
         outer.addTrap(inner)
-        snap = outer._snapshot()
+        snap = outer.snapshot()
         self.assertIn(id(inner), snap)
         self.assertIn(id(leaf), snap)
 
@@ -412,7 +412,7 @@ class TestRotate(unittest.TestCase):
         self.t1 = QTrap(r=(1., 0., 0.), phase=0.)
         self.t2 = QTrap(r=(-1., 0., 0.), phase=0.)
         self.group.addTrap([self.t1, self.t2])
-        self.snap = self.group._snapshot()
+        self.snap = self.group.snapshot()
 
     def test_90deg_rotation(self):
         self.group.rotate(np.pi / 2., self.snap)
@@ -430,7 +430,7 @@ class TestRotate(unittest.TestCase):
 
     def test_z_coordinate_unchanged(self):
         self.t1._r[2] = 5.
-        snap = self.group._snapshot()
+        snap = self.group.snapshot()
         self.group.rotate(np.pi / 2., snap)
         self.assertAlmostEqual(self.t1._r[2], 5.)
 
@@ -453,7 +453,7 @@ class TestRotate(unittest.TestCase):
         group = QTrapGroup(r=(2., 0., 0.))
         trap = QTrap(r=(3., 0., 0.), phase=0.)
         group.addTrap(trap)
-        snap = group._snapshot()
+        snap = group.snapshot()
         group.rotate(np.pi / 2., snap)
         np.testing.assert_array_almost_equal(trap._r[:2], [2., 1.])
 
@@ -463,7 +463,7 @@ class TestRotate(unittest.TestCase):
         leaf = QTrap(r=(3., 0., 0.), phase=0.)
         inner.addTrap(leaf)
         outer.addTrap(inner)
-        snap = outer._snapshot()
+        snap = outer.snapshot()
         outer.rotate(np.pi / 2., snap)
         np.testing.assert_array_almost_equal(inner._r[:2], [0., 2.])
         np.testing.assert_array_almost_equal(leaf._r[:2], [0., 3.])
@@ -474,7 +474,7 @@ class TestRotate(unittest.TestCase):
         inner.addTrap(QTrap(r=(3., 0., 0.), phase=0.))
         outer.addTrap(inner)
         spy = QtTest.QSignalSpy(outer.changed)
-        outer.rotate(np.pi / 2., outer._snapshot())
+        outer.rotate(np.pi / 2., outer.snapshot())
         self.assertEqual(len(spy), 1)
 
 

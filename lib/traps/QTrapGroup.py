@@ -148,7 +148,7 @@ class QTrapGroup(QTrap):
             else:
                 child._r += delta
 
-    def _snapshot(self) -> dict:
+    def snapshot(self) -> dict:
         '''Record current positions of all descendants, keyed by id.
 
         Returns
@@ -161,7 +161,7 @@ class QTrapGroup(QTrap):
         for child in self:
             s[id(child)] = child._r.copy()
             if isinstance(child, QTrapGroup):
-                s.update(child._snapshot())
+                s.update(child.snapshot())
         return s
 
     def _rotateSilently(self,
@@ -181,7 +181,7 @@ class QTrapGroup(QTrap):
             Center of rotation in item coordinates.
         snapshot : dict
             Mapping of ``id(child)`` to initial position, as returned
-            by ``_snapshot()``.
+            by ``snapshot()``.
         '''
         cos_a = np.cos(angle)
         sin_a = np.sin(angle)
@@ -209,7 +209,7 @@ class QTrapGroup(QTrap):
             stored in ``snapshot``.
         snapshot : dict
             Mapping of ``id(child)`` to initial position array,
-            as returned by ``_snapshot()``.
+            as returned by ``snapshot()``.
         '''
         cx, cy = self._r[0], self._r[1]
         self._rotateSilently(angle, cx, cy, snapshot)

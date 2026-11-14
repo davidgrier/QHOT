@@ -44,8 +44,10 @@ is computed from such a pattern, never from the live traps.
 
 :class:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay` is a
 ``pyqtgraph.ScatterPlotItem`` that renders each trap as a colored spot and
-dispatches mouse and scroll-wheel events to add, remove, select, drag, group,
-rotate, lock, and break traps.  Every interactive gesture pushes an undoable
+keeps the traps.  What the mouse does to them (add, remove, select, drag,
+group, rotate, lock, and break traps) is the business of the
+:class:`~QHOT.lib.traps.gestures.Gestures` that it owns, which keeps the
+state of a gesture while it lasts.  Every interactive gesture pushes an undoable
 command onto an embedded ``QUndoStack`` so that all operations can be reversed
 with Ctrl+Z / Cmd+Z; so is an edit in the Traps tab
 (:meth:`~QHOT.lib.traps.QTrapOverlay.QTrapOverlay.editTrap`).

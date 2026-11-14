@@ -214,7 +214,7 @@ class TestRotateCommand(unittest.TestCase):
         self.t2 = QTweezer(r=(-4., 0., 0.))
         self.group = QTrapGroup(r=(0., 0., 0.))
         self.group.addTrap([self.t1, self.t2])
-        self.snapshot_before = self.group._snapshot()
+        self.snapshot_before = self.group.snapshot()
         self.group.rotate(np.pi / 2., self.snapshot_before)
         self.cmd = RotateCommand(self.group, self.snapshot_before)
         self.stack = QUndoStack()

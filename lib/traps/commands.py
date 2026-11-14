@@ -154,7 +154,7 @@ class RotateCommand(QUndoCommand):
         The group that was rotated.
     snapshot_before : dict
         Position snapshot taken before the rotation gesture began,
-        as returned by ``QTrapGroup._snapshot()``.
+        as returned by ``QTrapGroup.snapshot()``.
     parent : QUndoCommand or None
         Optional parent command.
     '''
@@ -166,7 +166,7 @@ class RotateCommand(QUndoCommand):
         super().__init__('Rotate group', parent)
         self._group = group
         self._before = snapshot_before
-        self._after = group._snapshot()
+        self._after = group.snapshot()
         self._first = True
 
     def redo(self) -> None:

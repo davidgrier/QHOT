@@ -16,6 +16,9 @@ Trap infrastructure
 .. automodule:: QHOT.lib.traps.QTrapOverlay
    :members:
 
+.. automodule:: QHOT.lib.traps.gestures
+   :members:
+
 .. automodule:: QHOT.lib.traps.QTrapWidget
    :members:
 

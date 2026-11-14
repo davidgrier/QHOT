@@ -22,6 +22,12 @@
   `QVideoSource.lost` and `QDVRWidget.stopped` to it.
 
 ### Changed
+- **The mouse gestures are in `QHOT.lib.traps.gestures`** (`Gestures`), which
+  `QTrapOverlay` owns (`overlay.gestures`) and forwards its events to; the
+  state of a drag, a rotation and a rubber band is there and not in the
+  overlay.  The bindings are fixed, so the `descriptions` argument of the
+  overlay is gone (nothing used it).  `QTrapGroup._snapshot` is `snapshot`,
+  and `groupWithin` was `_finalizeSelection`.
 - `CGH` takes its calibration as keywords and gets the defaults from
   `Optics`, which names the fields: the sixteen arguments and defaults were
   written out again in `CGH.__init__`.  A name that is not in the

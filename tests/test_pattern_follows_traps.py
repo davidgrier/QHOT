@@ -199,13 +199,13 @@ class TestGroups(PatternCase):
         self.check()
 
     def test_rotate(self):
-        snapshot = self.group._snapshot()
+        snapshot = self.group.snapshot()
         for angle in (0.3, 0.6, 1.1):
             self.group.rotate(angle, snapshot)
             self.check()
 
     def test_rotation_turns_the_members_about_the_group(self):
-        snapshot = self.group._snapshot()
+        snapshot = self.group.snapshot()
         self.group.rotate(np.pi / 2, snapshot)
         leaf = next(s for s in self.overlay.pattern()[0].leaves()
                     if s.kind == 'QTweezer')

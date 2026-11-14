@@ -374,7 +374,7 @@ class TestQTrapWidgetFollowsGroup(unittest.TestCase):
         self.assertAlmostEqual(self.leaf.x, place)
 
     def test_rows_follow_a_rotation_of_the_group(self):
-        snapshot = self.group._snapshot()
+        snapshot = self.group.snapshot()
         self.group.rotate(0.3, snapshot)
         self.assertEqual(self.shown(), self.leaf.x)
 

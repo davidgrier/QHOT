@@ -2,25 +2,23 @@
 import contextlib
 import functools
 import logging
-import operator
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from enum import Enum
 from typing import Any, ClassVar, cast
 
 import numpy as np
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtGui
 import pyqtgraph as pg
 from pyqtgraph import ScatterPlotItem
-from pyqtgraph import mkBrush, mkPen
+from pyqtgraph import mkBrush
 
 from QHOT.lib.traps.commands import QUndoStack  # re-exported from commands
 from QHOT.lib.traps.QTrap import QTrap
 from QHOT.lib.traps.QTrapGroup import QTrapGroup
+from QHOT.lib.traps.gestures import Gestures
 from QHOT.lib.traps.trapspec import TrapSpec
 from QHOT.lib.traps.commands import (
-    AddTrapCommand, RemoveTrapCommand,
-    MoveCommand, RotateCommand, WheelCommand, LockCommand,
-    PropertyCommand)
+    AddTrapCommand, RemoveTrapCommand, LockCommand, PropertyCommand)
 from QHOT.traps import QTweezer
 
 
@@ -36,25 +34,9 @@ class QTrapOverlay(ScatterPlotItem):
     Traps and trap groups are Qt children of the overlay; iterating over
     the overlay yields its top-level QTrap/QTrapGroup children.
 
-    Mouse gestures are configurable via the ``descriptions`` constructor
-    argument, which maps (button, modifier) pairs to named handler methods.
-    The default bindings are:
-
-    ===========================  ===========
-    Gesture                      Action
-    ===========================  ===========
-    Shift + left click           Add trap
-    Ctrl + Shift + left click    Remove trap
-    Alt + Shift + left click     Break group
-    Ctrl + Alt + left click      Lock / unlock trap
-    Ctrl + left click            Mark / unmark trap
-    Alt + left drag              Rotate group
-    Left drag (no modifier)      Move group
-    Left drag (no target)        Rubber-band select / group
-    Scroll wheel                 Adjust trap z
-    ===========================  ===========
-
-    The overlay supports two event-delivery modes:
+    The mouse is handled by a :class:`~QHOT.lib.traps.gestures.Gestures`
+    that the overlay owns (``gestures``) and forwards its events to.  The
+    overlay supports two event-delivery modes:
 
     * **Standalone** – embedded directly in a ``pyqtgraph.PlotWidget``;
       Qt calls ``mousePressEvent`` / ``mouseMoveEvent`` /
@@ -67,12 +49,8 @@ class QTrapOverlay(ScatterPlotItem):
     ----------
     brush : dict[State, QBrush]
         Fill brushes keyed by visual state.
-    button : dict[str, Qt.MouseButton]
-        Mouse-button name → Qt enum mapping.
-    modifier : dict[str, Qt.KeyboardModifier]
-        Modifier name → Qt enum mapping (supports ``|``-separated combos).
-    default : Descriptions
-        Default gesture→handler bindings used when none are supplied.
+    gestures : Gestures
+        What the mouse does to the traps.
 
     Signals
     -------
@@ -107,75 +85,31 @@ class QTrapOverlay(ScatterPlotItem):
         State.GROUPING: mkBrush(255, 255, 100, 120),
         State.SPECIAL: mkBrush(238, 130, 238, 120)}
 
-    button: ClassVar[dict[str, QtCore.Qt.MouseButton]] = {
-        'left': QtCore.Qt.MouseButton.LeftButton,
-        'middle': QtCore.Qt.MouseButton.MiddleButton,
-        'right': QtCore.Qt.MouseButton.RightButton}
-
-    modifier: ClassVar[dict[str, QtCore.Qt.KeyboardModifier]] = {
-        'shift': QtCore.Qt.KeyboardModifier.ShiftModifier,
-        'alt': QtCore.Qt.KeyboardModifier.AltModifier,
-        'ctrl': QtCore.Qt.KeyboardModifier.ControlModifier,
-        'meta': QtCore.Qt.KeyboardModifier.MetaModifier,
-        'none': QtCore.Qt.KeyboardModifier.NoModifier}
-
-    Signature = tuple[QtCore.Qt.MouseButton, QtCore.Qt.KeyboardModifier]
-    Handler = Callable[[QtCore.QPointF], bool]
-    Mapping = tuple[Signature, Handler]
-    Description = tuple[tuple[str, str], str]
-    Descriptions = tuple[Description, ...]
-
     #: Height at which a marker is twice as large as in the focal plane
     #: [pixels].
     ZSCALE: float = 100.
-
-    default: Descriptions = ((('left', 'shift'), 'addTrap'),
-                             (('left', 'ctrl|shift'), 'removeTrap'),
-                             (('left', 'alt|shift'), 'breakGroup'),
-                             (('left', 'ctrl|alt'), 'toggleLock'),
-                             (('left', 'ctrl'), 'toggleMark'),
-                             (('left', 'alt'), 'startRotation'))
 
     def __init__(self,
                  *args,
                  size: int = 16,
                  parent: QtCore.QObject | None = None,
-                 descriptions: Descriptions = default,
                  **kwargs) -> None:
         '''Initialize the overlay.
 
         Parameters
         ----------
-        descriptions : Descriptions
-            Sequence of ``((button_name, modifier_name), handler_name)``
-            tuples that map mouse gestures to trap operations.
-            Defaults:
-                shift+left → addTrap
-                ctrl+shift+left → removeTrap
-                alt+shift+left → breakGroup
-                ctrl+left → toggleMark.
         *args, **kwargs
             Forwarded to ``ScatterPlotItem``.
         '''
         super().__init__(*args, size=size, **kwargs)
-        self._setupUi()
         self._traps: list[QTrap] = []
         self._marked: set[QTrap] = set()
-        self._selected: QTrap | None = None
-        self._moveOrigin = None
-        self._dragLast: QtCore.QPointF | None = None
-        self._selectionOrigin: QtCore.QPointF | None = None
-        self._rotating: QTrapGroup | None = None
-        self._rotationCenter: tuple[float, float] = (0., 0.)
-        self._rotationAngle0: float = 0.
-        self._rotationAngle: float = 0.
-        self._rotationSnapshot: dict = {}
         self._undoStack = QUndoStack()
+        self.gestures = Gestures(self)
         # Putting traps in or taking them out, however it comes about
         # (adding, grouping, breaking a group), changes the pattern.
         self.trapAdded.connect(self.patternChanged)
         self.trapRemoved.connect(self.patternChanged)
-        self._handler = dict(self._mapping(d) for d in descriptions)
 
     def __iter__(self) -> Iterator[QTrap]:
         '''Yield the top-level QTrap/QTrapGroup children of this overlay.
@@ -225,44 +159,6 @@ class QTrapOverlay(ScatterPlotItem):
             The specs, in the order of the overlay.
         '''
         return tuple(trap.spec() for trap in self)
-
-    def _setupUi(self) -> None:
-        '''Set up UI elements.
-
-        Rubberband selection is hidden until used.
-        '''
-        self._selection = QtWidgets.QGraphicsRectItem(self)
-        self._selection.setPen(mkPen(
-            'b',
-            width=1,
-            cosmetic=True,
-            style=QtCore.Qt.PenStyle.DashLine,
-        ))
-        self._selection.setBrush(mkBrush(100, 100, 255, 30))
-        self._selection.hide()
-
-    def _mapping(self, description: Description) -> Mapping:
-        '''Convert a description tuple to a (signature, handler) pair.
-
-        Parameters
-        ----------
-        description : Description
-            A ``((button_name, modifier_name), handler_name)`` tuple.
-
-        Returns
-        -------
-        Mapping
-            A ``(signature, handler)`` pair where signature is
-            ``(Qt.MouseButton, Qt.KeyboardModifier)`` and handler is
-            the bound method named by ``handler_name``.
-        '''
-        (bname, mname), hname = description
-        button = self.button[bname]
-        mods = [self.modifier[m] for m in mname.split('|')]
-        modifiers = functools.reduce(operator.or_, mods)
-        signature = (button, modifiers)
-        handler = getattr(self, hname)
-        return signature, handler
 
     # Operations on traps
 
@@ -534,7 +430,7 @@ class QTrapOverlay(ScatterPlotItem):
 
     # Rubber-band selection
 
-    def _finalizeSelection(self, rect: QtCore.QRectF) -> None:
+    def groupWithin(self, rect: QtCore.QRectF) -> None:
         '''Group all top-level items that lie entirely within rect.
 
         A top-level group is included only if all of its leaf traps are
@@ -557,43 +453,6 @@ class QTrapOverlay(ScatterPlotItem):
         grp.addTrap(candidates)
         grp.changed.connect(self._onGroupChanged)
         self.trapAdded.emit(grp)
-
-    def startSelection(self, pos: QtCore.QPointF) -> None:
-        '''Begin a rubber-band selection anchored at pos.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Anchor corner of the selection rectangle in item coordinates.
-        '''
-        self._selectionOrigin = pos
-        self._selection.setRect(QtCore.QRectF(pos, QtCore.QSizeF(0., 0.)))
-        self._selection.show()
-
-    def growSelection(self, pos: QtCore.QPointF) -> None:
-        '''Extend the rubber-band to pos, highlighting enclosed traps.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Current cursor position in item coordinates.
-        '''
-        origin = cast(QtCore.QPointF, self._selectionOrigin)
-        rect = QtCore.QRectF(origin, pos).normalized()
-        self._selection.setRect(rect)
-        for item in self:
-            state = (self.State.GROUPING if item.isWithin(rect)
-                     else self.State.NORMAL)
-            self.setGroupBrush(item, state)
-
-    def endSelection(self) -> None:
-        '''Finish the rubber-band selection and group the enclosed traps.'''
-        rect = self._selection.rect()
-        self._selection.hide()
-        self._selectionOrigin = None
-        for item in self:
-            self.setGroupBrush(item, self.State.NORMAL)
-        self._finalizeSelection(rect)
 
     # Identifying traps by position
 
@@ -786,65 +645,6 @@ class QTrapOverlay(ScatterPlotItem):
             self.setGroupBrush(group, state)
         self._marked.clear()
 
-    def selectGroup(self, pos: QtCore.QPointF) -> bool:
-        '''Select the trap group at pos for dragging.
-
-        Parameters
-        ----------
-        pos : QPointF
-            Click position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a group was selected, ``False`` if no trap is nearby.
-        '''
-        pts = self.pointsAt(pos)
-        if len(pts) == 0:
-            return False
-        trap = pts[0].data()
-        self._selected = self.groupOf(trap)
-        if self._selected.locked:
-            self._selected = None
-            return True
-        self._moveOrigin = self._selected._r.copy()
-        self.setGroupBrush(self._selected, self.State.SELECTED)
-        return True
-
-    def startRotation(self, pos: QtCore.QPointF) -> bool:
-        '''Begin rotating the group under the cursor around its center.
-
-        If no trap is found at ``pos``, returns ``False`` to allow
-        rubber-band fallback.  If the trap is ungrouped, returns ``True``
-        but does not start rotation (Alt+drag on a lone trap is a no-op).
-
-        Parameters
-        ----------
-        pos : QPointF
-            Click position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a trap was found (rotation started or no-op),
-            ``False`` if no trap is nearby.
-        '''
-        trap = self.trapAt(pos)
-        if trap is None:
-            return False
-        group = self.groupOf(trap)
-        if not isinstance(group, QTrapGroup):
-            return True
-        if group.locked:
-            return True
-        cx, cy = group._r[0], group._r[1]
-        self._rotating = group
-        self._rotationCenter = (cx, cy)
-        self._rotationAngle0 = np.arctan2(pos.y() - cy, pos.x() - cx)
-        self._rotationSnapshot = group._snapshot()
-        self.setGroupBrush(group, self.State.SELECTED)
-        return True
-
     def toggleLock(self, pos: QtCore.QPointF) -> bool:
         '''Toggle the locked state of the trap group under the cursor.
 
@@ -873,15 +673,15 @@ class QTrapOverlay(ScatterPlotItem):
     # QGraphicsItem event overrides (used when embedded in a PlotWidget)
 
     def mousePressEvent(self, event) -> None:
-        self.mousePress(event, event.pos())
+        self.gestures.press(event, event.pos())
         event.accept()
 
     def mouseMoveEvent(self, event) -> None:
-        self.mouseMove(event, event.pos())
+        self.gestures.move(event, event.pos())
         event.accept()
 
     def mouseReleaseEvent(self, event) -> None:
-        self.mouseRelease(event)
+        self.gestures.release(event)
         event.accept()
 
     # Event handlers (called by QHOTScreen)
@@ -889,139 +689,32 @@ class QTrapOverlay(ScatterPlotItem):
     def mousePress(self,
                    event: QtGui.QMouseEvent,
                    pos: QtCore.QPointF) -> bool:
-        '''Handle a press event forwarded by QHOTScreen.
+        '''Handle a press forwarded by QHOTScreen.
 
-        Dispatches to the registered handler for the event's button/modifier
-        signature, falling back to ``selectGroup``. Starts a rubber-band
-        selection if no handler claims the event.
-
-        Parameters
-        ----------
-        event : QtGui.QMouseEvent
-            The original mouse event.
-        pos : QPointF
-            Cursor position in item coordinates.
-
-        Returns
-        -------
-        bool
-            Always ``True``.
+        See :meth:`~QHOT.lib.traps.gestures.Gestures.press`.
         '''
-        signature = (event.button(), event.modifiers())
-        handler = self._handler.get(signature, self.selectGroup)
-        if not handler(pos):
-            self.startSelection(pos)
-        else:
-            self._dragLast = pos
-        return True
+        return self.gestures.press(event, pos)
 
     def mouseMove(self, event: QtGui.QMouseEvent, pos: QtCore.QPointF) -> bool:
-        '''Handle a move event forwarded by QHOTScreen.
+        '''Handle a move forwarded by QHOTScreen.
 
-        Drags the selected group when the left button is held, or grows the
-        rubber-band selection if one is active. Ignores non-left-button moves.
-
-        Parameters
-        ----------
-        event : QtGui.QMouseEvent
-            The original mouse event.
-        pos : QPointF
-            Cursor position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if the event was handled, ``False`` otherwise.
+        See :meth:`~QHOT.lib.traps.gestures.Gestures.move`.
         '''
-        if event.buttons() != self.button['left']:
-            return False
-        if self._rotating is not None:
-            cx, cy = self._rotationCenter
-            angle_now = np.arctan2(pos.y() - cy, pos.x() - cx)
-            angle = angle_now - self._rotationAngle0
-            angle = (angle + np.pi) % (2. * np.pi) - np.pi
-            self._rotationAngle = angle
-            self._rotating.rotate(angle, self._rotationSnapshot)
-        elif self._selected is not None and self._dragLast is not None:
-            dx = pos.x() - self._dragLast.x()
-            dy = pos.y() - self._dragLast.y()
-            new_r = self._selected._r.copy()
-            new_r[0] += dx
-            new_r[1] += dy
-            self._selected.r = new_r
-            self._dragLast = pos
-        elif self._selection.isVisible():
-            self.growSelection(pos)
-        return True
+        return self.gestures.move(event, pos)
 
     def mouseRelease(self, event: QtGui.QMouseEvent) -> bool:
-        '''Handle a _removeTrap event forwarded by QHOTScreen.
+        '''Handle a release forwarded by QHOTScreen.
 
-        Finalizes any active rubber-band selection, pushes undo commands
-        for completed moves and rotations, and clears drag state.
-
-        Parameters
-        ----------
-        event : QtGui.QMouseEvent
-            The original mouse event.
-
-        Returns
-        -------
-        bool
-            Always ``True``.
+        See :meth:`~QHOT.lib.traps.gestures.Gestures.release`.
         '''
-        if self._selection.isVisible():
-            self.endSelection()
-        if self._rotating is not None:
-            if abs(self._rotationAngle) > 1e-10:
-                self._undoStack.push(
-                    RotateCommand(self._rotating,
-                                  self._rotationSnapshot))
-            self.setGroupBrush(self._rotating, self.State.NORMAL)
-            self._rotating = None
-            self._rotationSnapshot = {}
-            self._rotationAngle = 0.
-        if self._selected is not None:
-            if (self._moveOrigin is not None
-                    and not np.allclose(self._selected._r,
-                                        self._moveOrigin)):
-                self._undoStack.push(
-                    MoveCommand(self._selected, self._moveOrigin))
-            self.setGroupBrush(self._selected, self.State.NORMAL)
-        self._selected = None
-        self._moveOrigin = None
-        self._dragLast = None
-        return True
+        return self.gestures.release(event)
 
     def wheel(self, event: QtGui.QWheelEvent, pos: QtCore.QPointF) -> bool:
-        '''Handle a wheel event forwarded by QHOTScreen.
+        '''Handle a turn of the wheel forwarded by QHOTScreen.
 
-        Adjusts the z-coordinate of the nearest trap group by one step
-        per notch of wheel rotation.
-
-        Parameters
-        ----------
-        event : QtGui.QWheelEvent
-            The original wheel event.
-        pos : QPointF
-            Cursor position in item coordinates.
-
-        Returns
-        -------
-        bool
-            ``True`` if a group was found and moved, ``False`` otherwise.
+        See :meth:`~QHOT.lib.traps.gestures.Gestures.wheel`.
         '''
-        group = self.groupAt(pos)
-        if group is None:
-            return False
-        if group.locked:
-            return True
-        dz = event.angleDelta().y() / 120.
-        new_r = group._r.copy()
-        new_r[2] += dz
-        group.r = new_r
-        self._undoStack.push(WheelCommand(group, dz))
-        return True
+        return self.gestures.wheel(event, pos)
 
     # Serialization
 

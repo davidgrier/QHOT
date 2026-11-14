@@ -54,6 +54,10 @@
   the hit test of the spots, which needs a view.
 
 ### Removed
+- `QTrapOverlay.marked` (the leaf traps of the marked groups) and the unused
+  `parent` argument of `QTrapOverlay`.  `Move` is `MoveTraps` for the marked
+  groups, with the displacement that takes their centroid to the target, so
+  the step, the duration and the interpolation are in one place.
 - **PySide6 is not supported**, and the `pyside6` extra is gone.  QHOT is a
   program for dedicated equipment (PyQt6 in production, PyQt5 tested); PySide
   support belongs to QVideo, which is general-purpose, until it settles

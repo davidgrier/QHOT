@@ -1,11 +1,9 @@
-import math
-
 import numpy as np
 
-from QHOT.lib.tasks.QTask import QTask
+from QHOT.tasks.MoveTraps import MoveTraps
 
 
-class Move(QTask):
+class Move(MoveTraps):
 
     '''Translate marked traps to an absolute target over multiple frames.
 
@@ -30,8 +28,7 @@ class Move(QTask):
         Maximum displacement per frame [pixels].  Default: ``1.``.
     **kwargs
         Forwarded to :class:`~QHOT.lib.tasks.QTask.QTask`
-        (e.g. ``overlay``, ``delay``).
-        ``duration`` may not be supplied.
+        (e.g. ``delay``).  ``duration`` may not be supplied.
 
     Examples
     --------
@@ -53,24 +50,10 @@ class Move(QTask):
                  z: float = 0.,
                  step: float = 1.,
                  **kwargs) -> None:
-        if 'duration' in kwargs:
-            raise TypeError(
-                "'duration' may not be set on Move; "
-                'duration is computed from the displacement and step',
-            )
+        super().__init__(step=step, selected_only=True, **kwargs)
         self._x = float(x)
         self._y = float(y)
         self._z = float(z)
-        self._stepSize = max(1e-6, float(step))
-        super().__init__(duration=1, **kwargs)
-        self._starts: dict = {}
-        self._dr: np.ndarray = np.zeros(3)
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-
-    def _computeDuration(self, displacement: float) -> int:
-        return max(1, math.ceil(displacement / self._stepSize))
 
     # ------------------------------------------------------------------
     # Parameter properties
@@ -102,34 +85,19 @@ class Move(QTask):
     def z(self, value: float) -> None:
         self._z = float(value)
 
-    @property
-    def step(self) -> float:
-        '''Maximum displacement per frame [pixels].'''
-        return self._stepSize
-
-    @step.setter
-    def step(self, value: float) -> None:
-        self._stepSize = max(1e-6, float(value))
-
     # ------------------------------------------------------------------
     # QTask lifecycle hooks
 
     def initialize(self) -> None:
-        '''Record starting positions and compute the duration from the
-        displacement of the centroid.'''
+        '''Find the displacement that takes the centroid of the marked
+        traps to the target, then move the marked groups by it.'''
         groups = self.overlay.markedGroups
         if not groups:
             self.duration = 0
             return
-        self._starts = {group: group.r for group in groups}
-        centroid = np.mean([trap.r for trap in self.overlay.marked], axis=0)
-        target = np.array([self._x, self._y, self._z])
-        self._dr = target - centroid
-        dist = float(np.linalg.norm(self._dr))
-        self.duration = self._computeDuration(dist)
-
-    def process(self, frame: int) -> None:
-        '''Interpolate each group toward its target position.'''
-        t = (frame + 1) / self.duration
-        for group, r0 in self._starts.items():
-            group.r = r0 + t * self._dr
+        centroid = np.mean([leaf.r for group in groups
+                            for leaf in group.leaves()], axis=0)
+        self._dx, self._dy, self._dz = (np.array([self._x, self._y, self._z])
+                                        - centroid)
+        self._updateDuration()
+        super().initialize()

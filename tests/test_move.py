@@ -31,6 +31,9 @@ class FakeTrap:
     def r(self, value):
         self._r[:] = value
 
+    def leaves(self):
+        yield self
+
 
 class FakeOverlay:
     def __init__(self, *traps):

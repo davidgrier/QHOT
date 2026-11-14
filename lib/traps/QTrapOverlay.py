@@ -96,11 +96,7 @@ class QTrapOverlay(ScatterPlotItem):
     #: [pixels].
     ZSCALE: float = 100.
 
-    def __init__(self,
-                 *args,
-                 size: int = 16,
-                 parent: QtCore.QObject | None = None,
-                 **kwargs) -> None:
+    def __init__(self, *args, size: int = 16, **kwargs) -> None:
         '''Initialize the overlay.
 
         Parameters
@@ -497,18 +493,6 @@ class QTrapOverlay(ScatterPlotItem):
 
     # ------------------------------------------------------------------
     # Marking traps for task operations
-
-    @property
-    def marked(self) -> Iterator[QTrap]:
-        '''Yield all leaf traps in marked groups.
-
-        Yields
-        ------
-        QTrap
-            Each leaf trap belonging to a group in the marked set.
-        '''
-        for group in self._marked:
-            yield from group.leaves()
 
     @property
     def markedGroups(self) -> list[QTrap]:

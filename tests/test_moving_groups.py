@@ -91,9 +91,8 @@ class TestMove(MovingCase):
 class TestMarkedGroups(MovingCase):
 
     def test_the_marked_groups_are_the_groups_not_their_traps(self):
-        self.overlay._marked.add(self.array)
+        self.overlay.mark(self.array)
         self.assertEqual(self.overlay.markedGroups, [self.array])
-        self.assertEqual(len(list(self.overlay.marked)), 4)
 
     def test_nothing_is_marked_at_first(self):
         self.assertEqual(self.overlay.markedGroups, [])

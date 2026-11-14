@@ -834,42 +834,35 @@ class TestToggleMark(unittest.TestCase):
         self.assertNotIn(t1, self.overlay._marked)
 
 
-class TestMarkedProperty(unittest.TestCase):
+class TestMarkedGroups(unittest.TestCase):
 
     def setUp(self):
         self.overlay = make_overlay()
 
-    def test_marked_empty_initially(self):
-        self.assertEqual(list(self.overlay.marked), [])
+    def test_none_at_first(self):
+        self.assertEqual(self.overlay.markedGroups, [])
 
-    def test_marked_yields_leaf_of_single_trap(self):
+    def test_a_single_trap(self):
         trap = QTrap(r=(1., 1., 0.), phase=0.)
         self.overlay.addTrap(trap)
-        self.overlay._marked.add(trap)
-        self.assertIn(trap, list(self.overlay.marked))
+        self.overlay.mark(trap)
+        self.assertEqual(self.overlay.markedGroups, [trap])
 
-    def test_marked_yields_leaves_of_group(self):
+    def test_a_group_is_marked_as_a_whole(self):
         g = QTrapGroup()
-        g.setParent(self.overlay)
         t1 = QTrap(r=(1., 1., 0.), phase=0.)
         t2 = QTrap(r=(2., 2., 0.), phase=0.)
-        t1.setParent(g)
-        t2.setParent(g)
+        g.addTrap([t1, t2])
         self.overlay.addTrap(g)
-        self.overlay._marked.add(g)
-        leaves = list(self.overlay.marked)
-        self.assertIn(t1, leaves)
-        self.assertIn(t2, leaves)
+        self.overlay.mark(g)
+        self.assertEqual(self.overlay.markedGroups, [g])
 
-    def test_marked_excludes_unmarked_traps(self):
+    def test_unmarked_traps_are_not_in_it(self):
         t1 = QTrap(r=(1., 1., 0.), phase=0.)
         t2 = QTrap(r=(2., 2., 0.), phase=0.)
-        self.overlay.addTrap(t1)
-        self.overlay.addTrap(t2)
-        self.overlay._marked.add(t1)
-        leaves = list(self.overlay.marked)
-        self.assertIn(t1, leaves)
-        self.assertNotIn(t2, leaves)
+        self.overlay.addTrap([t1, t2])
+        self.overlay.mark(t1)
+        self.assertEqual(self.overlay.markedGroups, [t1])
 
 
 class TestAMarkedGroupStaysMarkedInTheEyesOfTheUser(unittest.TestCase):

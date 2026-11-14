@@ -18,6 +18,23 @@ jobs:
       - run: pip install ruff
       - run: ruff check .
 
+  types:
+    name: Types (pyright on lib/)
+    runs-on: ubuntu-latest
+    # Allowed to fail until the report is empty; then remove this line, and
+    # a type error fails the workflow.  Pyright is pinned, as in QVideo: a
+    # newer version finds new things, for us to fix when we choose to move.
+    continue-on-error: true
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,pyqt6]" pyright==1.1.414
+      - run: pyright
+
   package:
     name: Wheel
     runs-on: ubuntu-latest

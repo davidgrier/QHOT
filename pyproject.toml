@@ -118,3 +118,15 @@ docstring-quotes = "single"
 # keep a temporary file open across a test.
 "tests/*" = ["E402", "E501", "F401", "F811", "F841", "B018", "B905",
              "RUF012", "RUF059", "SIM115"]
+
+[tool.pyright]
+# Type checking of lib/, as in QVideo.  Run it in an environment with PyQt6
+# and no other Qt binding.  qtpy does not declare Slot and Signal as exports
+# of its modules (reportPrivateImportUsage), and the Qt stubs type the
+# arguments of event handlers as Optional (reportIncompatibleMethodOverride):
+# neither says anything about our code.
+include = ["lib"]
+pythonVersion = "3.11"
+extraPaths = [".."]
+reportPrivateImportUsage = "none"
+reportIncompatibleMethodOverride = "none"

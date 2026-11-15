@@ -75,15 +75,6 @@ class QHOT(QtWidgets.QMainWindow):
     HELPDIR = Path(__file__).parent / 'help'
     SETTINGS = ('QHOT', 'QHOT')
 
-    #: Quiet time [ms] after the last correction of the aspect ratio that
-    #: ends a burst of resizes.
-    CORRECTION_PAUSE = 200
-    #: Quiet time [ms] after the last resize before the height of the window
-    #: is corrected.  A correction while the user drags the corner of the
-    #: window fights the pointer, as QVideo's fit to a changing shape would.
-    SETTLE = 300
-    _expected: tuple[int, int] | None = None    # size of the last correction
-
     # The widgets that QHOT.ui makes (uic.loadUi sets them as attributes).
     videoScreen: QHOTScreen
     dvr: QDVRWidget
@@ -122,14 +113,6 @@ class QHOT(QtWidgets.QMainWindow):
         self.source = self.cameraTree.source
         self.slm = slm
         self.cgh = cgh
-        self._requested: set[tuple[int, int]] = set()
-        self._pause = QtCore.QTimer(self)
-        self._pause.setSingleShot(True)
-        self._pause.timeout.connect(self._resetCorrections)
-        self._settle = QtCore.QTimer(self)
-        self._settle.setSingleShot(True)
-        self._settle.setInterval(self.SETTLE)
-        self._settle.timeout.connect(self._constrainAspectRatio)
         self._setupUi()
         self._connectSignals()
         self._addFilters()
@@ -378,88 +361,6 @@ class QHOT(QtWidgets.QMainWindow):
         '''The status bar, which a main window always has (Qt 6 says it may
         not).'''
         return cast(QtWidgets.QStatusBar, self.statusBar())
-
-    @property
-    def _chromeHeight(self) -> int:
-        '''Height of window chrome (menu bar, status bar) in pixels.
-
-        Measured from actual geometry rather than widget height reports,
-        which are unreliable on macOS with native menus.
-        '''
-        central = cast(QtWidgets.QWidget, self.centralWidget())
-        return self.height() - central.height()
-
-    def sizeHint(self) -> QtCore.QSize:
-        '''Return the size at which the screen shows the video as it is.
-
-        The screen fits its window to the video, by the size that the
-        window asks for (:meth:`QVideoScreen.updateShape`), when it first
-        has a shape and whenever the shape has stopped changing.  The
-        window asks for the native size of the video, the panels of
-        controls beside it, and the chrome.  The panels scroll, so they do
-        not decide the height.
-        '''
-        video = self.videoScreen.sizeHint()
-        panel = self.tabWidget.sizeHint().width() + self.splitter.handleWidth()
-        return QtCore.QSize(video.width() + panel,
-                            video.height() + self._chromeHeight)
-
-    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
-        '''Correct the aspect ratio when the resizing has stopped.'''
-        super().resizeEvent(event)
-        size = event.size()
-        if (size.width(), size.height()) != self._expected:
-            # Not the result of a correction: the user, or the system,
-            # changed the window, so a request may be made again.
-            self._requested.clear()
-        self._settle.start()
-
-    def _constrainAspectRatio(self) -> None:
-        '''Snap the window height so the screen matches the camera
-        aspect ratio.
-
-        Reads the screen widget's actual width after the layout has
-        settled, computes the ideal height, and resizes the window if
-        they differ.  The panels of controls scroll, so they ask for no
-        height of their own and the image never has bars.  The correction
-        is a no-op when the height is already correct, so the resulting
-        second resize event normally terminates the loop.
-
-        Whether the layout settles is not guaranteed: if the width of the
-        screen depends on the height of the window (a scroll bar of the
-        controls that comes and goes, say), the two chase each other
-        forever, and the interface does nothing but repaint.  A correction
-        converges, so it never asks twice for the same height at the same
-        width; the chase does.  The window remembers what it asked for in a
-        burst of resizes and does not ask again.  The memory is cleared by
-        a resize that is not one of its own corrections (the user dragged
-        the window, so the same request may be right again) and
-        :attr:`CORRECTION_PAUSE` milliseconds after the last correction.
-        '''
-        cam = self.videoScreen.sizeHint()
-        if not cam.isValid() or cam.width() == 0:
-            return
-        screen_w = self.videoScreen.width()
-        if screen_w <= 0:
-            return
-        ideal_h = screen_w * cam.height() // cam.width()
-        # The title bar and borders count against the display: a window
-        # whose frame is taller than the available height is shrunk by the
-        # window manager, and the two then undo each other's work.
-        decoration = max(0, self.frameGeometry().height() - self.height())
-        screen = cast(QtGui.QScreen, QtWidgets.QApplication.primaryScreen())
-        available_h = screen.availableGeometry().height() - decoration
-        desired_h = min(ideal_h + self._chromeHeight, available_h)
-        request = (self.width(), desired_h)
-        if self.height() != desired_h and request not in self._requested:
-            self._requested.add(request)
-            self._expected = request
-            self._pause.start(self.CORRECTION_PAUSE)
-            self.resize(*request)
-
-    def _resetCorrections(self) -> None:
-        '''Forget the corrections of the aspect ratio that were asked for.'''
-        self._requested.clear()
 
     @QtCore.Slot(str)
     def setStatus(self, message: str) -> None:

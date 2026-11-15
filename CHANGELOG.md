@@ -3,6 +3,20 @@
 ## [Unreleased]
 
 ### Fixed
+- **The window opens at the size of the video on a laptop display.**  Its
+  `sizeHint` added the height of the menu bar and the status bar, measured
+  before the layout had run (486 pixels, for about 42), so that on a display
+  less than about 1050 pixels tall QVideo shrank the window to a fraction of
+  the video (854 by 430 for a 640 by 480 camera on 1440 by 875; 658 by 283
+  on 1366 by 728).  The override is gone, and Qt's own size hint is used,
+  which gives 972 by 519 on every display tried.  Settings that were saved
+  with a small window are still restored: clear the saved `geometry`.
+- **The window no longer corrects its height after a resize.**  It took the
+  height of the image 300 ms after the user let go (700 by 700 became 700 by
+  315), as QCamcorder does not.  A resize by the user is left alone and the
+  video is shown whole, with bars where the screen is not its shape.  The
+  settle timer, the memory of requested sizes and the guard against a
+  feedback loop (about 70 lines) are gone.
 - **A marked trap is blue, and stays blue.**  It was violet, which looks like
   the pink of a trap that is being dragged, and it turned green after a drag,
   a rotation, a rubber band around it, or the removal of another trap, while

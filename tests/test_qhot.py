@@ -4,6 +4,7 @@ A real window is built, with the camera that makes noise, and whatever
 the user does to the traps must show up in the hologram that is made for
 the SLM, which is compared here with the algorithm in ``reference``.
 '''
+import contextlib
 import importlib
 from argparse import Namespace
 import json
@@ -309,83 +310,89 @@ class TestTheWindow(WindowCase):
         self.assertNotIn(trap, traps._trapWidgets)
 
 
-class TestTheAspectRatioDoesNotChaseItself(WindowCase):
 
-    '''If the width of the screen depends on the height of the window, the
-    correction of the height never settles; it must still stop.'''
-
-    def setUp(self):
-        super().setUp()
-        self.window._resetCorrections()
-
-    def tearDown(self):
-        self.window._resetCorrections()
-        super().tearDown()
-
-    def chase(self, times, widths):
-        # The window never gets the height that it asks for, as when the
-        # layout moves the screen again; the screen is as wide as the
-        # next of widths.
-        # The display is big enough that no height is cut to fit it: the
-        # test is about the requests, not about the size of a screen.
-        screen = self.window.videoScreen
-        frame = MagicMock(return_value=QtCore.QRect(0, 0, 1, 1))
-        QApplication = qhot.QtWidgets.QApplication
-        display = MagicMock()
-        display.availableGeometry.return_value = QtCore.QRect(0, 0, 4000, 3000)
-        primary = MagicMock(return_value=display)
-        with patch.object(self.window, 'height', return_value=1), \
-                patch.object(self.window, 'frameGeometry', frame), \
-                patch.object(self.window, 'resize') as resize, \
-                patch.object(QApplication, 'primaryScreen', primary), \
-                patch.object(screen, 'width', side_effect=widths * times):
-            for _ in range(times * len(widths)):
-                self.window._constrainAspectRatio()
-        return resize.call_count
-
-    def test_the_same_request_is_made_once_in_a_burst(self):
-        self.assertEqual(self.chase(20, [900]), 1)
-
-    def test_two_heights_that_alternate_are_asked_for_once_each(self):
-        self.assertEqual(self.chase(20, [900, 880]), 2)
-
-    def resized(self, w, h):
-        self.window.resizeEvent(QtGui.QResizeEvent(QtCore.QSize(w, h),
-                                                   QtCore.QSize(1, 1)))
-
-    def test_a_resize_by_the_user_allows_the_request_again(self):
-        self.chase(5, [900])
-        self.window._expected = (1000, 700)
-        self.resized(1200, 800)             # not what the correction asked
-        self.assertEqual(self.window._requested, set())
-
-    def test_the_resize_that_a_correction_causes_is_not_the_user(self):
-        self.chase(5, [900])
-        asked = set(self.window._requested)
-        self.window._expected = (1000, 700)
-        self.resized(1000, 700)
-        self.assertEqual(self.window._requested, asked)
-
-    def test_a_pause_allows_the_request_again(self):
-        self.chase(5, [900])
-        self.assertTrue(wait_for(lambda: not self.window._requested))
-        self.assertEqual(self.chase(5, [900]), 1)
+@contextlib.contextmanager
+def window_on(display):
+    '''A window of its own, started as the program does, on a display of
+    this size (the usable area, with the menu bar and the dock taken out).'''
+    rect = QtCore.QRect(0, 0, *display)
+    home = tempfile.TemporaryDirectory()
+    available = patch.object(
+        QtGui.QScreen,
+        'availableGeometry',
+        lambda screen: rect,
+    )
+    with patch.object(qhot.QHOT, 'saveSettings'), \
+            patch.object(qhot.QHOT, 'restoreSettings'), \
+            patch.object(Path, 'home', return_value=Path(home.name)), \
+            patch.object(sys, 'argv', ['qhot']), available:
+        key, camera = chooser.open_camera()
+        tree = chooser.make_tree(key, camera).start()
+        slm = QSLM()
+        window = qhot.QHOT(tree, slm=slm, cgh=CGH(shape=slm.shape))
+        window.show()
+        wait_for(lambda: window.videoScreen.image.image is not None)
+        QtTest.QTest.qWait(700)
+        try:
+            yield window
+        finally:
+            window.close()
+            tree.stop()
+            camera.close()
+            home.cleanup()
 
 
-class TestTheWindowFitsTheVideo(WindowCase):
+class TestTheWindowSize(unittest.TestCase):
 
-    '''The screen fits the window to the video, as QVideo does, and the
-    window keeps the aspect ratio when the user has stopped resizing it.'''
+    '''The screen fits the window to the video, and the window does not
+    fight the user (as QCamcorder does not).  The size of the window comes
+    from Qt: it once added a height of menu bar and status bar that it
+    measured before the layout had run, 486 pixels, so that on a display
+    that is not very tall the window shrank to a fraction of the video.'''
 
-    def test_the_window_asks_for_the_video_the_panels_and_the_chrome(self):
-        window = self.window
-        video = window.videoScreen.sizeHint()
-        panel = window.tabWidget.sizeHint().width()
-        hint = window.sizeHint()
-        self.assertEqual(hint.width(),
-                         video.width() + panel + window.splitter.handleWidth())
-        self.assertEqual(hint.height(),
-                         video.height() + window._chromeHeight)
+    def assertShows(self, window, width, height, delta=8):
+        '''The screen is as large as the video, which it shows whole.  It
+        may be taller, because the panels beside it may be (as in
+        QCamcorder, the window is as tall as the taller of the two).'''
+        screen = window.videoScreen
+        self.assertAlmostEqual(screen.width(), width, delta=delta)
+        self.assertGreaterEqual(screen.height(), height - delta)
+
+    def test_the_video_is_shown_at_its_own_size_on_any_display(self):
+        for display in ((1366, 728), (1440, 875), (1920, 1055)):
+            with self.subTest(display=display), window_on(display) as window:
+                video = window.videoScreen.sizeHint()
+                self.assertShows(window, video.width(), video.height())
+
+    def test_a_display_that_is_too_short_for_the_video_holds_the_window(self):
+        with window_on((1280, 480)) as window:
+            # (a few pixels over: Qt's size hint is not exact to the pixel)
+            self.assertLessEqual(window.frameGeometry().height(), 480 + 8)
+
+    def test_a_resize_by_the_user_is_left_alone(self):
+        with window_on((1920, 1055)) as window:
+            for size in ((900, 700), (1200, 500), (800, 600)):
+                window.resize(*size)
+                QtTest.QTest.qWait(800)
+                self.assertEqual((window.width(), window.height()), size)
+
+    def test_a_change_of_shape_fits_the_window_to_it(self):
+        # As far as the panels allow: they do not get narrower or shorter
+        # than they are, and the video is shown whole, with bars, where the
+        # window is taller than it needs.
+        with window_on((1920, 1055)) as window:
+            video = window.videoScreen.sizeHint()
+            before = window.size()
+            window.videoScreen.updateShape(QtCore.QSize(320, 240))
+            QtTest.QTest.qWait(900)
+            self.assertAlmostEqual(window.videoScreen.width(), 320, delta=8)
+            self.assertLess(window.width(), before.width())
+            window.videoScreen.updateShape(video)
+            QtTest.QTest.qWait(900)
+            self.assertShows(window, video.width(), video.height())
+
+
+class TestTheSplitter(WindowCase):
 
     def test_the_screen_takes_the_width_that_the_panels_do_not_use(self):
         window = self.window
@@ -402,20 +409,6 @@ class TestTheWindowFitsTheVideo(WindowCase):
         finally:
             window.hide()
             window.resize(size)
-
-    def test_the_height_is_not_corrected_while_the_window_is_resized(self):
-        window = self.window
-        with patch.object(window, '_constrainAspectRatio') as correct:
-            window._settle.timeout.disconnect()
-            window._settle.timeout.connect(correct)
-            for _ in range(5):
-                window.resizeEvent(QtGui.QResizeEvent(QtCore.QSize(900, 500),
-                                                      QtCore.QSize(1, 1)))
-                QtTest.QTest.qWait(window.SETTLE // 4)
-            self.assertEqual(correct.call_count, 0)
-            self.assertTrue(wait_for(lambda: correct.call_count == 1))
-        window._settle.timeout.disconnect()
-        window._settle.timeout.connect(window._constrainAspectRatio)
 
 
 class TestTheMouseOnTheScreen(WindowCase):
@@ -441,7 +434,7 @@ class TestTheMouseOnTheScreen(WindowCase):
         # window that starts small (PyQt5 offscreen) does not.
         cls.window.resize(1000, 800)
         cls.window.show()
-        QtTest.QTest.qWait(cls.window.SETTLE + 200)
+        QtTest.QTest.qWait(500)
 
     @classmethod
     def tearDownClass(cls):
@@ -822,11 +815,8 @@ type = "ClearTraps"
 
 class TestTheWindowFollowsTheCamera(unittest.TestCase):
 
-    '''The screen has the shape of the image, so the image has no bars.
-
-    The panels of controls scroll, so that they never ask for more height
-    than the image has.
-    '''
+    '''The panels of controls scroll, so that they never ask for more height
+    than the image has.'''
 
     @classmethod
     def setUpClass(cls):
@@ -841,20 +831,6 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
     def camera(self):
         size = self.window.videoScreen.sizeHint()
         return size.width(), size.height()
-
-    def test_the_screen_has_the_shape_of_the_camera_at_any_width(self):
-        width, height = self.camera()
-        for w in (560, 620, 680, 740, 800):
-            with self.subTest(width=w):
-                self.window.resize(w, 700)
-                QtTest.QTest.qWait(self.window.SETTLE + 150)
-                screen = self.window.videoScreen
-                self.assertAlmostEqual(
-                    screen.height(),
-                    screen.width() * height // width,
-                    delta=2,
-                    msg='the image has bars',
-                )
 
     def test_the_panels_scroll(self):
         tabs = self.window.tabWidget

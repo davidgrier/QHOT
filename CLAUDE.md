@@ -93,6 +93,8 @@ qhot.py (QHOTWindow)
 - **A group keeps its own center.** Move a group as a whole (`group.r = ...`, which `QTrapOverlay.markedGroups` and iterating the overlay give you), never the traps of a group one by one: an array makes its traps again around its center when it is saved, loaded or reshaped. Removing a group from the overlay detaches only the group, so that undo restores all of it.
 - `traps/` — concrete trap types: `QTweezer`, `QVortex`, `QRingTrap`, `QTrapArray`, `QLetterArray`, `QTextArray`
 
+**The window's size is Qt's and QVideo's.**  `QVideoScreen` fits the window to the video (when it first has a shape, when it is first shown, and 300 ms after the shape stops changing) from the `sizeHint()` of the window, which is Qt's own: do not override it, and do not measure the height of the menu bar and the status bar from live geometry, which is wrong until the layout has run (it made the window a fraction of the video on a laptop display).  A resize by the user is left alone, as in QCamcorder, and the video is shown whole with bars; `tests/test_qhot.py::TestTheWindowSize` checks both.
+
 **A lock is a guard for the mouse.**  A locked trap or group is not dragged, scrolled or rotated by the mouse (`Gestures`), and nothing else: the Traps tab, the tasks and code still move it, and the lock of a group is not a lock of its members.  That is how it is meant (decided 2026-11-14); do not extend it without asking.
 
 **Hardware decisions.**  The SLM is the second screen, always: it is hardware, and nothing needs to choose (with one screen it opens on the primary, `-s`).  There is no correction of the phase response of the SLM, because there is no way to calibrate it yet; add it when there is.

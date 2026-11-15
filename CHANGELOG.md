@@ -2,153 +2,115 @@
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-11-14
+
+A review of the whole program, from the checks that run on it to what the
+mouse does.  A video is named for its time and has a file beside it that
+says how it was made, a lost camera stops the queue, a marked trap is easy
+to tell from one that is being dragged, the window opens at the size of the
+video on a laptop, and the program is checked on more platforms.
+
 ### Added
 - **A file beside each video says how it was made** (`QSidecar`):
   `video_<time>.toml` has the settings of the camera (as the tree shows them,
-  after `flush()`), the camera's class, name and model, the calibration of the
+  after `flush()`), its class, name and model, the calibration of the
   hologram and its backend, the traps at the start, the versions of QHOT and
-  QVideo, and when the recording began and ended, how long it was and how
-  many frames were written, and why the recorder stopped if it stopped
-  itself.  It is written when the recording starts, so that a recording that
-  is cut short has one.  `startRecording` gives the widget the file name
-  before it starts, which it did after (and the widget ignores a name while
-  it records), so a task that names the file now shows it.
-
-### Changed
-- **A video is named by default for the time, in `data`.**  The recorder
-  offered `~/default.mkv`, so a second recording asked to replace the first,
-  and `Record` or `StartRecording` with no file name failed the second time
-  (an existing file is an error, by design).  QHOT now puts
-  `video_<date>_<time>.mkv` in the recorder, and another when a recording to
-  that name is over (a name that the user chose, or that a task was given,
-  is left alone).
-
-### Fixed
-- **The window opens at the size of the video on a laptop display.**  Its
-  `sizeHint` added the height of the menu bar and the status bar, measured
-  before the layout had run (486 pixels, for about 42), so that on a display
-  less than about 1050 pixels tall QVideo shrank the window to a fraction of
-  the video (854 by 430 for a 640 by 480 camera on 1440 by 875; 658 by 283
-  on 1366 by 728).  The override is gone, and Qt's own size hint is used,
-  which gives 972 by 519 on every display tried.  Settings that were saved
-  with a small window are still restored: clear the saved `geometry`.
-- **The window no longer corrects its height after a resize.**  It took the
-  height of the image 300 ms after the user let go (700 by 700 became 700 by
-  315), as QCamcorder does not.  A resize by the user is left alone and the
-  video is shown whole, with bars where the screen is not its shape.  The
-  settle timer, the memory of requested sizes and the guard against a
-  feedback loop (about 70 lines) are gone.
-- **A marked trap is blue, and stays blue.**  It was violet, which looks like
-  the pink of a trap that is being dragged, and it turned green after a drag,
-  a rotation, a rubber band around it, or the removal of another trap, while
-  it was still marked, so that `selected_only` moved a trap that looked
-  unmarked.  The states are named for what they mean (`ACTIVE`, was
-  `SELECTED`, and `MARKED`, was `SPECIAL`), and what a gesture changes it
-  changes back to the resting state of the group: marked, else locked, else
-  normal (`restingState`, `rest`).
-- **Breaking a group is consistent.**  A group left with one trap dissolves,
-  whether the trap or its subgroup was taken out: breaking a subgroup out of
-  an outer group used to leave the outer group holding one trap.  The trap
-  that is left takes the place of the group, at the top level or in the group
-  above it, and the Traps tab is told about the top-level item that changed
-  however deep the change was (it was told about a group below the top level,
-  which it does not list).  A random test breaks traps of random structures
-  and checks both.
-- **Clearing the traps clears their marks.**  `clearTraps()` (and so the
-  `ClearTraps` task and opening a trap file) left the traps in
-  `markedGroups` after it had removed them, so a task that moved the
-  marked groups moved traps that were not on the overlay.
-- **Grouping or breaking a group clears the marks of what it changes.**  A
-  trap that was marked and then grouped stayed in `markedGroups` although
-  it was inside a group, so a task that moved the marked groups moved the
-  trap on its own and not the group, which keeps its own center.
-- **Save Image saves the pixels of the image, not the screen's rendering
-  of them.**  The file had the size of the screen widget, so it changed
-  with the window, and a camera of more than 8 bits lost its depth.  It is
-  written by QVideo's `save_image`: the size of the image, 16 bits for a
-  gray `uint16` image (between the levels on the screen).
-- **The window follows QVideo's fit to the video** instead of a fit of
-  its own: it asks for the video at native size, the panels and the chrome
-  (`QHOT.sizeHint`), the screen takes the width that the panels do not
-  use, and the height is corrected when the user has stopped resizing
-  (300 ms), not at every step of a drag.
-
-### Added
-- **A lost camera, or a recording that stops by itself, stops the queue**
-  and says why in the status bar.  A queue that runs unattended carried on
-  without the camera (no frame came to step it, so it hung) or without
-  the recording.  `QTaskManager.fail(reason)` does it; the window connects
+  QVideo, when the recording began and ended, how long it was, how many
+  frames were written, and why the recorder stopped if it stopped itself.
+  It is written when the recording starts, so a recording that is cut short
+  has one.  Per-frame data (the times of the frames, the positions of the
+  traps as they move) is not in it.
+- **A lost camera, or a recording that stops by itself, stops the queue** and
+  says why in the status bar.  A queue that ran unattended carried on without
+  the camera (no frame came to step it, so it hung) or without the recording.
+  `QTaskManager.fail(reason)` does it; the window connects
   `QVideoSource.lost` and `QDVRWidget.stopped` to it.
 
-### Added
-- **Tests of the mouse on the real screen** (`TestTheMouseOnTheScreen`):
-  Qt mouse and wheel events go to the screen of the real window, through
-  the mapping to the overlay, to the traps and to the hologram on the SLM,
-  for every gesture (add, drag, undo, remove, mark, lock, rubber band, move
-  a group, break, rotate, wheel).  The unit tests of the gestures stand in for
-  the hit test of the spots, which needs a view.
-
 ### Changed
-- **The spots of the overlay are made from the Qt hierarchy of the traps**,
-  by one `refresh()`, and no longer kept in step by hand.  `_traps`,
-  `QTrap._index`, the two handlers of the reshaping of an array and the
-  connections that were made and unmade in six places are gone (`leaves()`
-  and `spotOf(trap)` ask for what they gave).  An array inside a group is
-  followed too, which it was not.  Adding a 20 by 20 array takes 4 ms, not 44;
-  a single trap takes 0.7 ms to add to 200, not 0.07.  What leaves a locked
-  group is shown as it is (a trap that is left is not locked), where it was
-  shown as locked and could be dragged.
+- **A video is named for the time, in `data`.**  The recorder offered
+  `~/default.mkv`, so a second recording asked to replace the first, and
+  `Record` or `StartRecording` with no file name failed the second time (an
+  existing file is an error, by design).  QHOT now puts
+  `video_<date>_<time>.mkv` in the recorder, and another when a recording to
+  that name is over.  A name that the user chose, or that a task was given, is
+  left alone, and a task that names the file now shows the name in the
+  recorder.
+- **A marked trap is blue, and stays blue.**  It was violet, which looks like
+  the pink of a trap that is being dragged, and it turned green after a drag,
+  a rotation, a rubber band around it or the removal of another trap while it
+  was still marked, so `selected_only` moved a trap that looked unmarked.
+- **The window is sized by Qt and QVideo, as QCamcorder's is.**  It opens at
+  the size of the video on a display of any height (its size hint added the
+  height of the menu bar and the status bar, measured before the layout had
+  run, so on a display less than about 1050 pixels tall the window shrank to
+  a fraction of the video: 854 by 430 for a 640 by 480 camera on 1440 by 875).
+  A resize by the user is left alone and the video is shown whole, with bars
+  where the screen is not its shape; the window no longer takes the height of
+  the image after the user has resized it.  Settings that were saved with a
+  small window are still restored: clear the saved `geometry`.
+- **Breaking a group follows one rule:** a trap is at the top level or in a
+  group, and a group holds two traps or more.  A group left with one trap
+  dissolves, whether the trap or its subgroup was taken out, and the trap
+  that is left takes its place.  The Traps tab is told about the top-level
+  item that changed, however deep the change was.
+- **What leaves a locked group is shown as it is** (a trap that is left is not
+  locked); it was shown as locked and could be dragged.  The help page and the
+  docstring now say what a lock is: a guard for the mouse, which the Traps tab
+  and the tasks do not respect, and the lock of a group is not a lock of its
+  members.
+- QHOT requires `QVideo>=4.28.0` (`QVideoSource.lost` and `save_image`, both
+  4.18, and `QVideoScreen.example`, 4.28).
+
+### Fixed
+- **Save Image saves the pixels of the image, not the screen's rendering of
+  them.**  The file had the size of the screen widget, so it changed with the
+  window, and a camera of more than 8 bits lost its depth.  It is written by
+  QVideo's `save_image`: the size of the image, and 16 bits for a gray
+  `uint16` image (between the levels on the screen).
+- **Marks are cleared when they are no longer true.**  `clearTraps()` (and
+  so the `ClearTraps` task and opening a trap file), and grouping or breaking
+  a group, left traps in `markedGroups` that were gone or were inside a group,
+  so a task that moved the marked groups moved traps that were not on the
+  overlay, or a trap on its own and not its group.
+- `python lib/QHOTScreen.py` ended at startup: `lib/types.py` shadowed the
+  standard library's `types` (it is `lib/hottypes.py` now).
+- The test suite crashed at random in one job, because a test let the tasks
+  of its list items be collected.
 
 ### Removed
-- **The overlay is the model, and the mouse is in `Gestures`.**  The
-  handlers that take a position (`toggleMark`, `toggleLock`, `breakGroup`,
-  and the forms of `addTrap` and `removeTrap` that took a `QPointF`) are
-  `Gestures.toggleMark`, `toggleLock`, `breakGroup`, `add` and `remove`; the
-  forwarders (`mousePress` and the rest), the standalone `mousePressEvent`
-  family (only the example used them) and `QTrapOverlay.example` are gone,
-  and `QHOTScreen` gives its events to `overlay.gestures`.  `addTrap` and
-  `removeTrap` take traps, and say nothing of the undo stack; the undoable
-  add at a position is `addTweezer(x, y)`, which the mouse, the `AddTweezer`
-  task and the Add Tweezer action use.
-- `QTrapOverlay.marked` (the leaf traps of the marked groups) and the unused
-  `parent` argument of `QTrapOverlay`.  `Move` is `MoveTraps` for the marked
-  groups, with the displacement that takes their centroid to the target, so
-  the step, the duration and the interpolation are in one place.
 - **PySide6 is not supported**, and the `pyside6` extra is gone.  QHOT is a
   program for dedicated equipment (PyQt6 in production, PyQt5 tested); PySide
   support belongs to QVideo, which is general-purpose, until it settles
-  there.  The package could not run under PySide6 on Python 3.12 or earlier
-  (`CGH` used `object.__setattr__`, which it refuses), and that is fixed
-  (`super().__setattr__`, as QVideo does) although nothing tests it.
-- `QTrapOverlay.trapsIn` and `QTrapOverlay.clearMarked`, and `CGH.rc`: nothing
-  used them.  The `devel/` directory of diagnostic scripts for FLIR cameras
-  (the problem that `QRemoteCamera` in QVideo solved) is gone; it is in the
-  history.
+  there.
+- For a program, not a library, what nothing used: `QTrapOverlay.trapsIn`,
+  `clearMarked`, `marked` and its `parent` and `descriptions` arguments, the
+  standalone mouse events of the overlay and its `example`, and `CGH.rc`.  The
+  `devel/` directory of diagnostic scripts for FLIR cameras (the problem that
+  `QRemoteCamera` solved) is in the history.
 
-### Changed
-- **Pyright checks the whole program**, not only `lib/`: `traps/`, `tasks/`
-  and `qhot.py` too.  The widgets that `QHOT.ui` makes are declared on the
-  window (they are what `uic.loadUi` sets), `QTask.manager` is a
-  `QTaskManager`, `QSaveFile.readJson` returns what `json.load` makes of the
-  file (`Any`), and `Configurable` and `PatternSource` say what the
-  checker can follow.  Nothing changes at run time.
-- **The mouse gestures are in `QHOT.lib.traps.gestures`** (`Gestures`), which
-  `QTrapOverlay` owns (`overlay.gestures`) and forwards its events to; the
-  state of a drag, a rotation and a rubber band is there and not in the
-  overlay.  The bindings are fixed, so the `descriptions` argument of the
-  overlay is gone (nothing used it).  `QTrapGroup._snapshot` is `snapshot`,
-  and `groupWithin` was `_finalizeSelection`.
-- **Grouping and breaking a group are in `QHOT.lib.traps.grouping`**
-  (`group_within`, `break_group`).  The overlay says what it keeps in step
-  (`watch`, `unwatch`) and what is marked (`mark`, `unmark`), which the
-  functions use; `breakGroup(pos)` finds the trap and calls `break_group`.
-- `CGH` takes its calibration as keywords and gets the defaults from
-  `Optics`, which names the fields: the sixteen arguments and defaults were
-  written out again in `CGH.__init__`.  A name that is not in the
-  calibration is a `TypeError`, as before.
-- QHOT requires `QVideo>=4.28.0`: the window uses `QVideoSource.lost` and
-  Save Image uses `save_image` (both 4.18), and `QHOTScreen.example` is
-  `QVideoScreen.example` (4.28).
+### Development
+- **The overlay is split.**  `QTrapOverlay` keeps the traps (from 1,116 lines
+  to 520); what the mouse does is `Gestures` (`lib/traps/gestures.py`, owned
+  by the overlay as `overlay.gestures`), and grouping and breaking are
+  `lib/traps/grouping.py`.  The overlay is the model: `addTrap` and
+  `removeTrap` take traps, and the undoable add at a position is
+  `addTweezer(x, y)`.  The spots are made from the Qt hierarchy by one
+  `refresh()`, where the overlay kept a list, an index in each trap and
+  connections in step by hand (adding a 20 by 20 array takes 4 ms, not 44).
+  `Move` is `MoveTraps` for the marked groups.
+- **Checks.**  Pyright checks the whole program, as a job that blocks the
+  workflow; ruff selects 25 rules where it selected 7; the tests run on
+  Python 3.11 to 3.14, PyQt5 and PyQt6, and macOS, with a coverage floor of
+  95%.  The imports of a module are in blocks, in an order that a test
+  checks.  A pre-commit configuration runs ruff and the style tests.
+- **The mouse is tested on the real screen** (`TestTheMouseOnTheScreen`): Qt
+  mouse and wheel events go through the window, the overlay, the traps and
+  the hologram on the SLM, for every gesture; breaking the mapping, a binding
+  or the forwarding fails them.  A random test breaks traps of random
+  structures.
+- The actions of the workflows are current and Dependabot watches them.
+  `CLAUDE.md` records the decisions: the hierarchy and `refresh()`, the rule
+  for groups, what a lock is, the size of the window, the SLM, no PySide.
 
 ## [2.3.0] — 2026-11-06
 

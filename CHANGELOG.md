@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+- **A video is named by default for the time, in `data`.**  The recorder
+  offered `~/default.mkv`, so a second recording asked to replace the first,
+  and `Record` or `StartRecording` with no file name failed the second time
+  (an existing file is an error, by design).  QHOT now puts
+  `video_<date>_<time>.mkv` in the recorder, and another when a recording to
+  that name is over (a name that the user chose, or that a task was given,
+  is left alone).
+
 ### Fixed
 - **The window opens at the size of the video on a laptop display.**  Its
   `sizeHint` added the height of the menu bar and the status bar, measured

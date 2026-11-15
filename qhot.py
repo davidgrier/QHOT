@@ -113,10 +113,12 @@ class QHOT(QtWidgets.QMainWindow):
         self.source = self.cameraTree.source
         self.slm = slm
         self.cgh = cgh
+        self._videoName = ''        # the name that is offered for a video
         self._setupUi()
         self._connectSignals()
         self._addFilters()
         self.save = QSaveFile(self)
+        self._offerVideoName()
         self.manager = QTaskManager(
             overlay=self.videoScreen.overlay,
             cgh=self.cgh,
@@ -253,6 +255,7 @@ class QHOT(QtWidgets.QMainWindow):
         '''
         self.dvr.playing.connect(self.dvrPlayback)
         self.dvr.recording.connect(self.cameraTree.setDisabled)
+        self.dvr.recording.connect(self._onRecording)
         self.cgh.hologramReady.connect(self.slm.setData)
         self.cgh.hologramReady.connect(self.slmView.setData)
         self.cgh.computeFailed.connect(self._onComputeFailed)
@@ -293,6 +296,27 @@ class QHOT(QtWidgets.QMainWindow):
         The next change of the traps asks for another.
         '''
         self.setStatus(f'Hologram computation failed: {reason}')
+
+    def _offerVideoName(self) -> None:
+        '''Put a new name in the recorder: ``video_<time>.mkv`` in ``data``.
+
+        A recording that is not given a name of its own (the record button,
+        or a task whose file name is empty) is then written to a file of
+        its own, and not over the last one.
+        '''
+        suffix = Path(self.dvr.FILENAME).suffix
+        self._videoName = self.save.filename(prefix='video', suffix=suffix)
+        self.dvr.filename = self._videoName
+
+    @QtCore.Slot(bool)
+    def _onRecording(self, recording: bool) -> None:
+        '''Offer another name when a recording to the one offered is over.
+
+        A name that the user chose, or that a task was given, is theirs, and
+        is not changed.
+        '''
+        if not recording and self.dvr.filename == self._videoName:
+            self._offerVideoName()
 
     @QtCore.Slot(str)
     def _onCameraLost(self, reason: str) -> None:

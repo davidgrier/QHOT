@@ -936,6 +936,56 @@ class TestTheCommandLine(unittest.TestCase):
         self.assertIn('invalid int value', done.stderr)
 
 
+class TestTheNameOfAVideo(WindowCase):
+
+    '''A recording that is not given a name of its own is written to a file
+    of its own, in the data directory, and not over the last one.'''
+
+    def setUp(self):
+        super().setUp()
+        self.dvr = self.window.dvr
+        self.datadir = self.window.save.datadir
+        self.window._offerVideoName()           # a name that is not used
+        self.addCleanup(self.window._offerVideoName)
+
+    def test_the_recorder_offers_a_timestamped_name_in_the_data_directory(self):
+        path = Path(self.dvr.filename)
+        self.assertEqual(path.parent, self.datadir)
+        self.assertRegex(path.name, r'^video_\d{8}_\d{6}(_\d+)?\.mkv$')
+
+    def test_another_name_is_offered_when_a_recording_is_over(self):
+        offered = self.dvr.filename
+        Path(offered).touch()                   # what the recording wrote
+        self.dvr.recording.emit(False)
+        self.assertNotEqual(self.dvr.filename, offered)
+        self.assertEqual(Path(self.dvr.filename).parent, self.datadir)
+
+    def test_a_name_that_the_user_chose_is_kept(self):
+        mine = str(self.datadir / 'mine.mkv')
+        self.dvr.filename = mine
+        self.dvr.recording.emit(False)
+        self.assertEqual(self.dvr.filename, mine)
+
+    def test_nothing_changes_when_a_recording_starts(self):
+        offered = self.dvr.filename
+        self.dvr.recording.emit(True)
+        self.assertEqual(self.dvr.filename, offered)
+
+    def test_two_recordings_in_a_row_are_two_files(self):
+        from QHOT.lib.tasks.recording import startRecording
+        names = []
+        done = QtTest.QSignalSpy(self.dvr.recording)    # on, and off
+        for n in range(1, 3):
+            names.append(self.dvr.filename)
+            startRecording(self.dvr, '', nframes=3)
+            self.assertTrue(wait_for(lambda n=n: len(done) >= 2 * n, 8000),
+                            'the recording did not end')
+        self.assertEqual(len(set(names)), 2)
+        for name in names:
+            self.assertTrue(Path(name).exists(), name)
+        self.assertNotIn(self.dvr.filename, names)
+
+
 class TestTheTasksMenu(WindowCase):
 
     def test_add_tweezer_comes_before_clear_traps(self):

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- **A file beside each video says how it was made** (`QSidecar`):
+  `video_<time>.toml` has the settings of the camera (as the tree shows them,
+  after `flush()`), the camera's class, name and model, the calibration of the
+  hologram and its backend, the traps at the start, the versions of QHOT and
+  QVideo, and when the recording began and ended, how long it was and how
+  many frames were written, and why the recorder stopped if it stopped
+  itself.  It is written when the recording starts, so that a recording that
+  is cut short has one.  `startRecording` gives the widget the file name
+  before it starts, which it did after (and the widget ignores a name while
+  it records), so a task that names the file now shows it.
+
 ### Changed
 - **A video is named by default for the time, in `data`.**  The recorder
   offered `~/default.mkv`, so a second recording asked to replace the first,

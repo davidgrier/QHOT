@@ -24,6 +24,7 @@ from QHOT.lib.holograms.QCGHTree import QCGHTree
 from QHOT.lib.QHOTScreen import QHOTScreen
 from QHOT.lib.QImageFile import QImageFile
 from QHOT.lib.QJsonDocument import QJsonDocument
+from QHOT.lib.QSidecar import QSidecar
 from QHOT.lib.QTomlDocument import QTomlDocument
 from QHOT.lib.splash import say, splash
 from QHOT.lib.tasks import QTaskManager, QTaskManagerWidget, QueueMenu
@@ -119,6 +120,13 @@ class QHOT(QtWidgets.QMainWindow):
         self._addFilters()
         self.save = QSaveFile(self)
         self._offerVideoName()
+        self.sidecar = QSidecar(self.dvr,
+                                self.cameraTree,
+                                self.cgh,
+                                self.videoScreen.overlay,
+                                self.save,
+                                self)
+        self.sidecar.status.connect(self.setStatus)
         self.manager = QTaskManager(
             overlay=self.videoScreen.overlay,
             cgh=self.cgh,

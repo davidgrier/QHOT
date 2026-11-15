@@ -23,6 +23,15 @@
 <p>While QHOT records, the camera panel is disabled so that the settings
   of the camera cannot change in the middle of a video.  The recording is
   the video from the camera, without the filters and the trap markers.</p>
+
+<p>Beside each video QHOT writes a file with the same name and the ending
+  <tt>.toml</tt>, which you can read in any text editor.  It says how the
+  camera was set (exposure, gain, size, frame rate and the rest), the
+  calibration of the hologram, the traps where they were when the
+  recording began, when the recording began and ended, and how many frames
+  were written.  Keep the two files together.  If a recording stops by
+  itself (the camera is lost, or the disk cannot keep up), the file says
+  why.</p>
 <p>To play the video back, click Play.  See
   <a href="videorecorder.html">Video recorder</a>.</p>
 

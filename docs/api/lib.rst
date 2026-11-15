@@ -37,6 +37,12 @@ QSaveFile
 .. automodule:: QHOT.lib.QSaveFile
    :members:
 
+QSidecar
+--------
+
+.. automodule:: QHOT.lib.QSidecar
+   :members:
+
 Command line
 ------------
 

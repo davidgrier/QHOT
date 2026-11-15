@@ -51,5 +51,16 @@ def startRecording(dvr: QDVRWidget,
     if dvr.isPlaying():
         raise RuntimeError('cannot record while a video is playing')
     path = filename or dvr.filename
-    dvr.recorder.start(path, int(nframes), int(nskip), overwrite=overwrite)
+    # The recorder says that it records the moment that it starts, and
+    # whoever hears it (the file that describes the video) reads the name
+    # from the widget, which does not take a new one once it records.
+    previous = dvr.filename
     dvr.filename = path
+    try:
+        dvr.recorder.start(path,
+                           int(nframes),
+                           int(nskip),
+                           overwrite=overwrite)
+    except Exception:
+        dvr.filename = previous
+        raise

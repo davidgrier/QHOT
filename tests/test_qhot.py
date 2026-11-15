@@ -986,6 +986,62 @@ class TestTheNameOfAVideo(WindowCase):
         self.assertNotIn(self.dvr.filename, names)
 
 
+class TestTheFileBesideAVideo(WindowCase):
+
+    '''A recording of the real window, with the real camera, leaves a file
+    that says how the camera was set, what the calibration was and where
+    the traps were.'''
+
+    def setUp(self):
+        super().setUp()
+        self.dvr = self.window.dvr
+        self.datadir = self.window.save.datadir
+        self.window._offerVideoName()
+        self.addCleanup(self.window._offerVideoName)
+
+    def record(self, filename='', frames=8):
+        from QHOT.lib.tasks.recording import startRecording
+        done = QtTest.QSignalSpy(self.dvr.recording)
+        startRecording(self.dvr, filename, nframes=frames)
+        self.assertTrue(wait_for(lambda: len(done) >= 2, 8000),
+                        'the recording did not end')
+        QtTest.QTest.qWait(100)
+
+    def read(self, video):
+        with open(Path(video).with_suffix('.toml'), 'rb') as f:
+            return tomllib.load(f)
+
+    def test_there_is_one_beside_the_video(self):
+        video = self.dvr.filename
+        self.record()
+        self.assertTrue(Path(video).exists())
+        self.assertTrue(Path(video).with_suffix('.toml').exists())
+
+    def test_it_has_the_settings_of_the_camera(self):
+        video = self.dvr.filename
+        self.record()
+        settings = self.read(video)['camera']['settings']
+        self.assertEqual(settings, dict(Window.camera.settings))
+
+    def test_it_has_the_frames_the_calibration_and_the_traps(self):
+        self.overlay.clearTraps()
+        self.overlay.addTweezer(60., 40.)
+        video = self.dvr.filename
+        self.record(frames=8)
+        data = self.read(video)
+        self.assertEqual(data['recording']['frames'], 8)
+        self.assertEqual(data['cgh']['wavelength'], self.cgh.wavelength)
+        (trap,) = data['traps']
+        self.assertAlmostEqual(trap['x'], 60.)
+        self.overlay.clearTraps()
+
+    def test_a_task_that_names_the_file_is_the_name_the_recorder_shows(self):
+        mine = str(self.datadir / 'mine.mkv')
+        self.record(filename=mine, frames=3)
+        self.assertEqual(self.dvr.filename, mine)
+        self.assertTrue(Path(mine).with_suffix('.toml').exists())
+
+
 class TestTheTasksMenu(WindowCase):
 
     def test_add_tweezer_comes_before_clear_traps(self):

@@ -67,7 +67,6 @@ class QTrap(QtCore.QObject):
         self._phase = (np.random.uniform(0., 2.*np.pi)
                        if phase is None else float(phase))
         self._locked = bool(locked)
-        self._index: int | None = None
         self.structureChanged.connect(self.changed)
         self._registerProperties()
 

@@ -51,7 +51,7 @@ def group_within(overlay: QTrapOverlay, rect: QtCore.QRectF) -> None:
     group = QTrapGroup(r=np.mean([item.r for item in items], axis=0),
                        parent=overlay)
     group.addTrap(items)
-    overlay.watch(group)
+    overlay.refresh()
     overlay.trapAdded.emit(group)
 
 
@@ -99,10 +99,9 @@ def break_group(overlay: QTrapOverlay, trap: QTrap) -> bool:
     overlay.trapRemoved.emit(root)
     parent.removeTrap(leaver)
     leaver.setParent(overlay)
-    if isinstance(leaver, QTrapGroup):
-        overlay.watch(leaver)
     promoted: list[QTrap] = []
     _tidy(overlay, parent, promoted)
+    overlay.refresh()
     if root.parent() is overlay:
         overlay.trapAdded.emit(root)
     for item in promoted:
@@ -132,12 +131,9 @@ def _tidy(overlay: QTrapOverlay,
             above.addTrap(sole)
             return
         sole.setParent(overlay)
-        if isinstance(sole, QTrapGroup):
-            overlay.watch(sole)
         promoted.append(sole)
     elif isinstance(above, QTrapGroup):
         above.removeTrap(group)
         _tidy(overlay, above, promoted)
         return
-    overlay.unwatch(group)
     group.setParent(None)

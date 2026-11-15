@@ -989,7 +989,7 @@ class TestTheAddTrapMenu(WindowCase):
     def test_the_trap_is_where_the_axis_was_calibrated(self):
         self.cgh.xc, self.cgh.yc = 123., 77.
         self.add('QTweezer')
-        (trap,) = [self.overlay.groupOf(t) for t in self.overlay._traps]
+        (trap,) = [self.overlay.groupOf(t) for t in list(self.overlay.leaves())]
         np.testing.assert_allclose(trap.r[:2], [123., 77.])
 
 

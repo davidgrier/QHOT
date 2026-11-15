@@ -87,7 +87,7 @@ class TestClearTraps(unittest.TestCase):
 
     def test_clears_overlay(self):
         self.screen.clearTraps()
-        self.assertEqual(self.screen.overlay._traps, [])
+        self.assertEqual(list(self.screen.overlay.leaves()), [])
 
     def test_emits_status(self):
         spy = QtTest.QSignalSpy(self.screen.status)

@@ -91,13 +91,13 @@ class TestAddTrapCommand(unittest.TestCase):
         self.stack.push(AddTrapCommand(self.overlay, 3., 7.))
 
     def test_redo_adds_trap(self):
-        self.assertEqual(len(self.overlay._traps), 1)
+        self.assertEqual(len(list(self.overlay.leaves())), 1)
 
     def test_trap_is_tweezer(self):
-        self.assertIsInstance(self.overlay._traps[0], QTweezer)
+        self.assertIsInstance(next(self.overlay.leaves()), QTweezer)
 
     def test_trap_position(self):
-        trap = self.overlay._traps[0]
+        trap = next(self.overlay.leaves())
         self.assertAlmostEqual(trap.x, 3.)
         self.assertAlmostEqual(trap.y, 7.)
 
@@ -110,7 +110,7 @@ class TestAddTrapCommand(unittest.TestCase):
 
     def test_undo_removes_trap(self):
         self.stack.undo()
-        self.assertEqual(len(self.overlay._traps), 0)
+        self.assertEqual(len(list(self.overlay.leaves())), 0)
 
     def test_undo_emits_trap_removed(self):
         received = []
@@ -121,14 +121,14 @@ class TestAddTrapCommand(unittest.TestCase):
     def test_redo_after_undo_restores_trap(self):
         self.stack.undo()
         self.stack.redo()
-        self.assertEqual(len(self.overlay._traps), 1)
+        self.assertEqual(len(list(self.overlay.leaves())), 1)
 
     def test_repeated_undo_redo_cycle(self):
         for _ in range(3):
             self.stack.undo()
-            self.assertEqual(len(self.overlay._traps), 0)
+            self.assertEqual(len(list(self.overlay.leaves())), 0)
             self.stack.redo()
-            self.assertEqual(len(self.overlay._traps), 1)
+            self.assertEqual(len(list(self.overlay.leaves())), 1)
 
 
 class TestRemoveTrapCommand(unittest.TestCase):
@@ -141,7 +141,7 @@ class TestRemoveTrapCommand(unittest.TestCase):
         self.stack.push(RemoveTrapCommand(self.overlay, self.trap))
 
     def test_redo_removes_trap(self):
-        self.assertNotIn(self.trap, self.overlay._traps)
+        self.assertNotIn(self.trap, list(self.overlay.leaves()))
 
     def test_trap_removed_signal_emitted(self):
         overlay = make_overlay()
@@ -154,7 +154,7 @@ class TestRemoveTrapCommand(unittest.TestCase):
 
     def test_undo_adds_trap_back(self):
         self.stack.undo()
-        self.assertIn(self.trap, self.overlay._traps)
+        self.assertIn(self.trap, list(self.overlay.leaves()))
 
     def test_undo_emits_trap_added(self):
         received = []
@@ -165,14 +165,14 @@ class TestRemoveTrapCommand(unittest.TestCase):
     def test_redo_after_undo_removes_again(self):
         self.stack.undo()
         self.stack.redo()
-        self.assertNotIn(self.trap, self.overlay._traps)
+        self.assertNotIn(self.trap, list(self.overlay.leaves()))
 
     def test_repeated_undo_redo_cycle(self):
         for _ in range(3):
             self.stack.undo()
-            self.assertIn(self.trap, self.overlay._traps)
+            self.assertIn(self.trap, list(self.overlay.leaves()))
             self.stack.redo()
-            self.assertNotIn(self.trap, self.overlay._traps)
+            self.assertNotIn(self.trap, list(self.overlay.leaves()))
 
 
 class TestMoveCommand(unittest.TestCase):
@@ -375,12 +375,12 @@ class TestUndoStackIntegration(unittest.TestCase):
 
     def test_undo_add_empties_overlay(self):
         self.stack.undo()
-        self.assertEqual(len(self.overlay._traps), 0)
+        self.assertEqual(len(list(self.overlay.leaves())), 0)
 
     def test_redo_add_restores_overlay(self):
         self.stack.undo()
         self.stack.redo()
-        self.assertEqual(len(self.overlay._traps), 1)
+        self.assertEqual(len(list(self.overlay.leaves())), 1)
 
     def test_clear_traps_clears_stack(self):
         self.overlay.clearTraps()

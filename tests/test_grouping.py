@@ -28,7 +28,7 @@ def pair(overlay):
 
 
 def brush_of(overlay, trap):
-    return overlay.points()[trap._index].brush()
+    return overlay.spotOf(trap).brush()
 
 
 class TestGroupWithin(unittest.TestCase):
@@ -317,7 +317,7 @@ class TestTheSpotsFollowAGroup(unittest.TestCase):
         self.overlay.addTrap([self.t1, self.t2])
 
     def x_of(self, trap):
-        return self.overlay.points()[trap._index]._data['x']
+        return self.overlay.spotOf(trap)._data['x']
 
     def test_a_new_group_moves_its_spots(self):
         group_within(self.overlay, QtCore.QRectF(0., 0., 10., 10.))
@@ -386,13 +386,28 @@ class TestStructureAndMarks(unittest.TestCase):
             self.assertEqual(brush_of(self.overlay, trap),
                              self.overlay.brush[self.overlay.State.NORMAL])
 
-    def test_a_locked_group_that_is_broken_is_shown_as_locked(self):
+    def test_what_leaves_a_locked_group_is_shown_as_it_is(self):
+        # The lock is the group's; a trap that is left is not locked, and
+        # the color says what a drag would do.
         group, a, b = pair(self.overlay)
         group.locked = True
         self.overlay.mark(group)
         break_group(self.overlay, a)
+        self.assertFalse(b.locked)
         self.assertEqual(brush_of(self.overlay, b),
-                         self.overlay.brush[self.overlay.State.STATIC])
+                         self.overlay.brush[self.overlay.State.NORMAL])
+
+    def test_a_group_that_stays_locked_is_shown_as_locked(self):
+        group = QTrapGroup(r=(5., 5., 0.))
+        group.addTrap([QTrap(r=(4., 4., 0.), phase=0.),
+                       QTrap(r=(5., 5., 0.), phase=0.),
+                       QTrap(r=(6., 6., 0.), phase=0.)])
+        self.overlay.addTrap(group)
+        group.locked = True
+        break_group(self.overlay, next(iter(group)))
+        for trap in group.leaves():
+            self.assertEqual(brush_of(self.overlay, trap),
+                             self.overlay.brush[self.overlay.State.STATIC])
 
 
 if __name__ == '__main__':
@@ -502,18 +517,18 @@ class TestTheStructureIsKeptWhateverIsBroken(unittest.TestCase):
             overlay = make_overlay()
             for _ in range(rng.randint(1, 3)):
                 overlay.addTrap(self.make(rng))
-            leaves = set(overlay._traps)
+            leaves = set(list(overlay.leaves()))
             seen = set(overlay)                 # what an observer knows
             overlay.trapAdded.connect(seen.add)
             overlay.trapRemoved.connect(seen.discard)
             for _ in range(20):
-                leaves_now = [t for t in overlay._traps
+                leaves_now = [t for t in list(overlay.leaves())
                               if isinstance(t.parent(), QTrapGroup)]
                 if not leaves_now:
                     break
                 break_group(overlay, rng.choice(leaves_now))
                 with self.subTest(seed=seed):
                     self.assertEqual(seen, set(overlay))
-                    self.assertEqual(set(overlay._traps), leaves)
+                    self.assertEqual(set(list(overlay.leaves())), leaves)
                     for group in self.groups(overlay):
                         self.assertGreaterEqual(len(list(group)), 2)

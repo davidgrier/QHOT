@@ -53,6 +53,17 @@
   a group, break, rotate, wheel).  The unit tests of the gestures stand in for
   the hit test of the spots, which needs a view.
 
+### Changed
+- **The spots of the overlay are made from the Qt hierarchy of the traps**,
+  by one `refresh()`, and no longer kept in step by hand.  `_traps`,
+  `QTrap._index`, the two handlers of the reshaping of an array and the
+  connections that were made and unmade in six places are gone (`leaves()`
+  and `spotOf(trap)` ask for what they gave).  An array inside a group is
+  followed too, which it was not.  Adding a 20 by 20 array takes 4 ms, not 44;
+  a single trap takes 0.7 ms to add to 200, not 0.07.  What leaves a locked
+  group is shown as it is (a trap that is left is not locked), where it was
+  shown as locked and could be dragged.
+
 ### Removed
 - **The overlay is the model, and the mouse is in `Gestures`.**  The
   handlers that take a position (`toggleMark`, `toggleLock`, `breakGroup`,

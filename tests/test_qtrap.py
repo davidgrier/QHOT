@@ -42,9 +42,6 @@ class TestInit(unittest.TestCase):
         trap.x = 1.
         self.assertEqual(len(spy), 1)
 
-    def test__index_none(self):
-        self.assertIsNone(QTrap()._index)
-
 
 class TestR(unittest.TestCase):
 

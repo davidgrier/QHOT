@@ -30,10 +30,10 @@ class TestAddTrapSingle(unittest.TestCase):
         self.assertIs(self.trap.parent(), self.overlay)
 
     def test_registers_in_traps(self):
-        self.assertIn(self.trap, self.overlay._traps)
+        self.assertIn(self.trap, list(self.overlay.leaves()))
 
-    def test_index(self):
-        self.assertEqual(self.trap._index, 0)
+    def test_a_spot_shows_it(self):
+        self.assertIs(self.overlay.spotOf(self.trap).data(), self.trap)
 
     def test_spot_created(self):
         self.assertEqual(len(self.overlay.points()), 1)
@@ -58,8 +58,8 @@ class TestAddTrapGroup(unittest.TestCase):
         self.assertIs(self.grp.parent(), self.overlay)
 
     def test_leaf_traps_registered(self):
-        self.assertIn(self.t1, self.overlay._traps)
-        self.assertIn(self.t2, self.overlay._traps)
+        self.assertIn(self.t1, list(self.overlay.leaves()))
+        self.assertIn(self.t2, list(self.overlay.leaves()))
 
     def test_spot_count(self):
         self.assertEqual(len(self.overlay.points()), 2)
@@ -97,13 +97,14 @@ class TestAddTrapList(unittest.TestCase):
         self.overlay.addTrap(self.traps)
 
     def test_all_registered(self):
-        self.assertEqual(len(self.overlay._traps), 3)
+        self.assertEqual(len(list(self.overlay.leaves())), 3)
 
     def test_all_parents_set(self):
         self.assertTrue(all(t.parent() is self.overlay for t in self.traps))
 
-    def test_spot_indices_sequential(self):
-        self.assertEqual([t._index for t in self.traps], [0, 1, 2])
+    def test_the_spots_are_in_the_order_of_the_traps(self):
+        self.assertEqual([spot.data() for spot in self.overlay.points()],
+                         self.traps)
 
 
 class TestGroupOf(unittest.TestCase):
@@ -162,7 +163,7 @@ class TestRemoveTrapSingle(unittest.TestCase):
         self.overlay.removeTrap(self.trap)
 
     def test_unregistered(self):
-        self.assertNotIn(self.trap, self.overlay._traps)
+        self.assertNotIn(self.trap, list(self.overlay.leaves()))
 
     def test_parent_cleared(self):
         self.assertIsNone(self.trap.parent())
@@ -170,8 +171,9 @@ class TestRemoveTrapSingle(unittest.TestCase):
     def test_spot_removed(self):
         self.assertEqual(len(self.overlay.points()), 0)
 
-    def test_index_cleared(self):
-        self.assertIsNone(self.trap._index)
+    def test_it_has_no_spot(self):
+        with self.assertRaises(KeyError):
+            self.overlay.spotOf(self.trap)
 
 
 class TestRemoveTrapGroup(unittest.TestCase):
@@ -187,8 +189,8 @@ class TestRemoveTrapGroup(unittest.TestCase):
         self.overlay.removeTrap(self.t1)
 
     def test_all_leaves_unregistered(self):
-        self.assertNotIn(self.t1, self.overlay._traps)
-        self.assertNotIn(self.t2, self.overlay._traps)
+        self.assertNotIn(self.t1, list(self.overlay.leaves()))
+        self.assertNotIn(self.t2, list(self.overlay.leaves()))
 
     def test_group_parent_cleared(self):
         self.assertIsNone(self.grp.parent())
@@ -219,9 +221,9 @@ class TestRemovedGroupKeepsItsMembers(unittest.TestCase):
 
     def test_undo_restores_the_whole_group(self):
         self.overlay.undoStack.push(RemoveTrapCommand(self.overlay, self.grp))
-        self.assertEqual(len(self.overlay._traps), 0)
+        self.assertEqual(len(list(self.overlay.leaves())), 0)
         self.overlay.undoStack.undo()
-        self.assertEqual(len(self.overlay._traps), 2)
+        self.assertEqual(len(list(self.overlay.leaves())), 2)
         self.assertEqual(len(self.grp.traps), 2)
         self.assertIs(self.grp.parent(), self.overlay)
 
@@ -229,7 +231,7 @@ class TestRemovedGroupKeepsItsMembers(unittest.TestCase):
         self.overlay.undoStack.push(RemoveTrapCommand(self.overlay, self.grp))
         self.overlay.undoStack.undo()
         self.overlay.undoStack.redo()
-        self.assertEqual(len(self.overlay._traps), 0)
+        self.assertEqual(len(list(self.overlay.leaves())), 0)
         self.assertEqual(len(self.grp.traps), 2)
 
 
@@ -246,7 +248,7 @@ class TestRemoveTrapLargerGroup(unittest.TestCase):
 
     def test_all_leaves_unregistered(self):
         for trap in self.traps:
-            self.assertNotIn(trap, self.overlay._traps)
+            self.assertNotIn(trap, list(self.overlay.leaves()))
 
     def test_group_parent_cleared(self):
         self.assertIsNone(self.grp.parent())
@@ -297,7 +299,7 @@ class TestClearTraps(unittest.TestCase):
         self.overlay.clearTraps()
 
     def test_traps_list_empty(self):
-        self.assertEqual(self.overlay._traps, [])
+        self.assertEqual(list(self.overlay.leaves()), [])
 
     def test_no_spots(self):
         self.assertEqual(len(self.overlay.points()), 0)
@@ -308,13 +310,13 @@ class TestClearTraps(unittest.TestCase):
 
 class TestRebuildSpots(unittest.TestCase):
 
-    def test_indices_resequenced_after_removal(self):
+    def test_the_spots_are_made_again_after_a_removal(self):
         overlay = make_overlay()
         traps = [QTrap(r=(float(i), 0., 0.), phase=0.) for i in range(3)]
         overlay.addTrap(traps)
         overlay.removeTrap(traps[1])
-        self.assertEqual(traps[0]._index, 0)
-        self.assertEqual(traps[2]._index, 1)
+        self.assertEqual([spot.data() for spot in overlay.points()],
+                         [traps[0], traps[2]])
 
 
 class TestOnTrapChanged(unittest.TestCase):
@@ -349,20 +351,20 @@ class TestSetGroupBrush(unittest.TestCase):
         self.overlay.addTrap(grp)
 
     def test_sets_all_leaf_spots(self):
-        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(next(self.overlay.leaves()).parent(),
                                     self.overlay.State.ACTIVE)
         for trap in [self.t1, self.t2]:
-            spot = self.overlay.points()[trap._index]
+            spot = self.overlay.spotOf(trap)
             self.assertEqual(spot.brush(),
                              self.overlay.brush[self.overlay.State.ACTIVE])
 
     def test_resets_to_normal(self):
-        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(next(self.overlay.leaves()).parent(),
                                     self.overlay.State.ACTIVE)
-        self.overlay.setGroupBrush(self.overlay._traps[0].parent(),
+        self.overlay.setGroupBrush(next(self.overlay.leaves()).parent(),
                                     self.overlay.State.NORMAL)
         for trap in [self.t1, self.t2]:
-            spot = self.overlay.points()[trap._index]
+            spot = self.overlay.spotOf(trap)
             self.assertEqual(spot.brush(),
                              self.overlay.brush[self.overlay.State.NORMAL])
 
@@ -485,20 +487,20 @@ class TestReshapeSignals(unittest.TestCase):
         self.overlay.clearTraps()
 
     def test_array_leaves_registered_on_add(self):
-        self.assertEqual(len(self.overlay._traps), 4)
+        self.assertEqual(len(list(self.overlay.leaves())), 4)
 
     def test_reshaping_signal_connected(self):
         # Changing nx triggers reshaping/reshaped; trap count should update.
         self.array.nx = 3
-        self.assertEqual(len(self.overlay._traps), 6)
+        self.assertEqual(len(list(self.overlay.leaves())), 6)
 
     def test_shrink_updates_trap_count(self):
         self.array.nx = 1
-        self.assertEqual(len(self.overlay._traps), 2)
+        self.assertEqual(len(list(self.overlay.leaves())), 2)
 
     def test_spot_count_matches_traps_after_reshape(self):
         self.array.ny = 3
-        self.assertEqual(len(self.overlay._traps), len(self.overlay.points()))
+        self.assertEqual(len(list(self.overlay.leaves())), len(self.overlay.points()))
 
     def test_trap_removed_signal_emitted_on_reshape(self):
         spy = QtTest.QSignalSpy(self.overlay.trapRemoved)
@@ -525,7 +527,7 @@ class TestReshapeSignals(unittest.TestCase):
         self.array.nx = 3
         # Old leaves are no longer in _traps
         for leaf in old_leaves:
-            self.assertNotIn(leaf, self.overlay._traps)
+            self.assertNotIn(leaf, list(self.overlay.leaves()))
 
 
 class TestSaveLoad(unittest.TestCase):
@@ -538,12 +540,12 @@ class TestSaveLoad(unittest.TestCase):
             self.overlay.addTrap(QTweezer(r=(x, 30., 0.), phase=0.))
         data = self.overlay.toList()
         self.overlay.fromList(data)
-        self.assertEqual(len(self.overlay._traps), 3)
+        self.assertEqual(len(list(self.overlay.leaves())), 3)
 
     def test_roundtrip_tweezer_position(self):
         self.overlay.addTrap(QTweezer(r=(123., 456., 7.), phase=0.))
         self.overlay.fromList(self.overlay.toList())
-        trap = self.overlay._traps[0]
+        trap = next(self.overlay.leaves())
         self.assertAlmostEqual(trap.x, 123.)
         self.assertAlmostEqual(trap.y, 456.)
         self.assertAlmostEqual(trap.z, 7.)
@@ -555,14 +557,14 @@ class TestSaveLoad(unittest.TestCase):
         grp.addTrap(QTweezer(r=(20., 20., 0.), phase=0.))
         self.overlay.addTrap(grp)
         self.overlay.fromList(self.overlay.toList())
-        self.assertEqual(len(self.overlay._traps), 2)
+        self.assertEqual(len(list(self.overlay.leaves())), 2)
 
     def test_roundtrip_trap_array(self):
         from QHOT.traps.QTrapArray import QTrapArray
         arr = QTrapArray(shape=(3, 2), separation=30., r=(100., 100., 0.))
         self.overlay.addTrap(arr)
         self.overlay.fromList(self.overlay.toList())
-        self.assertEqual(len(self.overlay._traps), 6)
+        self.assertEqual(len(list(self.overlay.leaves())), 6)
 
     def test_from_list_replaces_existing(self):
         self.overlay.addTrap(QTweezer(r=(1., 1., 0.), phase=0.))
@@ -570,7 +572,7 @@ class TestSaveLoad(unittest.TestCase):
         for x in (10., 20., 30., 40.):
             self.overlay.addTrap(QTweezer(r=(x, 0., 0.), phase=0.))
         self.overlay.fromList(data)
-        self.assertEqual(len(self.overlay._traps), 1)
+        self.assertEqual(len(list(self.overlay.leaves())), 1)
 
 
 class TestLockedTrapIgnored(unittest.TestCase):
@@ -600,8 +602,8 @@ class TestLockedSerialization(unittest.TestCase):
         overlay.addTrap(QTweezer(r=(2., 3., 0.), locked=True))
         overlay2 = make_overlay()
         overlay2.fromList(overlay.toList())
-        self.assertEqual(len(overlay2._traps), 1)
-        self.assertTrue(overlay2._traps[0].locked)
+        (trap,) = overlay2.leaves()
+        self.assertTrue(trap.locked)
 
     def test_unlocked_not_in_dict(self):
         overlay = make_overlay()
@@ -619,7 +621,7 @@ class TestMarkerSize(unittest.TestCase):
         self.base = self.overlay.opts['size']
 
     def size(self, trap):
-        return self.overlay.points()[trap._index].size()
+        return self.overlay.spotOf(trap).size()
 
     def test_a_trap_in_the_focal_plane_has_the_size_of_the_overlay(self):
         trap = QTweezer(r=(50., 60., 0.))
@@ -708,7 +710,7 @@ class TestAMarkedGroupStaysMarkedInTheEyesOfTheUser(unittest.TestCase):
         self.overlay.mark(self.t1)
 
     def shows(self, trap, state):
-        return (self.overlay.points()[trap._index].brush()
+        return (self.overlay.spotOf(trap).brush()
                 == self.overlay.brush[state])
 
     def test_a_mark_and_an_active_group_are_not_alike(self):

@@ -1,8 +1,7 @@
 '''The overlay on which the optical traps are shown, picked and moved.'''
 import contextlib
-import functools
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterable, Iterator
 from enum import Enum
 from typing import Any, ClassVar, cast
 
@@ -93,7 +92,9 @@ class QTrapOverlay(ScatterPlotItem):
             Forwarded to ``ScatterPlotItem``.
         '''
         super().__init__(*args, size=size, **kwargs)
-        self._traps: list[QTrap] = []
+        self._spots: dict[QTrap, int] = {}      # leaf: index of its spot
+        self._watched: set[QTrapGroup] = set()  # top-level groups followed
+        self._arrays: set[QTrapGroup] = set()   # groups that reshape
         self._marked: set[QTrap] = set()
         self._undoStack = QUndoStack()
         self.gestures = Gestures(self)
@@ -170,40 +171,87 @@ class QTrapOverlay(ScatterPlotItem):
                 'data': trap,
                 **trap.appearance()}
 
-    def _follow(self, spot, trap: QTrap) -> None:
+    def _followSpot(self, spot, trap: QTrap) -> None:
         '''Move and resize the marker of a trap to where the trap is.'''
         spot._data['x'] = trap.x
         spot._data['y'] = trap.y
         spot._data['size'] = self._markerSize(trap)
         spot.updateItem()
 
-    def _addTrap(self, traps: QTrap) -> None:
-        '''Register a trap or group with the overlay (internal).
+    def leaves(self) -> Iterator[QTrap]:
+        '''Yield every trap that is not a group, in the order of the spots.'''
+        for item in self:
+            yield from item.leaves()
 
-        Attaches ``traps`` as a Qt child of the overlay, registers all
-        leaf spots, and emits ``trapAdded``.  :meth:`addTrap` calls it
-        for a trap or a group, which is what the undo commands do.
+    def spotOf(self, trap: QTrap) -> Any:
+        '''Return the spot that shows a leaf trap.'''
+        return self.points()[self._spots[trap]]
+
+    def refresh(self) -> None:
+        '''Make the spots, and what follows the traps, agree with the traps.
+
+        The traps and groups, which are Qt children of the overlay and of
+        one another, are all that there is; the spots, and the signals that
+        keep them where the traps are, follow from them.  Call it after
+        anything that changes which traps are there or how they are grouped
+        (the overlay does so itself when it adds or removes traps).  Every
+        spot is shown at rest, as :meth:`restingState` says.
+        '''
+        leaves = list(self.leaves())
+        top = {item for item in self if isinstance(item, QTrapGroup)}
+        groups = list(self._groups())
+        arrays = {group for group in groups if hasattr(group, 'reshaping')}
+        spots = self._spots.keys()
+        self._track(spots, leaves, 'changed', self._onTrapChanged)
+        self._track(self._watched, top, 'changed', self._onGroupChanged)
+        self._track(self._arrays, arrays, 'reshaping', self._onReshaping)
+        self._track(self._arrays, arrays, 'reshaped', self._onReshaped)
+        self._watched, self._arrays = top, arrays
+        self._spots = {trap: n for n, trap in enumerate(leaves)}
+        self.clear()
+        self.addPoints([
+            self._spot(trap,
+                       self.brush[self.restingState(self.groupOf(trap))])
+            for trap in leaves])
+
+    @staticmethod
+    def _track(before: Iterable[Any],
+               after: Iterable[Any],
+               signal: str,
+               slot: Callable[[], None]) -> None:
+        '''Connect the signal of each object that is new, and disconnect
+        that of each that has gone (an object that is deleted has no
+        connections left to disconnect).'''
+        before, after = set(before), set(after)
+        for gone in before - after:
+            with contextlib.suppress(TypeError, RuntimeError):
+                getattr(gone, signal).disconnect(slot)
+        for new in after - before:
+            getattr(new, signal).connect(slot)
+
+    def _groups(self) -> Iterator[QTrapGroup]:
+        '''Yield every group of the overlay, at any depth.'''
+        pending = [item for item in self if isinstance(item, QTrapGroup)]
+        while pending:
+            group = pending.pop()
+            yield group
+            pending += [child for child in group
+                        if isinstance(child, QTrapGroup)]
+
+    def _addTrap(self, traps: QTrap) -> None:
+        '''Add a trap or a group to the overlay (internal).
+
+        It becomes a Qt child of the overlay, the spots are made again, and
+        ``trapAdded`` is emitted.  :meth:`addTrap` calls it, which is what
+        the undo commands do.
 
         Parameters
         ----------
         traps : QTrap
-            A single trap or a group to register.
+            A single trap or a group.
         '''
         traps.setParent(self)
-        brush_state = self.restingState(traps)
-        for trap in traps.leaves():
-            trap._index = len(self._traps)
-            self._traps.append(trap)
-            self.addPoints([self._spot(trap, self.brush[brush_state])])
-            trap.changed.connect(self._onTrapChanged)
-        if hasattr(traps, 'reshaping'):     # an array can change its shape
-            array: Any = traps
-            array.reshaping.connect(
-                functools.partial(self._onGroupReshaping, traps))
-            array.reshaped.connect(
-                functools.partial(self._onGroupReshaped, traps))
-        if isinstance(traps, QTrapGroup):
-            self.watch(traps)
+        self.refresh()
         self.trapAdded.emit(traps)
 
     def addTrap(self, traps: QTrap | list[QTrap]) -> None:
@@ -216,8 +264,12 @@ class QTrapOverlay(ScatterPlotItem):
         traps : QTrap or list[QTrap]
             A single trap or group, or a list of them.
         '''
-        for trap in (traps if isinstance(traps, list) else [traps]):
-            self._addTrap(trap)
+        items = traps if isinstance(traps, list) else [traps]
+        for trap in items:
+            trap.setParent(self)
+        self.refresh()
+        for trap in items:
+            self.trapAdded.emit(trap)
 
     def addTweezer(self, x: float, y: float) -> None:
         '''Add a tweezer at a position, so that the user can undo it.
@@ -230,12 +282,12 @@ class QTrapOverlay(ScatterPlotItem):
         self._undoStack.push(AddTrapCommand(self, x, y))
 
     def _removeTrap(self, group: QTrap) -> None:
-        '''Deregister a top-level trap or group from the overlay (internal).
+        '''Remove a top-level trap or group from the overlay (internal).
 
-        Disconnects signals, removes leaf spots, detaches the group from
-        Qt's object hierarchy, and emits ``trapRemoved``.  The members
-        stay in the group, so that undoing the removal restores it.
-        :meth:`removeTrap` calls it, which is what the undo commands do.
+        It stops being a Qt child of the overlay, the spots are made again,
+        and ``trapRemoved`` is emitted.  The members stay in the group, so
+        that undoing the removal restores it.  :meth:`removeTrap` calls it,
+        which is what the undo commands do.
 
         Parameters
         ----------
@@ -244,18 +296,8 @@ class QTrapOverlay(ScatterPlotItem):
         '''
         self._marked.discard(group)
         self.trapRemoved.emit(group)
-        for t in list(group.leaves()):
-            try:
-                t.changed.disconnect(self._onTrapChanged)
-            except (TypeError, RuntimeError):
-                logger.debug(f'could not disconnect changed from {t!r}')
-            if t in self._traps:
-                self._traps.remove(t)
-            t._index = None
-        if isinstance(group, QTrapGroup):
-            self.unwatch(group)
         group.setParent(None)
-        self._rebuildSpots()
+        self.refresh()
         self.patternChanged.emit()   # ``trapRemoved`` was emitted at the start
 
     def removeTrap(self, trap: QTrap) -> None:
@@ -275,28 +317,13 @@ class QTrapOverlay(ScatterPlotItem):
         '''Remove all traps, and their marks, and clear the undo stack.'''
         top_level = list(self)
         self._marked.clear()
-        for trap in list(self._traps):
-            trap.changed.disconnect(self._onTrapChanged)
-            trap._index = None
-        self._traps.clear()
-        self.clear()
         for item in top_level:
-            if isinstance(item, QTrapGroup):
-                self.unwatch(item)
             item.setParent(None)
+        self.refresh()
+        for item in top_level:
             self.trapRemoved.emit(item)
         self._undoStack.clear()
         self.patternChanged.emit()
-
-    def _rebuildSpots(self) -> None:
-        '''Rebuild all SpotItems after a removal, resequencing ``_index``.'''
-        self.clear()
-        spots = []
-        for n, trap in enumerate(self._traps):
-            trap._index = n
-            brush_state = self.restingState(self.groupOf(trap))
-            spots.append(self._spot(trap, self.brush[brush_state]))
-        self.addPoints(spots)
 
     @staticmethod
     def groupOf(trap: QTrap) -> QTrap:
@@ -316,49 +343,24 @@ class QTrapOverlay(ScatterPlotItem):
             trap = parent
         return trap
 
-    def _onGroupReshaping(self, group: QTrap) -> None:
-        '''Disconnect old leaves and emit trapRemoved before repopulation.
+    @QtCore.Slot()
+    def _onReshaping(self) -> None:
+        '''Say that the top-level item of an array is about to change.'''
+        array = cast(QTrapGroup, self.sender())
+        self.trapRemoved.emit(self.groupOf(array))
 
-        Called when a reshapeable group (e.g. QTrapArray) is about to
-        discard its current tweezers.  Old leaves are still children of
-        the group at this point, so ``group.leaves()`` returns them.
-
-        Parameters
-        ----------
-        group : QTrap
-            The group that is about to repopulate.
-        '''
-        for t in list(group.leaves()):
-            with contextlib.suppress(TypeError, RuntimeError):
-                t.changed.disconnect(self._onTrapChanged)
-            if t in self._traps:
-                self._traps.remove(t)
-                t._index = None
-        self.trapRemoved.emit(group)
-
-    def _onGroupReshaped(self, group: QTrap) -> None:
-        '''Connect new leaves and emit trapAdded after repopulation.
-
-        Called after a reshapeable group has populated its new tweezers.
-        New leaves are already children of the group at this point.
-
-        Parameters
-        ----------
-        group : QTrap
-            The group that has just repopulated.
-        '''
-        for t in group.leaves():
-            t._index = len(self._traps)
-            self._traps.append(t)
-            t.changed.connect(self._onTrapChanged)
-        self._rebuildSpots()
-        self.trapAdded.emit(group)
+    @QtCore.Slot()
+    def _onReshaped(self) -> None:
+        '''Make the spots again, and say that the item has changed.'''
+        array = cast(QTrapGroup, self.sender())
+        self.refresh()
+        self.trapAdded.emit(self.groupOf(array))
 
     @QtCore.Slot()
     def _onTrapChanged(self) -> None:
         '''Slot called when a trap's position changes; updates its spot.'''
         trap = cast(QTrap, self.sender())
-        self._follow(self.points()[trap._index], trap)
+        self._followSpot(self.spotOf(trap), trap)
         self.patternChanged.emit()
 
     @QtCore.Slot()
@@ -367,8 +369,7 @@ class QTrapOverlay(ScatterPlotItem):
         group = cast(QTrapGroup, self.sender())
         spots = self.points()
         for trap in group.leaves():
-            if trap._index is not None:
-                self._follow(spots[trap._index], trap)
+            self._followSpot(spots[self._spots[trap]], trap)
         self.patternChanged.emit()
 
     def setGroupBrush(self, group: QTrap, state: State) -> None:
@@ -385,19 +386,9 @@ class QTrapOverlay(ScatterPlotItem):
         '''
         spots = self.points()
         for trap in group.leaves():
-            if trap._index is not None:
-                spot = spots[trap._index]
-                spot.setBrush(self.brush[state])
-                spot.updateItem()
-
-    def watch(self, group: QTrapGroup) -> None:
-        '''Keep the spots of a top-level group where the group is.'''
-        group.changed.connect(self._onGroupChanged)
-
-    def unwatch(self, group: QTrapGroup) -> None:
-        '''Stop keeping the spots of a group where the group is.'''
-        with contextlib.suppress(TypeError, RuntimeError):
-            group.changed.disconnect(self._onGroupChanged)
+            spot = spots[self._spots[trap]]
+            spot.setBrush(self.brush[state])
+            spot.updateItem()
 
     # Identifying traps by position
 
@@ -417,7 +408,7 @@ class QTrapOverlay(ScatterPlotItem):
         pts = self.pointsAt(pos)
         if len(pts) == 0:
             return None
-        return self._traps[pts[0].index()]
+        return pts[0].data()
 
     def groupAt(self, pos: QtCore.QPointF) -> QTrap | None:
         '''Return the topmost group containing the trap nearest to a position.
@@ -528,5 +519,4 @@ class QTrapOverlay(ScatterPlotItem):
             A list of dicts as produced by ``toList()``.
         '''
         self.clearTraps()
-        for d in data:
-            self.addTrap(self._makeTrap(d))
+        self.addTrap([self._makeTrap(d) for d in data])

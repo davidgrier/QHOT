@@ -425,7 +425,7 @@ class TestStartRotation(unittest.TestCase):
         self.gestures.startRotation(point(4., 0.))
         for trap in (self.t1, self.t2):
             self.assertEqual(
-                self.overlay.points()[trap._index].brush(),
+                self.overlay.spotOf(trap).brush(),
                 self.overlay.brush[self.overlay.State.ACTIVE])
 
     def test_it_is_the_outermost_group_that_turns(self):
@@ -466,7 +466,7 @@ class TestRotation(unittest.TestCase):
 
     def test_the_spots_follow_the_traps(self):
         self.overlay.gestures.move(move(), point(0., 4.))
-        spot = self.overlay.points()[self.t1._index]
+        spot = self.overlay.spotOf(self.t1)
         self.assertAlmostEqual(spot._data['x'], 0., places=5)
         self.assertAlmostEqual(spot._data['y'], 4., places=5)
 
@@ -501,7 +501,7 @@ class TestRotation(unittest.TestCase):
         self.overlay.gestures.release(press())
         for trap in (self.t1, self.t2):
             self.assertEqual(
-                self.overlay.points()[trap._index].brush(),
+                self.overlay.spotOf(trap).brush(),
                 self.overlay.brush[self.overlay.State.NORMAL])
 
     def test_a_rotation_can_be_undone(self):
@@ -529,17 +529,17 @@ class TestAdd(unittest.TestCase):
     def test_creates_trap_at_position(self):
         overlay = make_overlay()
         overlay.gestures.add(QtCore.QPointF(3., 7.))
-        self.assertEqual(len(overlay._traps), 1)
+        self.assertEqual(len(list(overlay.leaves())), 1)
 
     def test_trap_is_tweezer(self):
         overlay = make_overlay()
         overlay.gestures.add(QtCore.QPointF(1., 1.))
-        self.assertIsInstance(overlay._traps[0], QTweezer)
+        self.assertIsInstance(next(overlay.leaves()), QTweezer)
 
     def test_tweezer_position_matches(self):
         overlay = make_overlay()
         overlay.gestures.add(QtCore.QPointF(3., 7.))
-        trap = overlay._traps[0]
+        trap = next(overlay.leaves())
         self.assertAlmostEqual(trap.x, 3.)
         self.assertAlmostEqual(trap.y, 7.)
 
@@ -559,7 +559,7 @@ class TestRemove(unittest.TestCase):
         spot = self.overlay.points()[0]
         with patch.object(self.overlay, 'pointsAt', return_value=[spot]):
             self.overlay.gestures.remove(QtCore.QPointF(5., 5.))
-        self.assertNotIn(self.trap, self.overlay._traps)
+        self.assertNotIn(self.trap, list(self.overlay.leaves()))
 
     def test_returns_true_when_trap_found(self):
         spot = self.overlay.points()[0]

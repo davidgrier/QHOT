@@ -93,6 +93,8 @@ qhot.py (QHOTWindow)
 - **A group keeps its own center.** Move a group as a whole (`group.r = ...`, which `QTrapOverlay.markedGroups` and iterating the overlay give you), never the traps of a group one by one: an array makes its traps again around its center when it is saved, loaded or reshaped. Removing a group from the overlay detaches only the group, so that undo restores all of it.
 - `traps/` — concrete trap types: `QTweezer`, `QVortex`, `QRingTrap`, `QTrapArray`, `QLetterArray`, `QTextArray`
 
+**A lock is a guard for the mouse.**  A locked trap or group is not dragged, scrolled or rotated by the mouse (`Gestures`), and nothing else: the Traps tab, the tasks and code still move it, and the lock of a group is not a lock of its members.  That is how it is meant (decided 2026-11-14); do not extend it without asking.
+
 **Hardware decisions.**  The SLM is the second screen, always: it is hardware, and nothing needs to choose (with one screen it opens on the primary, `-s`).  There is no correction of the phase response of the SLM, because there is no way to calibrate it yet; add it when there is.
 
 **Hologram computation** (`lib/holograms/`):

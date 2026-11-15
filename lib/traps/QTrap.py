@@ -167,12 +167,14 @@ class QTrap(QtCore.QObject):
 
     @property
     def locked(self) -> bool:
-        '''Whether this trap is locked (immovable).
+        '''Whether the mouse may not move this trap.
 
-        Locked traps cannot be moved, scrolled, or rotated via mouse
-        gestures.  The overlay displays them with the ``STATIC`` brush.
-        The lock state is preserved when saving and loading trap
-        configurations.
+        A locked trap or group cannot be dragged, scrolled or rotated with
+        the mouse, which looks at the top-level item only: the lock of a
+        group is not a lock of its members.  It is a guard against an
+        accidental drag and nothing more: the Traps tab, the tasks and code
+        still move it.  The overlay shows it with the ``STATIC`` brush, and
+        the lock is saved and loaded with the traps.
         '''
         return self._locked
 

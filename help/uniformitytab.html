@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>Uniformity Tab</title>
+</head>
+<body>
+<h2>Uniformity Tab</h2>
+<p>The Uniformity tab shows how even the illumination is across the video,
+  as you adjust it.  The plots follow the video, so they change as you
+  turn a knob or move a mirror, and you can see at once whether the
+  illumination is getting flatter.</p>
+
+<h3>The plots</h3>
+<p>There are two plots, one above the other.</p>
+<dl>
+  <dt>Upper plot</dt>
+  <dd>The mean intensity at each position <i>x</i> across the video,
+    averaged over all of the rows.  The horizontal axis is <i>x</i> in
+    pixels, and the vertical axis is the intensity.</dd>
+
+  <dt>Lower plot</dt>
+  <dd>The mean intensity at each position <i>y</i> down the video,
+    averaged over all of the columns.  The horizontal axis is <i>y</i>
+    in pixels.</dd>
+</dl>
+<p>The plots are of the video that you see in the main window, so they
+  include the filters of the <a href='videofilters.html'>Video tab</a>.
+  They do not include the traps.</p>
+
+<h3>Reading the plots</h3>
+<ul>
+  <li>When the illumination is uniform, both lines are flat.</li>
+  <li>A slope means that one side of the video is brighter than the other.
+    Tilt or move the source until the line is level.</li>
+  <li>A peak or a dip shows where the beam is brighter or darker than the
+    rest, and its position on the horizontal axis is its position in the
+    video.  A beam that is not centered is a peak that is not in the
+    middle.</li>
+  <li>A line that is cut off flat at the top may be a sign that the camera
+    is saturated.  Turn down the exposure or the gain, so that the
+    brightest part of the video is below the top of the scale.</li>
+</ul>
+
+<h3>Color cameras</h3>
+<p>A gray camera has one black line in each plot.  A color camera has
+  three lines in each plot, red, green and blue, one for each color of the
+  video.  When the lines lie on top of each other, the illumination is the
+  same color everywhere.  When one line is above the others in part of the
+  plot, that part of the video has a color cast, and it is the color of
+  that line.</p>
+
+<h3>Working with the plots</h3>
+<ul>
+  <li>The vertical axes scale themselves, so a flat line may fill the
+    plot when the intensity is nearly constant.  Read the numbers on the
+    axis to see how large the variation is.</li>
+  <li>Zoom and pan as in any other plot: turn the mouse wheel over the
+    plot, or drag in it.  Right-click for the menu of the plot, which
+    can export the data.</li>
+  <li>The tab does not change anything, in the video or in the recording.
+    It only shows the video.</li>
+</ul>
+<hr>
+</body>
+</html>

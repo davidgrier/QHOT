@@ -62,6 +62,20 @@
                 </layout>
                </widget>
        </widget>
+       <widget class="QScrollArea" name="uniformityScroll">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <attribute name="title">
+         <string>Uniformity</string>
+        </attribute>
+               <widget class="QWidget" name="uniformityTab">
+                <layout class="QVBoxLayout" name="uniformityLayout"/>
+               </widget>
+       </widget>
        <widget class="QScrollArea" name="trapScroll">
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>

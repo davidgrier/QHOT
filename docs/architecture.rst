@@ -399,6 +399,26 @@ button, remove any filter with its × button, and drag filters to reorder
 the pipeline.  The **Export…** button saves the current enabled pipeline
 as a standalone Python module.
 
+**Uniformity tab.**  The uniformity tab is for adjusting the illumination.
+It holds one :class:`~QVideo.widgets.QUniformityWidget.QUniformityWidget`
+(``QHOTWindow.uniformity``), which is connected to the video screen and
+nothing else: ``qhot.py`` only makes the connection, and the widget is
+QVideo's.  On every frame that the screen shows, the widget plots the mean
+intensity along :math:`x`, averaged over :math:`y`, and the mean intensity
+along :math:`y`, averaged over :math:`x`, as two plots, one above the other:
+
+.. math::
+
+   I_x(x) = \frac{1}{N_y} \sum_y I(x, y), \qquad
+   I_y(y) = \frac{1}{N_x} \sum_x I(x, y).
+
+A gray frame has one trace in each plot, and a color frame has three, for
+red, green and blue, so that a color cast in the illumination shows as traces
+that differ.  Flat traces are uniform illumination, and a slope, a dip or a
+peak shows where it is not.  The traces are of the frame that the screen
+displays, that is, after the filters of the Video tab.  The user's page for
+the tab is ``help/uniformitytab.html``.
+
 **Keyboard shortcuts** are assigned by ``_setupShortcuts()`` on the
 existing File and Tasks actions:
 

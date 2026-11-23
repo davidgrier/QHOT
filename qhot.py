@@ -17,6 +17,7 @@ import pyqtgraph as pg
 from QVideo.cameras import chooser
 from QVideo.dvr import QDVRWidget
 from QVideo.lib import QCamera, QCameraOpener, QCameraTree, QFilterRack
+from QVideo.widgets import QUniformityWidget
 from QHOT.lib import (QSLM, QSLMWidget, QSaveFile, build_parser, choose_cgh,
                       choose_slm, configure_logging)
 from QHOT.lib.holograms import CGH
@@ -70,6 +71,9 @@ class QHOT(QtWidgets.QMainWindow):
     manager : QTaskManager
         Frame-synchronized task scheduler.  Register tasks with
         ``self.manager.register(task)`` to queue them for execution.
+    uniformity : QUniformityWidget
+        The plots in the Uniformity tab: the mean intensity of the video
+        along x and along y, for adjusting the illumination.
     '''
 
     UIFILE = Path(__file__).parent / 'QHOT.ui'
@@ -86,6 +90,8 @@ class QHOT(QtWidgets.QMainWindow):
     splitter: QtWidgets.QSplitter
     tabWidget: QtWidgets.QTabWidget
     videoTab: QtWidgets.QWidget
+    uniformityTab: QtWidgets.QWidget
+    uniformity: QUniformityWidget
     helpBrowser: QtWidgets.QTextBrowser
     menubar: QtWidgets.QMenuBar
     menuTasks: QtWidgets.QMenu
@@ -157,6 +163,10 @@ class QHOT(QtWidgets.QMainWindow):
         layout.addWidget(self.filter)
         self.videoScreen.framerate = 30
         self.videoScreen.source = self.filter.pipeline
+        # the profiles of the illumination follow the video screen
+        layout = cast(QtWidgets.QVBoxLayout, self.uniformityTab.layout())
+        self.uniformity = QUniformityWidget(self.videoScreen)
+        layout.addWidget(self.uniformity)
         self.dvr.source = self.source
         self.cghTree.cgh = self.cgh
         self.helpBrowser.setSearchPaths([str(self.HELPDIR)])

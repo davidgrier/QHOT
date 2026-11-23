@@ -834,7 +834,7 @@ class TestTheWindowFollowsTheCamera(unittest.TestCase):
 
     def test_the_panels_scroll(self):
         tabs = self.window.tabWidget
-        self.assertEqual(tabs.count(), 6)
+        self.assertEqual(tabs.count(), 7)
         for n in range(tabs.count()):
             with self.subTest(tabs.tabText(n)):
                 page = tabs.widget(n)

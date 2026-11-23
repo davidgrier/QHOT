@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-23
+
+An aid for adjusting the illumination.
+
+### Added
+- **A Uniformity tab** shows the mean intensity of the video along x and
+  along y, one plot above the other, for every frame that the screen shows.
+  Flat lines are uniform illumination, and a slope, a dip or a peak shows
+  where it is not.  A gray camera has one trace in each plot and a color
+  camera has three, red, green and blue, so that a color cast shows.  The
+  plots are QVideo's `QUniformityWidget`, which is connected to the screen
+  as `QHOTWindow.uniformity`.  The Help tab has a page for it, and the
+  architecture page of the documentation describes it.
+
+### Changed
+- **QVideo 4.30.0 or later is required**, for the red, green and blue traces
+  of `QUniformityWidget`.
+
 ## [2.4.0] — 2026-11-14
 
 A review of the whole program, from the checks that run on it to what the

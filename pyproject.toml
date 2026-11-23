@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "QHOT"
-version = "2.4.0"
+version = "2.5.0"
 description = "Holographic optical trapping instrument control"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -30,7 +30,7 @@ dependencies = [
     "pyqtgraph>=0.13",
     "tomlkit>=0.11",
     "qtpy>=2.0",
-    "QVideo[dvr]>=4.28.0",
+    "QVideo[dvr]>=4.30.0",
 ]
 
 [project.urls]
